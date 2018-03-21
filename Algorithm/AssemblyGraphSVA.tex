@@ -1,0 +1,171 @@
+\documentclass[10pt]{article}
+\usepackage{hyperref}
+
+% amsmath package, useful for mathematical formulas
+\usepackage{amsmath}
+% amssymb package, useful for mathematical symbols
+\usepackage{amssymb}
+
+% graphicx package, useful for including eps and pdf graphics
+% include graphics with the command \includegraphics
+\usepackage{graphicx}
+
+% cite package, to clean up citations in the main text. Do not remove.
+\usepackage{cite}
+
+\usepackage{color} 
+
+\usepackage{bm}
+
+% Use doublespacing - comment out for single spacing
+\usepackage{setspace} 
+%\doublespacing
+
+% Use the natbib bibtex style
+\usepackage[round]{natbib}
+
+% Remove brackets from numbering in List of References
+\makeatletter
+\renewcommand{\@biblabel}[1]{\quad#1.}
+\makeatother
+
+\date{}
+
+\pagestyle{myheadings}
+
+\newcommand\titlestring{Structured Variational Approximation for Gaussian Assembly Graphs}
+
+
+\newcommand\shorttitlestring{Assembly SVA}
+
+\markboth{\shorttitlestring}{\shorttitlestring}
+
+\newcommand\authorstring{Christopher Quince}
+
+\usepackage{array}
+
+% Labels & references for sections, figures and tables
+% Comment out \secref and \seclabel for PLoS -- they don't have numbered section references.
+\newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\seclabel}[1]{\label{sec:#1}}
+\newcommand{\secname}[1]{``#1''}  % PLoS-style section names
+
+% "Text S1", "Text S2", etc.
+\newcommand{\supptext}[1]{Text S#1}
+
+% "Dataset S1", "Dataset S2", etc.
+\newcommand{\dataset}[1]{Dataset S#1}
+
+% Appendix
+\newcommand{\appref}[1]{Appendix~\ref{app:#1}}
+\newcommand{\applabel}[1]{\label{app:#1}}
+
+% Figure
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\figlabel}[1]{\label{fig:#1}}
+
+% Table
+\newcommand{\tabnum}[1]{\ref{tab:#1}}
+\newcommand{\tabref}[1]{Table~\tabnum{#1}}
+\newcommand{\tablabel}[1]{\label{tab:#1}}
+
+% Equation
+\newcommand{\eqnref}[1]{Equation~\ref{eqn:#1}}
+\newcommand{\eqnlabel}[1]{\label{eqn:#1}}
+
+
+% need cite, check me, and other notes to self
+\newcommand\needcite{{\bf [CITE]}}
+\newcommand\checkme{{\bf [CHECK]}}
+
+% For collaborative notes, define a "red pen"
+\newcommand\redpen[1]{{\bf \textcolor{red}{#1}} \textcolor{black}{}}
+
+
+% argmax
+\newcommand\argmax{\mbox{argmax}}
+
+
+
+%% END MACROS SECTION
+
+\begin{document}
+
+% Title should be 10 words or less
+\begin{flushleft}
+  {\Large
+    \textbf{\titlestring}
+  }
+\\
+\authorstring
+\end{flushleft}
+
+\section{The model}
+
+Define the joint distribution of: 
+\begin{itemize}
+
+\item Transformed counts $x_{v,s} = \sqrt x'_{v,s}$ for each unitig $v = 1,\ldots,V$ in sample $s = 1,\ldots,S$
+
+\item Paths for strain $g = 1,\ldots,G$ defined by $\eta^g_{u,v}$
+
+\item Flow of strain $g$ through $v$, $\phi^{g+}_v = \sum_{u \in A(v)} \eta^g_{u,v}$ 
+and $\phi^{g-}_v = \sum_{u \in D(v)} \eta^g_{v,u}$ where $A(v)$ is set of ancestors of $v$ 
+and $D(v)$ descendants in the assembly graph
+
+\item Strain coverages $\gamma_{g,s}$
+
+\item Unitig lengths $L_v$
+
+\item Source node $s$ and sink node $t$
+
+\end{itemize}
+
+\begin{equation}
+P(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  = \prod_{v=1}^V \prod_{s=1}^S \mathcal{N}(x_{v,s}|L_v [\sum_{h=1}^G \phi^h_v \gamma_{h,s}],\sigma^2) 
+\prod_{h=1}^G \prod_{s=1}^S P(\gamma_{g,s})
+\prod_{h=1}^G \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v}
+ \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} 
+\end{equation}
+where $\sigma^2 = 1/4$ and $\delta$ is the Kronecker delta.
+
+We assume an exponential prior for the $\gamma_{g,s}$ such that:
+\begin{equation}
+P(\gamma_{g,s}) = \frac{1/\epsilon} \exp(-\gamma_{g,s}/\epsilon)
+\end{equation}
+
+\section{Variational Approximation}
+
+Assume the following factorisation for the variational approximation:
+\begin{equation}
+q(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  =  \prod_{h=1}^G q_h(\{ \eta^h_{v,u} \} _{u,v \in A}) \prod_{h=1}^G \prod_{s=1}^S q_g(\gamma_{h,s})
+\end{equation}
+where $A$ are all pairs of nodes in assembly graph.
+
+Then the mean field update for each set of $ \{\eta^h_{v,u}\}_{u,v \in A}$ is derived as:
+\begin{align}
+\ln q^*( \{ \eta^h_{v,u} \} _{u,v \in A}) & =  \left\langle \ln P \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}} \\
+& =  \ln \left( \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v} \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} \right)\\
+& -  \left\langle \sum_{v=1}^V \sum_{s=1}^S \frac{1}{2\sigma^2}\left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}}
+\end{align}
+
+Consider second term only:
+\begin{equation}
+ - \frac{1}{2\sigma^2}\left ( 
+- \sum_{v=1}^V \sum_{s=1}^S 2 x_{v,s} L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
++ L_v^2 \langle (\sum_{h=1}^G \phi^h_v \gamma_{h,s}) (\sum_{g=1}^G \phi^g_v \gamma_{g,s}) \rangle)
+\right )
+\end{equation}
+
+\begin{equation}
+ - \frac{1}{2\sigma^2}\left ( 
+ \sum_{v=1}^V \sum_{s=1}^S \left [ -2 x_{v,s} L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
++ 2 L_v^ 2 \sum_{h \neq g }^G \langle \phi^h_v \rangle \langle \gamma_{h,s} \rangle \langle \gamma_{g,s} \rangle \phi^{g}_v
++ L_v^2 \langle \gamma_{g,s}^2 \rangle (\phi^{g}_v)^2
+\right]
+\right )
+\end{equation}
+
+\end{document}
+
+
