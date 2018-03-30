@@ -131,7 +131,7 @@ where $\sigma^2 = 1/4$ and $\delta$ is the Kronecker delta.
 
 We assume an exponential prior for the $\gamma_{g,s}$ such that:
 \begin{equation}
-P(\gamma_{g,s}) = \frac{1/\epsilon} \exp(-\gamma_{g,s}/\epsilon)
+P(\gamma_{g,s}) = \frac{1}{\epsilon} \exp(-\gamma_{g,s}/\epsilon)
 \end{equation}
 
 \section{Variational Approximation}
@@ -165,6 +165,28 @@ Consider second term only:
 \right]
 \right )
 \end{equation}
+
+Next we consider the mean field update for the $\gamma_{g,s}$
+\begin{align}
+\ln q^*(\gamma_{g,s}) & =  \left\langle \ln P \right\rangle_{ \phi^{h}_{v \in A},\gamma_{h \neq g,t \neq s}} \\
+& =  - \left\langle \sum_{v=1}^V \frac{1}{2\sigma^2}\left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{\phi^{h}_{v \in A},\gamma_{h \neq g,t \neq s}} - \frac{\gamma_{g,s}}{\epsilon}
+\end{align}
+
+\begin{align}
+\ln q^*(\gamma_{g,s}) & = 
+& =  - \frac{1}{2\sigma^2} \left ( \sum_{v=1}^V -2 x_{v,s} L_v \langle \phi^g_{v} \rangle \gamma_{g,s}  
++ 2 L_v^2 \gamma_{g,s} \langle \phi_v^g \rangle \sum_{h \neq g } \langle \gamma_{h,s} \rangle \langle \phi^h_{v} \rangle
++ L_v^2 \gamma_{g,s}^2 \langle [\phi^g_{v}]^2  \rangle
+\right)
+- \frac{\gamma_{g,s}}{\epsilon}
+\end{align}
+with the restriction $\gamma_{g,s} > 0$ this gives a truncated Normal distribution for $\gamma_{g,s}$.
+With mean:
+\begin{align}
+\mu_{g,s}  & = \frac{\sum_v x_{v,s} L_v \langle \phi_v^g \rangle  - \langle \phi_v^g \rangle \sum_{h \neq g} \langle \gamma_{h,s} \rangle \langle \phi^h_v\rangle L_v^2}{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle} \\
+\tau_{g,s} & = \frac{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle}{\sigma^2} \\
+\end{align}
+
 
 \end{document}
 
