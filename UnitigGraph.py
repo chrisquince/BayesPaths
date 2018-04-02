@@ -113,7 +113,7 @@ class UnitigGraph():
         newGraph.forward = {}
         newGraph.start = {}
         newGraph.NC = nx.number_connected_components(newGraph.undirectedUnitigGraph)
-        self.createDirectedBiGraph()
+        newGraph.createDirectedBiGraph()
         return newGraph
     
     def setDirectionOrder(self, unitig_order):

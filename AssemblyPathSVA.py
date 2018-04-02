@@ -22,7 +22,9 @@ from numpy.random import RandomState
 
 from graph import Graph
 from Utils import convertNodeToName
+from Utils import read_unitig_order_file
 from UnitigGraph import UnitigGraph
+from NMF import NMF
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
@@ -406,6 +408,32 @@ class AssemblyPathSVA():
 
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
+    def updateUnitigFactorsW(self,unitigs, unitigMap, unitigFacNodes, W,gidx):
+
+        for unitig in unitigs:
+            if unitig in unitigFacNodes:
+                unitigFacNode = unitigFacNodes[unitig]
+                v_idx = unitigMap[unitig]
+                P = unitigFacNode.P
+                tempMatrix = np.zeros_like(P)
+                w = W[v_idx,gidx]
+
+                wmax = P.shape[0] - 1
+                tempMatrix.fill(self.minW) 
+
+                if w > wmax:
+                    w = wmax
+                
+                iw = int(w)
+                difw = w - iw
+                tempMatrix[iw] = 1.0 - difw
+                
+                if iw < wmax:
+                    tempMatrix[iw + 1] = difw
+
+                unitigFacNode.P = tempMatrix
+
+
     def removeGamma(self,g_idx):
         
         meanAss = self.phiMean[:,g_idx]
@@ -482,6 +510,125 @@ class AssemblyPathSVA():
         Va = self.eLambda
         return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) - self.XN + Va).sum()
 
+    def initNMF(self):
+        
+        covNMF =  NMF(self.XN,self.G,n_run = 10)
+    
+        covNMF.factorize()
+        covNMF.factorizeH()
+
+        self.muGamma = np.copy(covNMF.H)
+        covNMF.factorizeW()
+        
+        initEta = covNMF.W
+            
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+                    
+                self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
+                  
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+                    
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+                
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+                
+                cmd = './runfg_marg ' + graphFileName + ' 0'
+                
+                p = Popen(cmd, stdout=PIPE,shell=True)
+                
+                outString = p.stdout.read()
+                
+                self.margG[g] = self.parseMargString(str(outString))
+                self.updatePhiMean(self.margG[g],g)
+            self.addGamma(g)    
+        print("-1,"+ str(self.div())) 
+
+    def initNMF(self):
+        
+        covNMF =  NMF(self.XN,self.G,n_run = 10)
+    
+        covNMF.factorize()
+        covNMF.factorizeH()
+
+        self.muGamma = np.copy(covNMF.H)
+        covNMF.factorizeW()
+        
+        initEta = covNMF.W
+            
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+                    
+                self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
+                  
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+                    
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+                
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+                
+                cmd = './runfg_marg ' + graphFileName + ' 0'
+                
+                p = Popen(cmd, stdout=PIPE,shell=True)
+                
+                outString = p.stdout.read()
+                
+                self.margG[g] = self.parseMargString(str(outString))
+                self.updatePhiMean(self.margG[g],g)
+            self.addGamma(g)    
+        print("-1,"+ str(self.div())) 
+
+    def initNMFGamma(self,gamma):
+        
+        covNMF =  NMF(self.XN,self.G,n_run = 10)
+    
+        covNMF.H = np.copy(gamma)
+        covNMF.factorizeW()
+        
+        initEta = covNMF.W
+            
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+                    
+                self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
+                  
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+                    
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+                
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+                
+                cmd = './runfg_marg ' + graphFileName + ' 0'
+                
+                p = Popen(cmd, stdout=PIPE,shell=True)
+                
+                outString = p.stdout.read()
+                
+                self.margG[g] = self.parseMargString(str(outString))
+                self.updatePhiMean(self.margG[g],g)
+            self.addGamma(g)    
+        print("-1,"+ str(self.div())) 
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -490,12 +637,26 @@ def main(argv):
 
     parser.add_argument("cov_file", help="coverage file")
 
+    parser.add_argument("kmer_length", help="kmer length assumed overlap")
+
+    parser.add_argument("unitig_order_file", help="csv node file")
+
+    parser.add_argument("gamma_file", help="csv node file")
+
+    parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
+        help=("maximum number of strains"))
+
+    parser.add_argument('-f','--frac',nargs='?', default=0.75, type=float, 
+        help=("fraction for path source sink"))
+
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
+                
+    unitig_order = read_unitig_order_file(args.unitig_order_file)
                 
     unitigGraph = UnitigGraph.loadGraph(args.unitig_file, args.cov_file, 71)   
   
@@ -509,10 +670,28 @@ def main(argv):
         if c == 0:
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
-            sink_maps[str(c)] = ['6+']
-            source_maps[str(c)] = ['8+']
+            
+            sub_unitig_order = {k: unitig_order[k] for k in component}
+        
+            (source_list, sink_list) = unitigSubGraph.selectSourceSinks(sub_unitig_order, args.frac)
+
+            source_names = [convertNodeToName(source) for source in source_list] 
+            sink_names = [convertNodeToName(sink) for sink in sink_list]
+            
+            sink_maps[str(c)] = sink_list
+            source_maps[str(c)] = source_list
         c = c + 1
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150)
+    
+    covs    = p.read_csv(args.gamma_file, header=0, index_col=0)
+    
+    covs.drop('Strain', axis=1, inplace=True)
+    
+    cov_matrix = covs.values
+    
+    assGraph.muGamma = cov_matrix/assGraph.readLength
+    assGraph.muGamma2 = np.square(assGraph.muGamma)
+    assGraph.initNMFGamma(self,assGraph.muGamma)
     assGraph.update(100)
     
 if __name__ == "__main__":
