@@ -11,6 +11,7 @@ import scipy.misc as spm
 import scipy.special as sps
 import math
 from subprocess import Popen, PIPE, STDOUT
+from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
 import networkx as nx
 import argparse
 
@@ -23,12 +24,14 @@ from numpy.random import RandomState
 from graph import Graph
 from Utils import convertNodeToName
 from Utils import read_unitig_order_file
+from Utils import elop
+from Utils import expNormLogProb
 from UnitigGraph import UnitigGraph
 from NMF import NMF
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
-    
+    minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e-5):
         self.prng = prng #random state to store
 
@@ -90,11 +93,11 @@ class AssemblyPathSVA():
             else:
                 print("Serious problem")
                 
-            self.lengths[idx] = self.adjLengths[v]
+            self.lengths[idx] = np.sqrt(self.adjLengths[v])
             self.X[idx,:] = covName
             self.XN[idx,:] = covName/self.lengths[idx] 
             idx=idx+1
-        
+       
         self.XD = np.floor(self.X).astype(int)
         
         #Now initialise SVA parameters
@@ -349,7 +352,7 @@ class AssemblyPathSVA():
             
             tempGraph.add_edge(self.sourceNode,edgeName)
    
-    def parseMargString(self, outputString):
+    def parseMargString(self, factorGraph, outputString):
         mapMarg = {}
         lines = outputString.split('\\n')
         #({x410}, (0.625, 0.375, 0))
@@ -370,12 +373,12 @@ class AssemblyPathSVA():
                     if matchVals is not None:
                         vals = matchVals.group(1).split(',')
                         floatVals = [float(i) for i in vals]
-                        if int(var) >= len(self.probGraph.varNames):
+                        if int(var) >= len(factorGraph.varNames):
                             varName = "Debug"
                         else:
-                            varName = self.probGraph.varNames[int(var)]
-                        
-                        mapMarg[varName] = np.asarray(floatVals)
+                            varName = factorGraph.varNames[int(var)]
+                        if varName is not None:                
+                            mapMarg[varName] = np.asarray(floatVals)
         return mapMarg
     
     def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, tau):
@@ -449,12 +452,12 @@ class AssemblyPathSVA():
         self.eLambda += meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
 
-    def updatePhiMean(self,marg,g_idx):
+    def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
     
-        for unitig in self.unitigs:
+        for unitig in unitigs:
         
             if unitig in marg:
-                v_idx = self.mapIdx[unitig]
+                v_idx = mapUnitig[unitig]
                 ND = marg[unitig].shape[0]
                 self.phiMean[v_idx,g_idx] = np.sum(marg[unitig]*np.arange(ND))
 
@@ -472,7 +475,11 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
-                
+                    if iter < 100:
+                        self.tau = 0.01                    
+                    else:
+                        self.tau = 4.
+
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
         
@@ -494,13 +501,13 @@ class AssemblyPathSVA():
         
                     outString = p.stdout.read()
                
-                    margP = self.parseMargString(str(outString))
+                    margP = self.parseMargString(factorGraph,str(outString))
                     if len(margP) > 0: 
-                        self.margG[g] = self.parseMargString(str(outString))
+                        self.margG[g] = self.parseMargString(factorGraph,str(outString))
        
-                    self.updatePhiMean(self.margG[g],g)
+                    self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
-                    self.addGamma(g)
+                self.addGamma(g)
                
             print(str(iter)+","+ str(self.div()))  
             iter += 1
@@ -546,8 +553,8 @@ class AssemblyPathSVA():
                 
                 outString = p.stdout.read()
                 
-                self.margG[g] = self.parseMargString(str(outString))
-                self.updatePhiMean(self.margG[g],g)
+                self.margG[g] = self.parseMargString(factorGraph,str(outString))
+                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -595,13 +602,14 @@ class AssemblyPathSVA():
     def initNMFGamma(self,gamma):
         
         covNMF =  NMF(self.XN,self.G,n_run = 10)
-    
+        covNMF.random_initialize() 
         covNMF.H = np.copy(gamma)
         covNMF.factorizeW()
         
         initEta = covNMF.W
             
         for g in range(self.G):
+            
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
                     
@@ -625,8 +633,9 @@ class AssemblyPathSVA():
                 
                 outString = p.stdout.read()
                 
-                self.margG[g] = self.parseMargString(str(outString))
-                self.updatePhiMean(self.margG[g],g)
+                self.margG[g] = self.parseMargString(factorGraph,str(outString))
+            
+                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -689,9 +698,10 @@ def main(argv):
     
     cov_matrix = covs.values
     
-    assGraph.muGamma = cov_matrix/assGraph.readLength
+    assGraph.muGamma = np.sqrt(cov_matrix/assGraph.readLength)
     assGraph.muGamma2 = np.square(assGraph.muGamma)
-    assGraph.initNMFGamma(self,assGraph.muGamma)
+    assGraph.initNMFGamma(assGraph.muGamma)
+    #assGraph.tau = 1.0e-4
     assGraph.update(100)
     
 if __name__ == "__main__":
