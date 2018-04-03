@@ -558,47 +558,6 @@ class AssemblyPathSVA():
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
-    def initNMF(self):
-        
-        covNMF =  NMF(self.XN,self.G,n_run = 10)
-    
-        covNMF.factorize()
-        covNMF.factorizeH()
-
-        self.muGamma = np.copy(covNMF.H)
-        covNMF.factorizeW()
-        
-        initEta = covNMF.W
-            
-        for g in range(self.G):
-            for gene, factorGraph in self.factorGraphs.items():
-                unitigs = self.assemblyGraphs[gene].unitigs
-                    
-                self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
-                  
-                factorGraph.reset()
-        
-                factorGraph.var['zero+source+'].condition(1)
-
-                factorGraph.var['sink+infty+'].condition(1)
-                    
-                graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
-                
-                with open(graphFileName, "w") as text_file:
-                    print(graphString, file=text_file)
-                
-                cmd = './runfg_marg ' + graphFileName + ' 0'
-                
-                p = Popen(cmd, stdout=PIPE,shell=True)
-                
-                outString = p.stdout.read()
-                
-                self.margG[g] = self.parseMargString(str(outString))
-                self.updatePhiMean(self.margG[g],g)
-            self.addGamma(g)    
-        print("-1,"+ str(self.div())) 
-
     def initNMFGamma(self,gamma):
         
         covNMF =  NMF(self.XN,self.G,n_run = 10)
