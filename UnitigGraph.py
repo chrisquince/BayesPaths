@@ -56,7 +56,7 @@ class UnitigGraph():
         self.covMap = {}
     
     @classmethod
-    def loadGraph(cls,unitigFile, covFile, kmerLength):
+    def loadGraph(cls,unitigFile, kmerLength, covFile = None):
     
         unitigGraph = cls(kmerLength)
     
@@ -89,7 +89,8 @@ class UnitigGraph():
         unitigGraph.unitigs = unitigGraph.undirectedUnitigGraph.nodes()
         unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
         unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
-        unitigGraph.covMap = read_coverage_file(covFile)
+        if covFile is not None:
+            unitigGraph.covMap = read_coverage_file(covFile)
         unitigGraph.createDirectedBiGraph()
         return unitigGraph
         
