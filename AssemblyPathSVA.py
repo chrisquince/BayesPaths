@@ -626,7 +626,7 @@ def main(argv):
                 
     unitig_order = read_unitig_order_file(args.unitig_order_file)
                 
-    unitigGraph = UnitigGraph.loadGraph(args.unitig_file, args.cov_file, 71)   
+    unitigGraph = UnitigGraph.loadGraph(args.unitig_file, 71, args.cov_file)   
   
     #get separate components in graph
     components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
