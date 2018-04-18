@@ -376,20 +376,42 @@ class UnitigGraph():
     
         endUnitig = path[-1][0]
         endNodeName = convertNodeToName(path[-1])
-        endNode = self.directedUnitigBiGraph[endNodeName]
+        
         
         if endPos > self.lengths[endUnitig] - self.overlapLength:
-            endNode = self.directedUnitigBiGraph[endNodeName]
-            outNodes = list(self.directedUnitigBiGraph.successors(endNode))
             
-            if len(outNodes) == 1:
-                newEndPos = endPos - self.lengths[endUnitig] - self.overlapLength
-                newEndNode = convertNodeToName(outNodes[0])
+            out_nodes = list(self.directedUnitigBiGraph.successors(endNodeName))
+            
+            if len(out_nodes) == 1:
+                newEndPos = endPos - self.lengths[endUnitig] + self.overlapLength
                 
-                path.append(newEndNode)
+                path.append(convertNameToNode2(out_nodes[0]))
                 
-                self.propagateEndPath(path, newEndPos)
+                endPos = newEndPos
+                self.propagateEndPath(path, endPos)
+        return endPos
+        
+    def propagateStartPath(self, path, startPos):
+    
+        startUnitig = path[0][0]
+        startNodeName = convertNodeToName(path[0])
+        
+        if startPos < self.overlapLength:
+            
+            in_nodes = list(self.directedUnitigBiGraph.predecessors(startNodeName))
+            
+            if len(in_nodes) == 1:
+                inNodeCode = convertNameToNode2(in_nodes[0])
                 
+                newStartPos = startPos + self.lengths[inNodeCode[0]] - self.overlapLength
+                
+                path.insert(0,inNodeCode)
+                
+                startPos = newStartPos
+                
+                self.propagateStartPath(path, startPos)
+        return startPos
+        
     def addSourceSink(self, factorGraph, sources, sinks):
     
         #add sink factor and dummy flow out

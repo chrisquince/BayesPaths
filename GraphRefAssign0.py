@@ -20,7 +20,6 @@ import collections
 from collections import deque
 from collections import defaultdict
 from collections import Counter
-from Utils import convertNodeToName
 from numpy.random import RandomState
 from scipy.sparse import csc_matrix
 import warnings
@@ -28,17 +27,6 @@ import warnings
 mapBase = {'A': 0, 'C': 1, 'G': 2, 'T': 3} 
 
 mapDirn = {'True' : "+", 'False' : "-"}
-
-def convertNameToNode2(unitigd):
-    
-    direction = True
-    if unitigd[0] == '-':
-        unitig = unitigd[1:]
-        direction = False
-    else:
-        unitig = unitigd
-          
-    return (unitig,direction)
 
 def Most_Common(lst):
     
@@ -79,6 +67,17 @@ def reverseComplement(unitigList):
     compList = [compU(x) for x in reverseList]
 
     return compList
+
+def convertNameToNode2(unitigd):
+    
+    direction = True
+    if unitigd[0] == '-':
+        unitig = unitigd[1:]
+        direction = False
+    else:
+        unitig = unitigd
+          
+    return (unitig,direction)
 
 def expNormLogProb(logProbs):
 
@@ -135,7 +134,7 @@ class Graph_Correct():
         for unitig in self.unitigs:
             adjLength = self.unitigGraph.lengths[unitig]
 
-            nC = len(list(self.unitigGraph.undirectedUnitigGraph.neighbors(unitig)))
+            nC = len(self.unitigGraph.undirectedUnitigGraph.neighbors(unitig))
         
             assert adjLength >= 0
             
@@ -228,32 +227,9 @@ class Graph_Correct():
             for read, aligns in self.pathMap.items():
                 self.readZ[read] = np.zeros(len(aligns))
                 for align in aligns:
-                    
+                    unitigs = align[5]
                     startPos = align[6]
                     endPos = align[7]
-        
-                    #decide whether we can propagate back from start
-        
-                    #decide whether we can propagate end
-                    #how many outnodes
-                    
-                    newEndPos = self.unitigGraph.propagateEndPath(align[0], endPos)
-                    
-                    newStartPos = self.unitigGraph.propagateStartPath(align[0], startPos)
-                
-                    if startPos != newStartPos or newEndPos != endPos:
-                        startPos = newStartPos
-                        endPos = newEndPos
-                        
-                        pathName = [convertNodeToName(x) for x in align[0]]
-                        
-                        pathUnitigs = [x[:-1] for x in pathName]
-                                 
-                        align[5] = pathUnitigs
-                        align[6] = startPos
-                        align[7] = endPos   
-                
-                    unitigs = align[5]
                 
                     for unitig in unitigs:
                         if unitig not in self.nodeSum:
@@ -262,7 +238,7 @@ class Graph_Correct():
                     fHits = np.ones(len(unitigs))
                     if len(unitigs) == 1:
                         
-                        fHits[0] = float(endPos - startPos)/self.adjLengths[unitigs[0]]
+                        fHits[0] = float(startPos - endPos)/self.adjLengths[unitigs[0]]
                         
                     else:
                     
@@ -274,12 +250,8 @@ class Graph_Correct():
                         endUnitig = unitigs[-1]
  
                         fHits[-1] =  float(endPos)/float(self.adjLengths[endUnitig])
-
-                        if fHits[0] < 0.0 or fHits[-1] < 0.0:
-                            print(read) 
-    
+                        
                     align.append(fHits)
-
             
             self.NNodes = len(self.nodeSum)
             self.thetaDash = self.theta/self.NNodes
@@ -465,7 +437,7 @@ def main(argv):
 
     parser.add_argument("blast_file", help="blast m8 reads against COG reference")
 
-    parser.add_argument('-s','--samples',nargs='?', default=32, type=int, 
+    parser.add_argument('-s','--samples',nargs='?', default=1, type=int, 
         help=("number of samples in data set"))
 
     parser.add_argument('-hmm', action='store_true',help=("hmm input"))
@@ -523,8 +495,8 @@ def main(argv):
             (subjstart,subjend,forward) = readHits[read] 
         
             
-            readToks = read.split("_")
-            sample_idx = int(readToks[0][1:])
+            #readToks = read.split("_")
+            sample_idx = 0 #int(readToks[0][1:])
 
             if forward:
                 startNode = bestPath[0]
