@@ -442,7 +442,15 @@ class UnitigGraph():
                         self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodeMinusName, weight=lengthMinus)
                     else:
                         self.directedUnitigBiGraph.add_edge(nodeMinusName, nodePlusOutName, weight=lengthPlus)
-    
+        #if node is sink need to add extra length
+        for node in self.directedUnitigBiGraph.nodes():   
+            if self.directedUnitigBiGraph.out_degree(node) == 0:
+                for innode in self.directedUnitigBiGraph.predecessors(node):
+
+                    newWeight = self.directedUnitigBiGraph[innode][node]['weight'] + self.lengths[node[:-1]]  
+
+                    self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight)
+                    
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):
     
         biGraph = self.directedUnitigBiGraph.copy()
