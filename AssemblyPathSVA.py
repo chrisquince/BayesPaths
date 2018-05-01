@@ -641,7 +641,7 @@ def main(argv):
             
             sub_unitig_order = {k: unitig_order[k] for k in component}
         
-            (source_list, sink_list) = unitigSubGraph.selectSourceSinks(sub_unitig_order, args.frac)
+            (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
 
             source_names = [convertNodeToName(source) for source in source_list] 
             sink_names = [convertNodeToName(sink) for sink in sink_list]

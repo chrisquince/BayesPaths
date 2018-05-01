@@ -38,6 +38,12 @@ def dijkstra(graph, source, sink):
     except:
         return False
 
+def reverseDirn(node):
+
+    if node[-1] == '+':
+        node[-1] == '-'
+    elif node[-1] == '+':
+        node[-1] == '+'
 
 class UnitigGraph():
     """Creates unitig graph"""
@@ -203,8 +209,121 @@ class UnitigGraph():
                 nodeReachable[unitig] = True
                 
         return (nodeReachable, unreachablePlusMinus)
+    
+    def selectSourceSinks2(self, dFrac):
+    
+        sources = []
+        sinks = []
         
-    def selectSourceSinks(self, sub_unitig_order, dFrac):
+        sourceSinks = []
+        for unitig in self.undirectedUnitigGraph.nodes():
+            sourceSink = self.isSourceSink(unitig)
+            
+            if sourceSink is not None:
+                sourceSinks.append(unitig)
+            
+        #get all path lengths
+        self.createDirectedBiGraph()        
+
+        allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
+        allSSDict = defaultdict(dict)       
+        maxSourceSink = 0
+        maxSource = None
+        maxSink = None
+        for sourcePaths in allPaths:
+            source = sourcePaths[0]
+            unitig = source[:-1]
+            if unitig in sourceSinks:
+
+                for sink, length in sourcePaths[1].items(): 
+                    sinkUnitig = sink[:-1]
+                    if sinkUnitig in sourceSinks:
+                        allSSDict[source][sink] = length
+                        if length > maxSourceSink:
+                            maxSourceSink = length
+                            maxSource = source
+                            maxSink = sink
+            
+        sources = [maxSource]
+        sourceTigs = [maxSource[:-1]]
+        sinks = [maxSink]
+        sinkTigs = [maxSink[:-1]]
+
+        for sourceSink in sourceSinks:
+            if sourceSink not in sourceTigs and sourceSink not in sinkTigs:
+                ssPlus = sourceSink + "+"
+                ssMinus = sourceSink + "-"
+                
+                maxSourcePlus = 0.
+                maxSourceMinus = 0.
+
+                if ssPlus in allSSDict: 
+                    for sink in sinks:
+                        if sink in allSSDict[ssPlus]:
+                            if allSSDict[ssPlus][sink] > maxSourcePlus:
+                                maxSourcePlus = allSSDict[ssPlus][sink]
+                 
+                if ssMinus in allSSDict:
+                    for sink in sinks:
+                        if sink in allSSDict[ssMinus]:
+                            if allSSDict[ssMinus][sink] > maxSourceMinus:
+                                maxSourceMinus = allSSDict[ssMinus][sink]
+                
+                bSourcePlus = True
+                sourceMax = maxSourcePlus
+                if maxSourcePlus < maxSourceMinus:
+                    bSourcePlus = False
+                    sourceMax = maxSourceMinus
+                
+                maxSinkPlus = 0.0
+                maxSinkMinus = 0.0
+
+                for source in sources:
+                    if ssPlus in allSSDict[source]:
+                        if allSSDict[source][ssPlus] > maxSinkPlus:
+                            maxSinkPlus = allSSDict[source][ssPlus]
+
+                for source in sources:
+                    if ssMinus in allSSDict[source]:
+                        if allSSDict[source][ssMinus] > maxSinkMinus:
+                            maxSinkMinus = allSSDict[source][ssMinus]
+                
+                sinkMax = maxSinkPlus
+                bSinkPlus = True
+                if maxSinkPlus < maxSinkMinus:
+                    bSinkPlus = False
+                    sinkMax = maxSinkMinus
+                
+                if sourceMax > sinkMax:
+                    if sourceMax > dFrac*maxSourceSink:
+                        if bSourcePlus:
+                            sources.append(ssPlus)
+                        else:
+                            sources.append(ssMinus)
+                        sourceTigs.append(sourceSink)
+                else:
+                    if sinkMax > dFrac*maxSourceSink:
+                        if bSinkPlus:
+                            sinks.append(ssPlus)
+                        else: 
+                            sinks.append(ssMinus)
+
+                        sinkTigs.append(sourceSink)
+                print("Debug")
+
+        if len(sources) > 0:
+            source_list = list(map(convertNameToNode2, sources))
+        else:
+            source_list = []
+        if len(sinks) > 0:
+            sink_list = list(map(convertNameToNode2, sinks))
+        else:
+            sink_list = []
+        
+        return (source_list,sink_list)
+    
+    
+    def selectSourceSinks(self, sub_unitig_order, dFrac, dIFrac):
         
         self.setDirectionOrder(sub_unitig_order)
     
@@ -239,6 +358,23 @@ class UnitigGraph():
                 if sink in sourceSinkLength[source] and sourceSinkLength[source][sink] > dFrac*maxSourceSink:
                     source_select.add(source)
                     sink_select.add(sink)
+                
+        for source in source_select:
+            sourceLengths = single_source_dijkstra_path_length(self.directedUnitigBiGraph, source)
+            
+            for newSink, length in pathLengths.items():
+                if newSink not in sink_select and length > dIFrac*maxSourceSink:
+                   sink_select.add(newSink) 
+        
+        for sink in sink_select:
+            sourceSink = reverseDirn(sink)
+        
+            sinkLengths = single_source_dijkstra_path_length(self.directedUnitigBiGraph, sourceSink)
+            
+            for newSource, length in pathLengths.items():
+                newSourceR = reverseDirn(newSource)
+                if newSourceR not in sink_select and length > dIFrac*maxSourceSink:
+                   source_select.add(newSourceR)           
         
         if len(source_select) > 0:
             source_list = list(map(convertNameToNode2, source_select))
@@ -248,6 +384,7 @@ class UnitigGraph():
             sink_list = list(map(convertNameToNode2, sink_select))
         else:
             sink_list = []
+        
         return (source_list,sink_list)
         
     def createDirectedBiGraph(self):
