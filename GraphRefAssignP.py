@@ -472,7 +472,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
