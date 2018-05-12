@@ -69,11 +69,11 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in assemblyGraph.unitigs]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,assemblyGraph.unitigs):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
+                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
-                self.covMapAdj[unitigNew] = np.sqrt((assemblyGraph.covMap[unitig] * self.adjLengths[unitigNew])/self.readLength)
+                self.covMapAdj[unitigNew] = (assemblyGraph.covMap[unitig] * self.adjLengths[unitigNew])/self.readLength
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
@@ -93,7 +93,7 @@ class AssemblyPathSVA():
             else:
                 print("Serious problem")
                 
-            self.lengths[idx] = np.sqrt(self.adjLengths[v])
+            self.lengths[idx] = self.adjLengths[v]
             self.X[idx,:] = covName
             self.XN[idx,:] = covName/self.lengths[idx] 
             idx=idx+1
@@ -475,10 +475,10 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
-                    if iter < 100:
+                    if iter < 10:
                         self.tau = 0.01                    
                     else:
-                        self.tau = 4.
+                        self.tau = 1.
 
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
@@ -509,13 +509,18 @@ class AssemblyPathSVA():
        
                 self.addGamma(g)
                
-            print(str(iter)+","+ str(self.div()))  
+            print(str(iter)+","+ str(self.divF()))  
             iter += 1
     
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
         return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) - self.XN + Va).sum()
+
+    def divF(self):
+        """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
+        R = self.eLambda - self.XN
+        return np.multiply(R, R).sum()
 
     def initNMF(self):
         
@@ -657,7 +662,7 @@ def main(argv):
     
     cov_matrix = covs.values
     
-    assGraph.muGamma = np.sqrt(cov_matrix/assGraph.readLength)
+    assGraph.muGamma = cov_matrix/assGraph.readLength
     assGraph.muGamma2 = np.square(assGraph.muGamma)
     assGraph.initNMFGamma(assGraph.muGamma)
     #assGraph.tau = 1.0e-4
