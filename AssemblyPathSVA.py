@@ -105,7 +105,7 @@ class AssemblyPathSVA():
         
         #list of mean assignments of strains to graph
         self.phiMean = np.zeros((self.V,self.G))
-        self.phi2Mean = np.zeros((self.V,self.G))
+        self.phiMean2 = np.zeros((self.V,self.G))
         
         self.epsilon = epsilon #parameter for gamma exponential prior
         self.muGamma = np.zeros((self.G,self.S))
@@ -119,7 +119,7 @@ class AssemblyPathSVA():
         
         self.elbo = 0.
         
-        self.tau = 4.0
+        self.tau = 1.0
         
     def writeNetworkGraph(self,networkGraph, fileName):
         copyGraph = networkGraph.copy()
@@ -451,6 +451,18 @@ class AssemblyPathSVA():
         
         self.eLambda += meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
+    def updateGamma(self,g_idx):
+        
+        temp = np.delete(self.muGamma,g_idx,,0)
+        temp2 = np.delete(self.phiMean,g_idx,1)
+        
+        numer = self.phiMean[:,g_idx]*(self.X - np.dot(temp2,temp)*self.lengths)
+        
+        denom = self.lengths*self.phiMean2[:,g_idx]
+        
+        newGamma = np.sum(numer,0)/np.sum(denom)
+
+        return newGamma
 
     def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
     
@@ -460,7 +472,9 @@ class AssemblyPathSVA():
                 v_idx = mapUnitig[unitig]
                 ND = marg[unitig].shape[0]
                 self.phiMean[v_idx,g_idx] = np.sum(marg[unitig]*np.arange(ND))
-
+                d2 = np.square(np.arange(ND))
+                self.phiMean2[v_idx,g_idx] = np.sum(marg[unitig]*d2)
+                
     def update(self, maxIter):
     
         iter = 0
@@ -508,6 +522,9 @@ class AssemblyPathSVA():
                     self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
                 self.addGamma(g)
+            
+            for g in range(self.G):
+                newGammaG = self.updateGamma(g)
                
             print(str(iter)+","+ str(self.divF()))  
             iter += 1
