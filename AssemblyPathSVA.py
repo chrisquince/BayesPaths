@@ -602,6 +602,28 @@ class AssemblyPathSVA():
             print(str(iter)+","+ str(self.divF()))  
             iter += 1
     
+    def updatePhiFixed(self, maxIter):
+    
+        iter = 0
+    
+        while iter < maxIter:
+            
+            newGamma = np.zeros((self.G,self.S))
+            newGamma2 = np.zeros((self.G,self.S)) 
+            for g in range(self.G):
+                (newGamma[g,:],newGamma2[g,:]) = self.updateGamma(g)
+            
+            self.muGamma = newGamma
+            self.muGamma2 = newGamma2
+
+            self.eLambda = np.zeros((self.V,self.S))
+            for g in range(self.G):
+                self.addGamma(g)
+
+            print(str(iter)+","+ str(self.divF()))  
+            iter += 1
+    
+    
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
