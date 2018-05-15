@@ -67,15 +67,17 @@ class AssemblyPathSVA():
             
             self.factorGraphs[gene] = factorGraph
             self.unitigFactorNodes[gene] = unitigFactorNode
+            unitigList = list(assemblyGraph.unitigs)
+            unitigList.sort(key=int)
             
-            unitigAdj = [gene + "_" + s for s in assemblyGraph.unitigs]
+            unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
-            for (unitigNew, unitig) in zip(unitigAdj,assemblyGraph.unitigs):
+            for (unitigNew, unitig) in zip(unitigAdj,unitigList):
                 self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] #- 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
-                self.covMapAdj[unitigNew] = (assemblyGraph.covMap[unitig] * self.adjLengths[unitigNew])/self.readLength
+                self.covMapAdj[unitigNew] = (assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew]))/self.readLength
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
@@ -509,10 +511,10 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
-                    if iter < 10:
-                        self.tau = 1.                    
-                    else:
-                        self.tau = 1.
+                    #if iter < 10:
+                     #   self.tau = 1.                    
+                    #else:
+                     #   self.tau = 1.
 
                     self.tau = 0.1
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
@@ -543,7 +545,7 @@ class AssemblyPathSVA():
                     self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
                 self.addGamma(g)
-            self.tau = 1.
+            
             newGamma = np.zeros((self.G,self.S))
             newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):

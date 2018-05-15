@@ -1,11 +1,66 @@
 import numpy as np
 import math
+from scipy.stats import truncnorm, norm
+from scipy.special import erfc
+
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
 
 
 mapDirn = {'True' : "+", 'False' : "-"}
 
 complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N' : 'N'} 
+
+# TN expectation    
+def TN_vector_expectation(mus,taus):
+    sigmas = np.float64(1.0) / np.sqrt(taus)
+    x = - np.float64(mus) / sigmas
+    lambdax = norm.pdf(x)/(0.5*erfc(x/math.sqrt(2)))
+    exp = mus + sigmas * lambdax
+    
+    # Exp expectation - overwrite value if mu < -30*sigma
+    exp = [1./(np.abs(mu)*tau) if mu < -30 * sigma else v for v,mu,tau,sigma in zip(exp,mus,taus,sigmas)]
+    return [v if (v >= 0.0 and v != np.inf and v != -np.inf and not np.isnan(v)) else 0. for v in exp]
+    
+# TN variance
+def TN_vector_variance(mus,taus):
+    sigmas = np.float64(1.0) / np.sqrt(taus)
+    x = - np.float64(mus) / sigmas
+    lambdax = norm.pdf(x)/(0.5*erfc(x/math.sqrt(2)))
+    deltax = lambdax*(lambdax-x)
+    var = sigmas**2 * ( 1 - deltax )
+    
+    # Exp variance - overwrite value if mu < -30*sigma
+    var = [(1./(np.abs(mu)*tau))**2 if mu < -30 * sigma else v for v,mu,tau,sigma in zip(var,mus,taus,sigmas)]
+    return [v if (v >= 0.0 and v != np.inf and v != -np.inf and not np.isnan(v)) else 0. for v in var]      
+
+              
+# TN expectation        
+def TN_expectation(mu,tau):
+    sigma = np.float64(1.0) / math.sqrt(tau)
+    if mu < -30 * sigma:
+        exp = 1./(abs(mu)*tau)
+    else:
+        x = - mu / sigma
+        lambdax = norm.pdf(x)/(0.5*erfc(x/math.sqrt(2)))
+        exp = mu + sigma * lambdax
+    return exp if (exp >= 0.0 and exp != numpy.inf and exp != -numpy.inf and not numpy.isnan(exp)) else 0.
+       
+# TN variance
+def TN_variance(mu,tau):
+    sigma = np.float64(1.0) / math.sqrt(tau)
+    if mu < -30 * sigma:
+        var = (1./(abs(mu)*tau))**2
+    else:
+        x = - mu / sigma
+        lambdax = norm.pdf(x)/(0.5*erfc(x/math.sqrt(2)))
+        deltax = lambdax*(lambdax-x)
+        var = sigma**2 * ( 1 - deltax )
+    return var if (var >= 0.0 and var != np.inf and var != -np.inf and not np.isnan(var)) else 0.       
+       
+# TN mode
+def TN_mode(mu):
+    return max(0.0,mu)
+
 
 def elop(Xt, Yt, op):
     X = np.copy(Xt)
