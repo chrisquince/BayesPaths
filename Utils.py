@@ -2,7 +2,7 @@ import numpy as np
 import math
 from scipy.stats import truncnorm, norm
 from scipy.special import erfc
-
+from collections import defaultdict
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
 
 
@@ -61,13 +61,13 @@ def TN_variance(mu,tau):
 def TN_mode(mu):
     return max(0.0,mu)
 
-def readRefHits(refHitFile, unitigs):
+def readRefHits(refHitFile):
     refHits = defaultdict(dict)
     allHits = set()
     
     with open(refHitFile) as f:
         for line in f:
-            line.rstrip()
+            line = line.rstrip()
             tokens = line.split('\t')
             unitig = tokens[0]
             
@@ -75,10 +75,27 @@ def readRefHits(refHitFile, unitigs):
             pid = tokens[2]
             div = tokens[4]
             
-            if unitig in unitigs:
-                refHits[unitig][hit] = float(div)
-                if hit not in allHits:
-                    allHits.add(hit)
+            refHits[unitig][hit] = float(div)
+            if hit not in allHits:
+                allHits.add(hit)
+    return (refHits,allHits)
+
+def readRefAssign(refAssignFile):
+    refHits = defaultdict(dict)
+    allHits = set()
+
+    with open(refAssignFile) as f:
+        for line in f:
+            line = line.rstrip()
+            tokens = line.split('\t')
+            unitig = tokens[0]
+
+            tokens.pop(0)
+
+            for ref in tokens:
+                refHits[unitig][ref] = 0.
+            if ref not in allHits:
+                allHits.add(ref)
     return (refHits,allHits)
 
 

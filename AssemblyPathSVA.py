@@ -28,7 +28,7 @@ from Utils import elop
 from Utils import expNormLogProb
 from Utils import TN_vector_expectation
 from Utils import TN_vector_variance
-from Utils import readRefHits
+from Utils import readRefAssign
 from UnitigGraph import UnitigGraph
 from NMF import NMF
 
@@ -47,6 +47,9 @@ class AssemblyPathSVA():
         self.sink_maps = sink_maps
  
         self.factorGraphs = {} # dict of factorGraphs as pyfac Graphs
+
+        self.factorDiGraphs = {} # dict of factorGraphs as networkx diGraphs
+
         self.unitigFactorNodes = {}
         self.maxFlux = 2
         
@@ -64,9 +67,12 @@ class AssemblyPathSVA():
         bFirst = True
         for gene, assemblyGraph in assemblyGraphs.items():
             
-            (factorGraph, unitigFactorNode) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
+            (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
             
             self.factorGraphs[gene] = factorGraph
+
+            self.factorDiGraphs[gene] = factorDiGraph 
+
             self.unitigFactorNodes[gene] = unitigFactorNode
             unitigList = list(assemblyGraph.unitigs)
             unitigList.sort(key=int)
@@ -156,7 +162,7 @@ class AssemblyPathSVA():
     
         (factorGraph, unitigFactorNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
-        return (factorGraph, unitigFactorNodes)
+        return (factorGraph, unitigFactorNodes, tempGraph)
     
     def generateFactorGraph(self, factorGraph, unitigs):
         probGraph = Graph()
@@ -395,7 +401,7 @@ class AssemblyPathSVA():
                 toks = line.split(',')
                 if len(toks) == 2:
                     varIdx = int(toks[0][1:])
-                    varName = factorGraph.varNames[int(var)]
+                    varName = factorGraph.varNames[int(varIdx)]
                     varValue = int(toks[1])
                     mapVar[varName] = varValue
             bFirst = False 
@@ -470,7 +476,7 @@ class AssemblyPathSVA():
                 else:
                     delta = 10.0
                     
-                tempMatrix[1] = np.exp(-0.25*delta)
+                tempMatrix[1] = 0.99*np.exp(-0.25*delta)
                 tempMatrix[0] = 1.0 - tempMatrix[1]
 
                 unitigFacNode.P = tempMatrix
@@ -606,6 +612,40 @@ class AssemblyPathSVA():
         R = self.eLambda - self.XN
         return np.multiply(R, R).sum()
 
+    def convertMAPToPath(self,mapPath,factorGraph):
+    
+        path = []
+    
+        current = self.sourceNode
+    
+        while current != self.sinkNode:
+            
+            outPaths = list(factorGraph.successors(current))
+            
+            for outPath in outPaths:
+                if mapPath[outPath] == 1:
+                    break
+            
+            path.append(current)
+            
+            current = list(factorGraph.successors(outPath))[0]
+
+        return path
+
+
+    def convertMAPMarg(self,MAP,mapNodes):
+        marg = {}
+
+        for unitig,assign in MAP.items():
+            if unitig in mapNodes:
+                unitigNode = mapNodes[unitig] 
+                nN = unitigNode.dim
+                
+                tempMatrix = np.zeros(nN)
+                tempMatrix[int(assign)] = 1.0
+                marg[unitig] = tempMatrix
+        return marg
+
     def initNMF(self):
         
         covNMF =  NMF(self.XN,self.G,n_run = 10)
@@ -691,14 +731,17 @@ class AssemblyPathSVA():
 
     def outputOptimalRefPaths(self, ref_hit_file):
         
-        (refHits,allHits) = readRefHits(ref_hit_file)
-        
-        refMAPs = []
+        (refHits,allHits) = readRefAssign(ref_hit_file)
+        NR = len(allHits)
+        refMAPs = [None]*NR
+        r = 0
+        self.margG = {}
         for ref in allHits:
+            
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
                 
-                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], refHits, ref)
+                self.updateUnitigFactorsRef(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], refHits, ref)
             
                 factorGraph.reset()
         
@@ -718,13 +761,21 @@ class AssemblyPathSVA():
 
                 outString = p.stdout.read()
 
-            refMAPs.append(self.parseFGString(factorGraph, str(outString)))
-                
-            allHits = list(allHits) 
-            for ref in range(len(allHits)):
-                self.margG[ref] = self.convertMAPMarg(refMAPs[ref])
-                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[ref],ref)
+                refMAPs[r] = self.parseFGString(factorGraph, str(outString))
             
+                self.margG[ref] = self.convertMAPMarg(refMAPs[r],factorGraph.mapNodes)
+    
+                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[ref],r)
+                biGraph = self.factorDiGraphs[gene]
+                pathG = self.convertMAPToPath(refMAPs[r], biGraph)
+                pathG.pop(0)
+                unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                    
+                print(">" + ref)
+                    
+                print(unitig)
+
+            r = r + 1
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -738,6 +789,8 @@ def main(argv):
     parser.add_argument("unitig_order_file", help="csv node file")
 
     parser.add_argument('-fg','--gamma_file', nargs='?',help="gamma file")
+
+    parser.add_argument('-fr','--ref_blast_file', nargs='?',help="ref blast file")
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
@@ -754,7 +807,7 @@ def main(argv):
                 
     unitig_order = read_unitig_order_file(args.unitig_order_file)
                 
-    unitigGraph = UnitigGraph.loadGraph(args.unitig_file, 71, args.cov_file)   
+    unitigGraph = UnitigGraph.loadGraph(args.unitig_file,int(args.kmer_length), args.cov_file)   
   
     #get separate components in graph
     components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
@@ -777,8 +830,12 @@ def main(argv):
             sink_maps[str(c)] = sink_list
             source_maps[str(c)] = source_list
         c = c + 1
+
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=100)
     
+    if args.ref_blast_file:
+        assGraph.outputOptimalRefPaths(args.ref_blast_file)
+
 
     if args.gamma_file:
         covs    = p.read_csv(args.gamma_file, header=0, index_col=0)
