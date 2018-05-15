@@ -26,13 +26,15 @@ from Utils import convertNodeToName
 from Utils import read_unitig_order_file
 from Utils import elop
 from Utils import expNormLogProb
+from Utils import TN_vector_expectation
+from Utils import TN_vector_variance
 from UnitigGraph import UnitigGraph
 from NMF import NMF
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e-5):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -69,7 +71,7 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in assemblyGraph.unitigs]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,assemblyGraph.unitigs):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] #- 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
@@ -453,16 +455,30 @@ class AssemblyPathSVA():
 
     def updateGamma(self,g_idx):
         
-        temp = np.delete(self.muGamma,g_idx,,0)
+        temp = np.delete(self.muGamma,g_idx,0)
         temp2 = np.delete(self.phiMean,g_idx,1)
-        
-        numer = self.phiMean[:,g_idx]*(self.X - np.dot(temp2,temp)*self.lengths)
-        
-        denom = self.lengths*self.phiMean2[:,g_idx]
-        
-        newGamma = np.sum(numer,0)/np.sum(denom)
+       
+        numer = (self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
+ 
+        numer = self.phiMean[:,g_idx][:,np.newaxis]*numer
 
-        return newGamma
+        denom = self.lengths*self.phiMean2[:,g_idx]
+        dSum = np.sum(denom)
+
+        meanGamma = np.sum(numer,0)/dSum  
+
+        tauGamma = np.zeros(self.S)
+        tauGamma.fill(self.tau*dSum)
+
+        meanGamma -= 1.0/(self.epsilon*self.tau*dSum)
+
+        muGamma = np.asarray(TN_vector_expectation(meanGamma,tauGamma))
+        
+        varGamma = np.asarray(TN_vector_variance(meanGamma,tauGamma))
+
+        muGamma2 = varGamma + muGamma*muGamma
+
+        return (muGamma, muGamma2)
 
     def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
     
@@ -490,10 +506,11 @@ class AssemblyPathSVA():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
                     if iter < 10:
-                        self.tau = 0.01                    
+                        self.tau = 1.                    
                     else:
                         self.tau = 1.
 
+                    self.tau = 0.1
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
         
@@ -522,10 +539,19 @@ class AssemblyPathSVA():
                     self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
                 self.addGamma(g)
-            
+            self.tau = 1.
+            newGamma = np.zeros((self.G,self.S))
+            newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):
-                newGammaG = self.updateGamma(g)
-               
+                (newGamma[g,:],newGamma2[g,:]) = self.updateGamma(g)
+            
+            self.muGamma = newGamma
+            self.muGamma2 = newGamma2
+
+            self.eLambda = np.zeros((self.V,self.S))
+            for g in range(self.G):
+                self.addGamma(g)
+
             print(str(iter)+","+ str(self.divF()))  
             iter += 1
     
@@ -547,6 +573,7 @@ class AssemblyPathSVA():
         covNMF.factorizeH()
 
         self.muGamma = np.copy(covNMF.H)
+        self.muGamma2 = self.muGamma*self.muGamma
         covNMF.factorizeW()
         
         initEta = covNMF.W
@@ -631,7 +658,7 @@ def main(argv):
 
     parser.add_argument("unitig_order_file", help="csv node file")
 
-    parser.add_argument("gamma_file", help="csv node file")
+    parser.add_argument('-fg','--gamma_file', nargs='?',help="gamma file")
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
@@ -671,19 +698,24 @@ def main(argv):
             sink_maps[str(c)] = sink_list
             source_maps[str(c)] = source_list
         c = c + 1
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=100)
     
-    covs    = p.read_csv(args.gamma_file, header=0, index_col=0)
+
+    if args.gamma_file:
+        covs    = p.read_csv(args.gamma_file, header=0, index_col=0)
     
-    covs.drop('Strain', axis=1, inplace=True)
+        covs.drop('Strain', axis=1, inplace=True)
     
-    cov_matrix = covs.values
+        cov_matrix = covs.values
     
-    assGraph.muGamma = cov_matrix/assGraph.readLength
-    assGraph.muGamma2 = np.square(assGraph.muGamma)
-    assGraph.initNMFGamma(assGraph.muGamma)
-    #assGraph.tau = 1.0e-4
-    assGraph.update(100)
-    
+        assGraph.muGamma = cov_matrix/assGraph.readLength
+        assGraph.muGamma2 = np.square(assGraph.muGamma)
+        assGraph.initNMFGamma(assGraph.muGamma)
+        #assGraph.tau = 1.0e-4
+        assGraph.update(100)
+    else:
+        assGraph.initNMF()
+
+        assGraph.update(100)
 if __name__ == "__main__":
     main(sys.argv[1:])
