@@ -61,6 +61,26 @@ def TN_variance(mu,tau):
 def TN_mode(mu):
     return max(0.0,mu)
 
+def readRefHits(refHitFile, unitigs):
+    refHits = defaultdict(dict)
+    allHits = set()
+    
+    with open(refHitFile) as f:
+        for line in f:
+            line.rstrip()
+            tokens = line.split('\t')
+            unitig = tokens[0]
+            
+            hit = tokens[1]
+            pid = tokens[2]
+            div = tokens[4]
+            
+            if unitig in unitigs:
+                refHits[unitig][hit] = float(div)
+                if hit not in allHits:
+                    allHits.add(hit)
+    return (refHits,allHits)
+
 
 def elop(Xt, Yt, op):
     X = np.copy(Xt)

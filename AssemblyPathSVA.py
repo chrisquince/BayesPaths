@@ -28,6 +28,7 @@ from Utils import elop
 from Utils import expNormLogProb
 from Utils import TN_vector_expectation
 from Utils import TN_vector_variance
+from Utils import readRefHits
 from UnitigGraph import UnitigGraph
 from NMF import NMF
 
@@ -385,6 +386,21 @@ class AssemblyPathSVA():
                             mapMarg[varName] = np.asarray(floatVals)
         return mapMarg
     
+    def parseFGString(self, factorGraph, outputString):
+        mapVar = {}
+        lines = outputString.split('\\n')
+        bFirst = True
+        for line in lines:
+            if not bFirst:
+                toks = line.split(',')
+                if len(toks) == 2:
+                    varIdx = int(toks[0][1:])
+                    varName = factorGraph.varNames[int(var)]
+                    varValue = int(toks[1])
+                    mapVar[varName] = varValue
+            bFirst = False 
+        return mapVar
+    
     def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, tau):
         
         mapGammaG = self.muGamma[gidx,:]
@@ -437,6 +453,25 @@ class AssemblyPathSVA():
                 
                 if iw < wmax:
                     tempMatrix[iw + 1] = difw
+
+                unitigFacNode.P = tempMatrix
+                
+    def updateUnitigFactorsRef(self, unitigs, unitigMap, unitigFacNodes, mapRef,ref):
+
+        for unitig in unitigs:
+            if unitig in unitigFacNodes:
+                unitigFacNode = unitigFacNodes[unitig]
+                v_idx = unitigMap[unitig]
+                P = unitigFacNode.P
+                tempMatrix = np.zeros_like(P)
+                
+                if ref in mapRef[unitig]:
+                    delta = mapRef[unitig][ref]
+                else:
+                    delta = 10.0
+                    
+                tempMatrix[1] = np.exp(-0.25*delta)
+                tempMatrix[0] = 1.0 - tempMatrix[1]
 
                 unitigFacNode.P = tempMatrix
 
@@ -652,6 +687,44 @@ class AssemblyPathSVA():
                 self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
+
+
+    def outputOptimalRefPaths(self, ref_hit_file):
+        
+        (refHits,allHits) = readRefHits(ref_hit_file)
+        
+        refMAPs = []
+        for ref in allHits:
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+                
+                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], refHits, ref)
+            
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(ref) + '.fg'
+
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+
+                cmd = './runfg ' + graphFileName + ' 0'
+
+                p = Popen(cmd, stdout=PIPE,shell=True)
+
+                outString = p.stdout.read()
+
+            refMAPs.append(self.parseFGString(factorGraph, str(outString)))
+                
+            allHits = list(allHits) 
+            for ref in range(len(allHits)):
+                self.margG[ref] = self.convertMAPMarg(refMAPs[ref])
+                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[ref],ref)
+            
 
 def main(argv):
     parser = argparse.ArgumentParser()
