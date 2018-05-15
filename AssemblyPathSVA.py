@@ -460,17 +460,21 @@ class AssemblyPathSVA():
        
         numer = (self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
  
-        numer = self.phiMean[:,g_idx][:,np.newaxis]*numer
+        gphi = self.phiMean[:,g_idx]*self.lengths
+        
+        numer = gphi[:,np.newaxis]*numer
 
-        denom = self.lengths*self.phiMean2[:,g_idx]
+        denom = self.lengths*self.lengths*self.phiMean2[:,g_idx]
+        
         dSum = np.sum(denom)
+        nSum = np.sum(numer,0)
+        
+        nSum -= 1.0/(self.epsilon*self.tau)
 
-        meanGamma = np.sum(numer,0)/dSum  
+        meanGamma = nSum/dSum  
 
         tauGamma = np.zeros(self.S)
         tauGamma.fill(self.tau*dSum)
-
-        meanGamma -= 1.0/(self.epsilon*self.tau*dSum)
 
         muGamma = np.asarray(TN_vector_expectation(meanGamma,tauGamma))
         
