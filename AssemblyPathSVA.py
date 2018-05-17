@@ -80,7 +80,7 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigList):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] #- 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
@@ -539,6 +539,19 @@ class AssemblyPathSVA():
 
         return (muGamma, muGamma2)
 
+    def updateTau(self):
+    
+        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        t1 = np.dot(self.phiMean*self.phiMean, self.muGamma*self.muGamma)
+        diff = np.dot(self.phiMean2*self.muGamma2) - t1
+        L2 = self.lengths*self.lengths
+        diff2 = L2[:,np.newaxis]*diff
+        R2 = R*R + diff2
+        
+        alphaDash = self.alpha + self.V*self.S
+        betaDash = self.beta + R2  
+        self.tau = alphaDash/betaDash
+
     def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
     
         for unitig in unitigs:
@@ -564,14 +577,8 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
-                    if iter < 10:
-                        self.tau = 0.1                   
-                    elif iter >= 10 and iter < 20:
-                        self.tau = 0.5
-                    else:
-                        self.tau = 1.
-
-                    #self.tau = 1.
+                    self.tau = 0.1
+                    
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
         
@@ -612,7 +619,9 @@ class AssemblyPathSVA():
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.G):
                 self.addGamma(g)
-
+            
+            self.updateTau()
+            
             print(str(iter)+","+ str(self.divF()))  
             iter += 1
     
