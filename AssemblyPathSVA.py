@@ -35,7 +35,7 @@ from NMF import NMF
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -58,6 +58,9 @@ class AssemblyPathSVA():
         
         self.sourceNode = 'source+'
         
+        self.alpha = alpha
+        self.beta  = beta
+
         self.V = 0
         self.mapIdx = {}
         self.adjLengths = {}
@@ -543,13 +546,13 @@ class AssemblyPathSVA():
     
         R = self.X - self.lengths[:,np.newaxis]*self.eLambda
         t1 = np.dot(self.phiMean*self.phiMean, self.muGamma*self.muGamma)
-        diff = np.dot(self.phiMean2*self.muGamma2) - t1
+        diff = np.dot(self.phiMean2,self.muGamma2) - t1
         L2 = self.lengths*self.lengths
         diff2 = L2[:,np.newaxis]*diff
         R2 = R*R + diff2
         
-        alphaDash = self.alpha + self.V*self.S
-        betaDash = self.beta + R2  
+        alphaDash = self.alpha + 0.5*self.V*self.S
+        betaDash = self.beta + np.sum(R2)  
         self.tau = alphaDash/betaDash
 
     def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
@@ -566,7 +569,8 @@ class AssemblyPathSVA():
     def update(self, maxIter):
     
         iter = 0
-    
+   
+        self.tau = 0.01 
         while iter < maxIter:
             #update phi marginals
             
@@ -576,8 +580,7 @@ class AssemblyPathSVA():
             
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
-                    
-                    self.tau = 0.1
+                   
                     
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
