@@ -80,7 +80,7 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigList):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] #- 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
@@ -461,7 +461,19 @@ class AssemblyPathSVA():
                     tempMatrix[iw + 1] = difw
 
                 unitigFacNode.P = tempMatrix
+
+    def updateUnitigFactorsMarg(self,unitigs, unitigMap, unitigFacNodes, marg):
+
+        for unitig in unitigs:
+            if unitig in unitigFacNodes:
                 
+                unitigFacNode = unitigFacNodes[unitig]
+                v_idx = unitigMap[unitig]
+                P = unitigFacNode.P
+                
+                if unitig in marg:
+                    unitigFacNode.P = np.copy(marg[unitig])
+        
     def updateUnitigFactorsRef(self, unitigs, unitigMap, unitigFacNodes, mapRef,ref):
 
         for unitig in unitigs:
@@ -552,12 +564,14 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                     
-                    #if iter < 10:
-                     #   self.tau = 1.                    
-                    #else:
-                     #   self.tau = 1.
+                    if iter < 10:
+                        self.tau = 0.1                   
+                    elif iter >= 10 and iter < 20:
+                        self.tau = 0.5
+                    else:
+                        self.tau = 1.
 
-                    self.tau = 0.1
+                    #self.tau = 1.
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
                     
         
@@ -590,10 +604,10 @@ class AssemblyPathSVA():
             newGamma = np.zeros((self.G,self.S))
             newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):
-                (newGamma[g,:],newGamma2[g,:]) = self.updateGamma(g)
+                (self.muGamma[g,:],self.muGamma2[g,:]) = self.updateGamma(g)
             
-            self.muGamma = newGamma
-            self.muGamma2 = newGamma2
+            #self.muGamma = newGamma
+            #self.muGamma2 = newGamma2
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.G):
@@ -611,10 +625,10 @@ class AssemblyPathSVA():
             newGamma = np.zeros((self.G,self.S))
             newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):
-                (newGamma[g,:],newGamma2[g,:]) = self.updateGamma(g)
+                (self.muGamma[g,:],self.muGamma2[g,:]) = self.updateGamma(g)
             
-            self.muGamma = newGamma
-            self.muGamma2 = newGamma2
+            #self.muGamma = newGamma
+            #self.muGamma2 = newGamma2
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.G):
@@ -751,6 +765,49 @@ class AssemblyPathSVA():
         print("-1,"+ str(self.div())) 
 
 
+    def getMaximalUnitigs(self,fileName):
+
+        self.MAPs = []
+        haplotypes = []
+
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[g])
+
+                factorGraph.reset()
+
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+
+                cmd = './runfg ' + graphFileName + ' 0'
+
+                p = Popen(cmd, stdout=PIPE,shell=True)
+
+                outString = p.stdout.read()
+
+                self.MAPs.append(self.parseFGString(factorGraph,str(outString)))
+                biGraph = self.factorDiGraphs[gene]
+                
+                pathG = self.convertMAPToPath(self.MAPs[g],biGraph)
+                pathG.pop(0)
+                unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                haplotypes.append(unitig)
+
+        with open(fileName, "w") as fastaFile:
+            for g in range(self.G):
+                fastaFile.write(">" + str(g) + "\n")
+                fastaFile.write(haplotypes[g]+"\n")
+
+
     def outputOptimalRefPaths(self, ref_hit_file):
         
         (refHits,allHits) = readRefAssign(ref_hit_file)
@@ -858,6 +915,16 @@ def main(argv):
     if args.ref_blast_file:
         assGraph.outputOptimalRefPaths(args.ref_blast_file)
 
+        assGraph.updatePhiFixed(100)
+        glm = GLM(distr='poisson')
+        scaler = StandardScaler().fit(assGraph.phiMean)
+        glm.fit(scaler.transform(assGraph.phiMean), assGraph.XN[:,0])
+
+        # predict using fitted model on the test data
+        yhat_test = glm.predict(scaler.transform(assGraph.phiMean))
+
+        # score the model
+        deviance = glm.score(assGraph.phiMean, assGraph.XN[:,0])
 
     if args.gamma_file:
         covs    = p.read_csv(args.gamma_file, header=0, index_col=0)
@@ -874,6 +941,8 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(100)
+        assGraph.update(20)
+
+        assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
     main(sys.argv[1:])
