@@ -9,6 +9,8 @@ import scipy.stats as ss
 import scipy as sp
 import scipy.misc as spm
 import scipy.special as sps
+from scipy.special import psi as digamma
+
 import math
 from subprocess import Popen, PIPE, STDOUT
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
@@ -58,13 +60,17 @@ class AssemblyPathSVA():
         
         self.sourceNode = 'source+'
         
+        #prior parameters for Gamma tau
         self.alpha = alpha
         self.beta  = beta
+
+        self.Omega = self.V*self.S #number of dimensions predicted
 
         self.V = 0
         self.mapIdx = {}
         self.adjLengths = {}
         self.covMapAdj = {}
+        self.phiC = {}
         self.unitigs = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
@@ -76,9 +82,13 @@ class AssemblyPathSVA():
 
             self.factorDiGraphs[gene] = factorDiGraph 
 
+            
+
             self.unitigFactorNodes[gene] = unitigFactorNode
             unitigList = list(assemblyGraph.unitigs)
             unitigList.sort(key=int)
+            #below needs to be debugged!
+            self.phiC[gene] = self.setPhiConstant(unitigList, unitigFactorNode)
             
             unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
@@ -118,14 +128,16 @@ class AssemblyPathSVA():
         self.G = G
         
         #list of mean assignments of strains to graph
-        self.phiMean = np.zeros((self.V,self.G))
-        self.phiMean2 = np.zeros((self.V,self.G))
+        self.expPhi = np.zeros((self.V,self.G))
+        self.expPhi2 = np.zeros((self.V,self.G))
         
         self.epsilon = epsilon #parameter for gamma exponential prior
-        self.muGamma = np.zeros((self.G,self.S))
-        self.muGamma2 = np.zeros((self.G,self.S))
-        self.tauGamma = np.zeros((self.G,self.S))
+        self.expGamma = np.zeros((self.G,self.S)) #expectation of gamma
+        self.expGamma2 = np.zeros((self.G,self.S))
         
+        self.muGamma = np.zeros((self.G,self.S))
+        self.tauGamma = np.zeros((self.G,self.S))
+        self.varGamma = np.zeros((self.G,self.S))
         #current excitations on the graph
         self.eLambda = np.zeros((self.V,self.S))
         
@@ -133,7 +145,9 @@ class AssemblyPathSVA():
         
         self.elbo = 0.
         
-        self.tau = 1.0
+        self.expTau = 1.0
+        self.alphaTau = 1.0
+        self.betaTau = 1.0
         
     def writeNetworkGraph(self,networkGraph, fileName):
         copyGraph = networkGraph.copy()
@@ -412,8 +426,8 @@ class AssemblyPathSVA():
     
     def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, tau):
         
-        mapGammaG = self.muGamma[gidx,:]
-        mapGammaG2 = self.muGamma2[gidx,:]
+        mapGammaG = self.expGamma[gidx,:]
+        mapGammaG2 = self.expGamma2[gidx,:]
         dSum2 = np.sum(mapGammaG2)
         
         for unitig in unitigs:
@@ -476,7 +490,22 @@ class AssemblyPathSVA():
                 
                 if unitig in marg:
                     unitigFacNode.P = np.copy(marg[unitig])
+    
+    def setPhiConstant(self,unitigs, unitigFacNodes):
+        dLogNPhi = 0.
         
+        for unitig in unitigs:
+            if unitig in unitigFacNodes:
+                
+                unitigFacNode = unitigFacNodes[unitig]
+
+                P = unitigFacNode.P
+                wmax = P.shape[0] - 1
+                
+                dLogNPhi += math.log(1.0/wmax)
+        
+        return dLogNPhi
+    
     def updateUnitigFactorsRef(self, unitigs, unitigMap, unitigFacNodes, mapRef,ref):
 
         for unitig in unitigs:
@@ -499,78 +528,81 @@ class AssemblyPathSVA():
 
     def removeGamma(self,g_idx):
         
-        meanAss = self.phiMean[:,g_idx]
-        gammaG  = self.muGamma[g_idx,:]
+        meanAss = self.expPhi[:,g_idx]
+        gammaG  = self.expGamma[g_idx,:]
         
         self.eLambda -= meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
     def addGamma(self,g_idx):
         
-        meanAss = self.phiMean[:,g_idx]
-        gammaG  = self.muGamma[g_idx,:]
+        meanAss = self.expPhi[:,g_idx]
+        gammaG  = self.expGamma[g_idx,:]
         
         self.eLambda += meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
     def updateGamma(self,g_idx):
         
-        temp = np.delete(self.muGamma,g_idx,0)
-        temp2 = np.delete(self.phiMean,g_idx,1)
+        temp = np.delete(self.expGamma,g_idx,0)
+        temp2 = np.delete(self.expPhi,g_idx,1)
        
         numer = (self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
  
-        gphi = self.phiMean[:,g_idx]*self.lengths
+        gphi = self.expPhi[:,g_idx]*self.lengths
         
         numer = gphi[:,np.newaxis]*numer
 
-        denom = self.lengths*self.lengths*self.phiMean2[:,g_idx]
+        denom = self.lengths*self.lengths*self.expPhi2[:,g_idx]
         
         dSum = np.sum(denom)
         nSum = np.sum(numer,0)
         
-        nSum -= 1.0/(self.epsilon*self.tau)
+        nSum -= 1.0/(self.epsilon*self.expTau)
 
-        meanGamma = nSum/dSum  
+        muGammaG = nSum/dSum  
 
-        tauGamma = np.zeros(self.S)
-        tauGamma.fill(self.tau*dSum)
+        tauGammaG = np.zeros(self.S)
+        tauGammaG.fill(self.expTau*dSum)
 
-        muGamma = np.asarray(TN_vector_expectation(meanGamma,tauGamma))
+        expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
-        varGamma = np.asarray(TN_vector_variance(meanGamma,tauGamma))
+        varGammaG = np.asarray(TN_vector_variance(muGammaG,tauGammaG))
 
-        muGamma2 = varGamma + muGamma*muGamma
+        expGamma2G = varGammaG + expGammaG*expGammaG
 
-        return (muGamma, muGamma2)
-
+        self.expGamma[g_idx,:]  = expGammaG
+        self.expGamma2[g_idx,:] = expGamma2G
+        self.tauGamma[g_idx,:]  = tauGammaG
+        self.muGamma[g_idx,:]   = muGammaG
+        self.varGamma[g_idx,:]  = varGammaG
+        
     def updateTau(self):
-    
-        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
-        t1 = np.dot(self.phiMean*self.phiMean, self.muGamma*self.muGamma)
-        diff = np.dot(self.phiMean2,self.muGamma2) - t1
-        L2 = self.lengths*self.lengths
-        diff2 = L2[:,np.newaxis]*diff
-        R2 = R*R + diff2
         
-        alphaDash = self.alpha + 0.5*self.V*self.S
-        betaDash = self.beta + np.sum(R2)  
-        self.tau = alphaDash/betaDash
+        alphaD = self.alpha + 0.5*self.Omega
+        betaD = self.beta + self.exp_square_diff()  
+        
+        self.alphaTau = alphaD
+        self.betaTau = betaD
+        
+        self.expTau = alphaD/betaD
+        self.expLogtau = digamma(alphaD) - math.log(betaD)
 
-    def updatePhiMean(self,unitigs,mapUnitig,marg,g_idx):
+    def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
     
         for unitig in unitigs:
         
             if unitig in marg:
                 v_idx = mapUnitig[unitig]
                 ND = marg[unitig].shape[0]
-                self.phiMean[v_idx,g_idx] = np.sum(marg[unitig]*np.arange(ND))
+                self.expPhi[v_idx,g_idx] = np.sum(marg[unitig]*np.arange(ND))
                 d2 = np.square(np.arange(ND))
-                self.phiMean2[v_idx,g_idx] = np.sum(marg[unitig]*d2)
+                self.expPhi2[v_idx,g_idx] = np.sum(marg[unitig]*d2)
+                self.HPhi[v_idx,g_idx] = -np.sum(marg[unitig]*np.log(marg[unitig]))
                 
     def update(self, maxIter):
     
         iter = 0
    
-        self.tau = 0.01 
+        self.expTau = 0.01 
         while iter < maxIter:
             #update phi marginals
             
@@ -582,7 +614,7 @@ class AssemblyPathSVA():
                     unitigs = self.assemblyGraphs[gene].unitigs
                    
                     
-                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.tau)
+                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
                     
         
                     factorGraph.reset()
@@ -607,17 +639,12 @@ class AssemblyPathSVA():
                     if len(margP) > 0: 
                         self.margG[g] = self.parseMargString(factorGraph,str(outString))
        
-                    self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
                 self.addGamma(g)
             
-            newGamma = np.zeros((self.G,self.S))
-            newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):
-                (self.muGamma[g,:],self.muGamma2[g,:]) = self.updateGamma(g)
-            
-            #self.muGamma = newGamma
-            #self.muGamma2 = newGamma2
+                self.updateGamma(g)
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.G):
@@ -634,13 +661,8 @@ class AssemblyPathSVA():
     
         while iter < maxIter:
             
-            newGamma = np.zeros((self.G,self.S))
-            newGamma2 = np.zeros((self.G,self.S)) 
             for g in range(self.G):
-                (self.muGamma[g,:],self.muGamma2[g,:]) = self.updateGamma(g)
-            
-            #self.muGamma = newGamma
-            #self.muGamma2 = newGamma2
+                self.updateGamma(g)
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.G):
@@ -648,7 +670,6 @@ class AssemblyPathSVA():
 
             print(str(iter)+","+ str(self.divF()))  
             iter += 1
-    
     
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
@@ -701,8 +722,8 @@ class AssemblyPathSVA():
         covNMF.factorize()
         covNMF.factorizeH()
 
-        self.muGamma = np.copy(covNMF.H)
-        self.muGamma2 = self.muGamma*self.muGamma
+        self.expGamma = np.copy(covNMF.H)
+        self.expGamma2 = self.expGamma*self.expGamma
         covNMF.factorizeW()
         
         initEta = covNMF.W
@@ -732,7 +753,7 @@ class AssemblyPathSVA():
                 outString = p.stdout.read()
                 
                 self.margG[g] = self.parseMargString(factorGraph,str(outString))
-                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -772,10 +793,52 @@ class AssemblyPathSVA():
                 
                 self.margG[g] = self.parseMargString(factorGraph,str(outString))
             
-                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
+    def exp_square_diff(self): 
+        ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
+        
+        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
+        diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        L2 = self.lengths*self.lengths
+        diff2 = L2[:,np.newaxis]*diff
+        
+        return np.sum(R*R + diff2)
+
+    def elbo(self):
+        ''' Compute the ELBO. '''
+        total_elbo = 0.
+        
+        # Log likelihood               
+        total_elbo += 0.5*self.Omega * ( self.exp_logtau - math.log(2*math.pi) ) 
+        total_elbo -= 0.5*self.exp_tau* self.exp_square_diff()
+
+        #add gamma prior
+        total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
+
+        #add phio prior assuming uniform 
+        for gene in self.genes:
+            total_elbo += self.G*self.phiC[gene]
+        
+        #add tau prior
+        total_elbo += self.alpha * math.log(self.beta) - scipy.special.gammaln(self.alpha) 
+        total_elbo += (self.alpha - 1.)*self.exp_logtau - self.beta* self.expTau
+
+        #add q for gamma
+        qGamma = -0.5*np.log(self.tauGamma).sum() + 0.5*self.G*self.S*math.log(2.*math.pi)
+        qGamma += np.log(0.5*scipy.special.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))).sum()
+        qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
+
+        total_elbo += qGamma
+        # q for tau
+        total_elbo += - self.alphaTau * math.log(self.betaTau) + scipy.special.gammaln(self.alphaTau) 
+        total_elbo += - (self.alphaTau - 1.)*self.exp_logtau + self.betaTau * self.exp_tau
+        # q for phi
+        total_elbo += np.sum(self.HPhi)
+        return total_elbo
 
     def getMaximalUnitigs(self,fileName):
 
@@ -819,7 +882,6 @@ class AssemblyPathSVA():
                 fastaFile.write(">" + str(g) + "\n")
                 fastaFile.write(haplotypes[g]+"\n")
 
-
     def outputOptimalRefPaths(self, ref_hit_file):
         
         (refHits,allHits) = readRefAssign(ref_hit_file)
@@ -856,7 +918,7 @@ class AssemblyPathSVA():
             
                 self.margG[ref] = self.convertMAPMarg(refMAPs[r],factorGraph.mapNodes)
     
-                self.updatePhiMean(unitigs,self.mapGeneIdx[gene],self.margG[ref],r)
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[ref],r)
                 biGraph = self.factorDiGraphs[gene]
                 pathG = self.convertMAPToPath(refMAPs[r], biGraph)
                 pathG.pop(0)
@@ -929,7 +991,7 @@ def main(argv):
 
         assGraph.updatePhiFixed(100)
         glm = GLM(distr='poisson')
-        scaler = StandardScaler().fit(assGraph.phiMean)
+        scaler = StandardScaler().fit(assGraph.expPhi)
         glm.fit(scaler.transform(assGraph.phiMean), assGraph.XN[:,0])
 
         # predict using fitted model on the test data
@@ -945,9 +1007,9 @@ def main(argv):
     
         cov_matrix = covs.values
     
-        assGraph.muGamma = cov_matrix/assGraph.readLength
-        assGraph.muGamma2 = np.square(assGraph.muGamma)
-        assGraph.initNMFGamma(assGraph.muGamma)
+        assGraph.expGamma = cov_matrix/assGraph.readLength
+        assGraph.expGamma2 = np.square(assGraph.muGamma)
+        assGraph.initNMFGamma(assGraph.expGamma)
         #assGraph.tau = 1.0e-4
         assGraph.update(100)
     else:
