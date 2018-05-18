@@ -64,13 +64,12 @@ class AssemblyPathSVA():
         self.alpha = alpha
         self.beta  = beta
 
-        self.Omega = self.V*self.S #number of dimensions predicted
-
         self.V = 0
         self.mapIdx = {}
+        self.mapUnitigs = {}
         self.adjLengths = {}
         self.covMapAdj = {}
-        self.phiC = {}
+        
         self.unitigs = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
@@ -82,14 +81,10 @@ class AssemblyPathSVA():
 
             self.factorDiGraphs[gene] = factorDiGraph 
 
-            
-
             self.unitigFactorNodes[gene] = unitigFactorNode
             unitigList = list(assemblyGraph.unitigs)
             unitigList.sort(key=int)
-            #below needs to be debugged!
-            self.phiC[gene] = self.setPhiConstant(unitigList, unitigFactorNode)
-            
+            self.mapUnitigs[gene] = unitigList
             unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigList):
@@ -109,6 +104,12 @@ class AssemblyPathSVA():
         self.XN = np.zeros((self.V,self.S))
         self.lengths = np.zeros(self.V)
         
+        #note really need to remove unreachable nodes from calculations
+        self.logPhiPrior = np.zeros(self.V)
+        for gene, unitigFactorNode in self.unitigFactorNodes.items(): 
+            self.setPhiConstant(self.mapUnitigs[gene], self.mapGeneIdx[gene], unitigFactorNode)
+
+ 
         idx = 0
         for v in self.unitigs:
             covName = None
@@ -126,11 +127,13 @@ class AssemblyPathSVA():
         
         #Now initialise SVA parameters
         self.G = G
-        
+        self.Omega = self.V*self.S #number of dimensions predicted       
+ 
         #list of mean assignments of strains to graph
         self.expPhi = np.zeros((self.V,self.G))
         self.expPhi2 = np.zeros((self.V,self.G))
-        
+        self.HPhi = np.zeros((self.V,self.G))
+
         self.epsilon = epsilon #parameter for gamma exponential prior
         self.expGamma = np.zeros((self.G,self.S)) #expectation of gamma
         self.expGamma2 = np.zeros((self.G,self.S))
@@ -491,20 +494,18 @@ class AssemblyPathSVA():
                 if unitig in marg:
                     unitigFacNode.P = np.copy(marg[unitig])
     
-    def setPhiConstant(self,unitigs, unitigFacNodes):
+    def setPhiConstant(self,unitigs, unitigMap, unitigFacNodes):
         dLogNPhi = 0.
         
         for unitig in unitigs:
             if unitig in unitigFacNodes:
                 
                 unitigFacNode = unitigFacNodes[unitig]
+                v_idx = unitigMap[unitig]
 
                 P = unitigFacNode.P
-                wmax = P.shape[0] - 1
-                
-                dLogNPhi += math.log(1.0/wmax)
-        
-        return dLogNPhi
+                wmax = P.shape[0]
+                self.logPhiPrior[v_idx] = math.log(1.0/wmax)        
     
     def updateUnitigFactorsRef(self, unitigs, unitigMap, unitigFacNodes, mapRef,ref):
 
@@ -596,7 +597,8 @@ class AssemblyPathSVA():
                 self.expPhi[v_idx,g_idx] = np.sum(marg[unitig]*np.arange(ND))
                 d2 = np.square(np.arange(ND))
                 self.expPhi2[v_idx,g_idx] = np.sum(marg[unitig]*d2)
-                self.HPhi[v_idx,g_idx] = -np.sum(marg[unitig]*np.log(marg[unitig]))
+                
+                self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
     def update(self, maxIter):
     
@@ -651,8 +653,8 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             self.updateTau()
-            
-            print(str(iter)+","+ str(self.divF()))  
+            total_elbo = self.calc_elbo()    
+            print(str(iter)+","+ str(self.divF())+ "," + str(total_elbo))  
             iter += 1
     
     def updatePhiFixed(self, maxIter):
@@ -808,34 +810,33 @@ class AssemblyPathSVA():
         
         return np.sum(R*R + diff2)
 
-    def elbo(self):
+    def calc_elbo(self):
         ''' Compute the ELBO. '''
         total_elbo = 0.
         
         # Log likelihood               
-        total_elbo += 0.5*self.Omega * ( self.exp_logtau - math.log(2*math.pi) ) 
-        total_elbo -= 0.5*self.exp_tau* self.exp_square_diff()
+        total_elbo += 0.5*self.Omega*(self.expLogtau - math.log(2*math.pi) ) 
+        total_elbo -= 0.5*self.expTau*self.exp_square_diff()
 
         #add gamma prior
         total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
 
         #add phio prior assuming uniform 
-        for gene in self.genes:
-            total_elbo += self.G*self.phiC[gene]
+        total_elbo += self.G*np.sum(self.logPhiPrior)
         
         #add tau prior
-        total_elbo += self.alpha * math.log(self.beta) - scipy.special.gammaln(self.alpha) 
-        total_elbo += (self.alpha - 1.)*self.exp_logtau - self.beta* self.expTau
+        total_elbo += self.alpha * math.log(self.beta) - sps.gammaln(self.alpha) 
+        total_elbo += (self.alpha - 1.)*self.expLogtau - self.beta*self.expTau
 
         #add q for gamma
         qGamma = -0.5*np.log(self.tauGamma).sum() + 0.5*self.G*self.S*math.log(2.*math.pi)
-        qGamma += np.log(0.5*scipy.special.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))).sum()
+        qGamma += np.log(0.5*sps.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))).sum()
         qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
 
         total_elbo += qGamma
         # q for tau
-        total_elbo += - self.alphaTau * math.log(self.betaTau) + scipy.special.gammaln(self.alphaTau) 
-        total_elbo += - (self.alphaTau - 1.)*self.exp_logtau + self.betaTau * self.exp_tau
+        total_elbo += - self.alphaTau * math.log(self.betaTau) + sps.gammaln(self.alphaTau) 
+        total_elbo += - (self.alphaTau - 1.)*self.expLogtau + self.betaTau * self.expTau
         # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo
