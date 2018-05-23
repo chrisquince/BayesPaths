@@ -105,7 +105,7 @@
 Define the joint distribution of: 
 \begin{itemize}
 
-\item Transformed counts $x_{v,s} = \sqrt x'_{v,s}$ for each unitig $v = 1,\ldots,V$ in sample $s = 1,\ldots,S$
+\item Counts $x_{v,s}$ for each unitig $v = 1,\ldots,V$ in sample $s = 1,\ldots,S$
 
 \item Paths for strain $g = 1,\ldots,G$ defined by $\eta^g_{u,v}$
 
@@ -122,16 +122,20 @@ and $D(v)$ descendants in the assembly graph
 \end{itemize}
 
 \begin{equation}
-P(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  = \prod_{v=1}^V \prod_{s=1}^S \mathcal{N}(x_{v,s}|L_v [\sum_{h=1}^G \phi^h_v \gamma_{h,s}],\sigma^2) 
+P(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  = \prod_{v=1}^V \prod_{s=1}^S \mathcal{N}(x_{v,s}|L_v [\sum_{h=1}^G \phi^h_v \gamma_{h,s}],\tau^{-1}) 
 \prod_{h=1}^G \prod_{s=1}^S P(\gamma_{g,s})
 \prod_{h=1}^G \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v}
- \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} 
+ \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} P(\tau)
 \end{equation}
 where $\sigma^2 = 1/4$ and $\delta$ is the Kronecker delta.
 
 We assume an exponential prior for the $\gamma_{g,s}$ such that:
 \begin{equation}
-P(\gamma_{g,s}) = \frac{1}{\epsilon} \exp(-\gamma_{g,s}/\epsilon)
+P(\gamma_{g,s}| \epsilon) = \frac{1}{\epsilon} \exp(-\gamma_{g,s}/\epsilon)
+\end{equation}
+and a Gamma prior for the precision:
+\begin{equation}
+P(\tau | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} \tau^{\alpha - 1} \exp(-\beta \tau)
 \end{equation}
 
 \section{Variational Approximation}
@@ -145,20 +149,20 @@ where $A$ are all pairs of nodes in assembly graph.
 Then the mean field update for each set of $ \{\eta^h_{v,u}\}_{u,v \in A}$ is derived as:
 \begin{align}
 \ln q^*( \{ \eta^h_{v,u} \} _{u,v \in A}) & =  \left\langle \ln P \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}} \\
-& =  \ln \left( \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v} \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} \right)\\
-& -  \left\langle \sum_{v=1}^V \sum_{s=1}^S \frac{1}{2\sigma^2}\left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}}
+& =  \ln \left( \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v} \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} \right) \\
+& - \left\langle \sum_{v=1}^V \sum_{s=1}^S \frac{\tau}{2} \left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}}
 \end{align}
 
 Consider second term only:
 \begin{equation}
- - \frac{1}{2\sigma^2}\left ( 
+ - \frac{\langle \tau \rangle}{2}  \left ( 
 - \sum_{v=1}^V \sum_{s=1}^S 2 x_{v,s} L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
 + L_v^2 \langle (\sum_{h=1}^G \phi^h_v \gamma_{h,s}) (\sum_{g=1}^G \phi^g_v \gamma_{g,s}) \rangle)
 \right )
 \end{equation}
 
 \begin{equation}
- - \frac{1}{2\sigma^2}\left ( 
+ - \frac{\langle \tau \rangle}{2} \left ( 
  \sum_{v=1}^V \sum_{s=1}^S \left [ -2 x_{v,s} L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
 + 2 L_v^ 2 \sum_{h \neq g }^G \langle \phi^h_v \rangle \langle \gamma_{h,s} \rangle \langle \gamma_{g,s} \rangle \phi^{g}_v
 + L_v^2 \langle \gamma_{g,s}^2 \rangle (\phi^{g}_v)^2
@@ -169,12 +173,12 @@ Consider second term only:
 Next we consider the mean field update for the $\gamma_{g,s}$
 \begin{align}
 \ln q^*(\gamma_{g,s}) & =  \left\langle \ln P \right\rangle_{ \phi^{h}_{v \in A},\gamma_{h \neq g,t \neq s}} \\
-& =  - \left\langle \sum_{v=1}^V \frac{1}{2\sigma^2}\left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{\phi^{h}_{v \in A},\gamma_{h \neq g,t \neq s}} - \frac{\gamma_{g,s}}{\epsilon}
+& =  - \left\langle \sum_{v=1}^V \frac{\tau}{2}\left( x_{v,s} - L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{\phi^{h}_{v \in A},\gamma_{h \neq g,t \neq s}} - \frac{\gamma_{g,s}}{\epsilon}
 \end{align}
 
 \begin{align}
 \ln q^*(\gamma_{g,s}) & = 
-& =  - \frac{1}{2\sigma^2} \left ( \sum_{v=1}^V -2 x_{v,s} L_v \langle \phi^g_{v} \rangle \gamma_{g,s}  
+& =  - \frac{\langle \tau \rangle }{2} \left ( \sum_{v=1}^V -2 x_{v,s} L_v \langle \phi^g_{v} \rangle \gamma_{g,s}  
 + 2 L_v^2 \gamma_{g,s} \langle \phi_v^g \rangle \sum_{h \neq g } \langle \gamma_{h,s} \rangle \langle \phi^h_{v} \rangle
 + L_v^2 \gamma_{g,s}^2 \langle [\phi^g_{v}]^2  \rangle
 \right)
@@ -183,8 +187,8 @@ Next we consider the mean field update for the $\gamma_{g,s}$
 with the restriction $\gamma_{g,s} > 0$ this gives a truncated Normal distribution for $\gamma_{g,s}$.
 With mean:
 \begin{align}
-\mu_{g,s}  & = \frac{\sum_v x_{v,s} L_v \langle \phi_v^g \rangle  - \langle \phi_v^g \rangle \sum_{h \neq g} \langle \gamma_{h,s} \rangle \langle \phi^h_v\rangle L_v^2}{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle} \\
-\tau_{g,s} & = \frac{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle}{\sigma^2} \\
+\mu_{g,s}  & = \frac{\sum_v x_{v,s} L_v \langle \phi_v^g \rangle  - \langle \phi_v^g \rangle \sum_{h \neq g} \langle \gamma_{h,s} \rangle \langle \phi^h_v\rangle  L_v^2}{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle} - \frac{1}{\epsilon \tau_{g,s} }\\
+\tau_{g,s} & = \langle \tau \rangle \sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle  \\
 \end{align}
 
 
