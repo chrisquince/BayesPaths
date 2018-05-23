@@ -88,7 +88,7 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in unitigList]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigList):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] #- 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
@@ -969,6 +969,7 @@ def main(argv):
     sink_maps = {}
     source_maps = {}
     c = 0
+    components.pop(0)
     for component in components:
         if c == 0:
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
@@ -985,7 +986,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=100)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150)
     
     if args.ref_blast_file:
         assGraph.outputOptimalRefPaths(args.ref_blast_file)
