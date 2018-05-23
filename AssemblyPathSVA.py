@@ -25,7 +25,6 @@ from numpy.random import RandomState
 
 from graph import Graph
 from Utils import convertNodeToName
-from Utils import read_unitig_order_file
 from Utils import elop
 from Utils import expNormLogProb
 from Utils import TN_vector_expectation
@@ -940,8 +939,6 @@ def main(argv):
 
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
 
-    parser.add_argument("unitig_order_file", help="csv node file")
-
     parser.add_argument('-fg','--gamma_file', nargs='?',help="gamma file")
 
     parser.add_argument('-fr','--ref_blast_file', nargs='?',help="ref blast file")
@@ -959,8 +956,6 @@ def main(argv):
     np.random.seed(2)
     prng = RandomState(238329)
                 
-    unitig_order = read_unitig_order_file(args.unitig_order_file)
-                
     unitigGraph = UnitigGraph.loadGraph(args.unitig_file,int(args.kmer_length), args.cov_file)   
   
     #get separate components in graph
@@ -969,14 +964,12 @@ def main(argv):
     sink_maps = {}
     source_maps = {}
     c = 0
-    components.pop(0)
+    
     for component in components:
         if c == 0:
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
             
-            sub_unitig_order = {k: unitig_order[k] for k in component}
-        
             (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
 
             source_names = [convertNodeToName(source) for source in source_list] 
