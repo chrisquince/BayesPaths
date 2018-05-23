@@ -851,6 +851,37 @@ class AssemblyPathSVA():
         total_elbo += np.sum(self.HPhi)
         return total_elbo
 
+    def predict(self, M_pred):
+        ''' Predict missing values in R. '''
+        R_pred = self.lengths[:,np.newaxis]*numpy.dot(self.phiMean, self.expGamma)
+        MSE = self.compute_MSE(M_pred, self.X, R_pred)
+        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
+        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
+        return MSE
+
+    ''' Functions for computing MSE, R^2 (coefficient of determination), Rp (Pearson correlation) '''
+    def compute_MSE(self,M,R,R_pred):
+        ''' Return the MSE of predictions in R_pred, expected values in R, for the entries in M. '''
+        return (M * (R-R_pred)**2).sum() / float(M.sum())
+
+
+    def average_MSE_CV(self):
+
+        dSumMSE = 0
+        for n in range(self.no_folds):
+            self.M_train = self.M_trains[n]
+            self.M_test = self.M_tests[n]
+        
+            assGraph.initNMF()
+            
+            assGraph.update(50)
+            
+            dErr = assGraph.predict(self.M_test)
+
+            dSumE += dErr
+        dMeanE = dSumE/float(self.no_folds)
+        print("MeanE," + str(dMeanE))
+        
     def getMaximalUnitigs(self,fileName):
 
         self.MAPs = []
@@ -1019,10 +1050,7 @@ def main(argv):
         #assGraph.tau = 1.0e-4
         assGraph.update(100)
     else:
-        assGraph.initNMF()
-
-        assGraph.update(50)
-
-        assGraph.getMaximalUnitigs("Haplo.fa")
+        assGraph.average_MSE_CV()
+        #assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
     main(sys.argv[1:])
