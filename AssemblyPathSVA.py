@@ -134,10 +134,10 @@ class AssemblyPathSVA():
         (self.M_trains, self.M_tests) = compute_folds(self.V,self.S,self.no_folds)
         self.M_train = self.M_trains[0]
         self.M_test = self.M_tests[0]
-        
+        self.m = 0
         #Now initialise SVA parameters
         self.G = G
-        self.Omega = self.V*self.S #number of dimensions predicted       
+        self.Omega = self.M_train.sum()      
  
         #list of mean assignments of strains to graph
         self.expPhi = np.zeros((self.V,self.G))
@@ -458,7 +458,7 @@ class AssemblyPathSVA():
                 
                 dFac = -0.5*tau*lengthNode
                 
-                T1 = mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
+                T1 = self.M_train[v_idx,:]*mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
                 dVal1 = 2.0*np.sum(T1)
                 dVal2 = lengthNode*dSum2
                 
@@ -556,23 +556,23 @@ class AssemblyPathSVA():
         temp = np.delete(self.expGamma,g_idx,0)
         temp2 = np.delete(self.expPhi,g_idx,1)
        
-        numer = (self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
+        numer = self.M_train*(self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
  
         gphi = self.expPhi[:,g_idx]*self.lengths
         
         numer = gphi[:,np.newaxis]*numer
 
         denom = self.lengths*self.lengths*self.expPhi2[:,g_idx]
-        
-        dSum = np.sum(denom)
+        denom = denom[:,np.newaxis]*self.M_train
+        dSum = np.sum(denom,0)
         nSum = np.sum(numer,0)
         
         nSum -= 1.0/(self.epsilon*self.expTau)
 
         muGammaG = nSum/dSum  
-
-        tauGammaG = np.zeros(self.S)
-        tauGammaG.fill(self.expTau*dSum)
+        tauGammaG = self.expTau*dSum
+        #tauGammaG = np.zeros(self.S)
+        #tauGammaG.fill(self.expTau*dSum)
 
         expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
