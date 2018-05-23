@@ -31,12 +31,14 @@ from Utils import TN_vector_expectation
 from Utils import TN_vector_variance
 from Utils import readRefAssign
 from UnitigGraph import UnitigGraph
-from NMF import NMF
+from NMFM import NMF
+
+from mask import compute_folds
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,no_folds = 10):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -58,6 +60,8 @@ class AssemblyPathSVA():
         self.sinkNode = 'sink+'
         
         self.sourceNode = 'source+'
+        
+        self.no_folds = no_folds
         
         #prior parameters for Gamma tau
         self.alpha = alpha
@@ -125,6 +129,11 @@ class AssemblyPathSVA():
             idx=idx+1
        
         self.XD = np.floor(self.X).astype(int)
+        
+        #create mask matrices
+        (self.M_trains, self.M_tests) = compute_folds(self.V,self.S,self.no_folds)
+        self.M_train = self.M_trains[0]
+        self.M_test = self.M_tests[0]
         
         #Now initialise SVA parameters
         self.G = G
@@ -720,7 +729,7 @@ class AssemblyPathSVA():
 
     def initNMF(self):
         
-        covNMF =  NMF(self.XN,self.G,n_run = 10)
+        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10)
     
         covNMF.factorize()
         covNMF.factorizeH()
