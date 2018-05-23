@@ -571,8 +571,6 @@ class AssemblyPathSVA():
 
         muGammaG = nSum/dSum  
         tauGammaG = self.expTau*dSum
-        #tauGammaG = np.zeros(self.S)
-        #tauGammaG.fill(self.expTau*dSum)
 
         expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
@@ -686,11 +684,11 @@ class AssemblyPathSVA():
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
-        return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) - self.XN + Va).sum()
+        return (np.multiply(self.XN*self.M_train, np.log(elop(self.XN, Va, truediv))) + self.M_train*(Va - self.XN)).sum()
 
     def divF(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
-        R = self.eLambda - self.XN
+        R = self.M_train*(self.eLambda - self.XN)
         return np.multiply(R, R).sum()
 
     def convertMAPToPath(self,mapPath,factorGraph):
@@ -811,6 +809,8 @@ class AssemblyPathSVA():
 
     def exp_square_diff(self): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
+        #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
+        #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
         
         R = self.X - self.lengths[:,np.newaxis]*self.eLambda
         t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
@@ -818,7 +818,7 @@ class AssemblyPathSVA():
         L2 = self.lengths*self.lengths
         diff2 = L2[:,np.newaxis]*diff
         
-        return np.sum(R*R + diff2)
+        return np.sum(self.M_train*(R*R + diff2))
 
     def calc_elbo(self):
         ''' Compute the ELBO. '''
