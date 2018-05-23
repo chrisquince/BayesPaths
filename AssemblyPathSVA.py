@@ -75,18 +75,20 @@ class AssemblyPathSVA():
         for gene, assemblyGraph in assemblyGraphs.items():
             
             (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
-            
+           
+            unitigsDash = list(unitigFactorNode.keys())
+            unitigsDash.sort(key=int) 
             self.factorGraphs[gene] = factorGraph
 
             self.factorDiGraphs[gene] = factorDiGraph 
 
             self.unitigFactorNodes[gene] = unitigFactorNode
-            unitigList = list(assemblyGraph.unitigs)
-            unitigList.sort(key=int)
-            self.mapUnitigs[gene] = unitigList
-            unitigAdj = [gene + "_" + s for s in unitigList]
+            #unitigList = list(assemblyGraph.unitigs)
+            #unitigList.sort(key=int)
+            self.mapUnitigs[gene] = unitigsDash
+            unitigAdj = [gene + "_" + s for s in unitigsDash]
             self.unitigs.extend(unitigAdj)
-            for (unitigNew, unitig) in zip(unitigAdj,unitigList):
+            for (unitigNew, unitig) in zip(unitigAdj,unitigsDash):
                 self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
@@ -1010,7 +1012,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(20)
+        assGraph.update(50)
 
         assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
