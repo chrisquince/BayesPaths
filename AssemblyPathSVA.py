@@ -881,7 +881,7 @@ class AssemblyPathSVA():
 
             dSumE += dErr
         dMeanE = dSumE/float(self.no_folds)
-        print("MeanE," + str(dMeanE))
+        print(str(self.G) + ",MeanE=" + str(dMeanE))
         
     def getMaximalUnitigs(self,fileName):
 
@@ -931,6 +931,7 @@ class AssemblyPathSVA():
         NR = len(allHits)
         refMAPs = [None]*NR
         r = 0
+        refs = []
         self.margG = {}
         for ref in allHits:
             
@@ -967,12 +968,15 @@ class AssemblyPathSVA():
                 pathG.pop(0)
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                     
-                print(">" + ref)
-                    
-                print(unitig)
+                refs.append(unitig)    
 
             r = r + 1
-
+        r = 0
+        with open("Ref.fa", "w") as fastaFile:
+            for ref in allHits:
+                fastaFile.write(">" + ref + "\n")
+                fastaFile.write(refs[r]+"\n")
+                r = r + 1
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -1028,8 +1032,8 @@ def main(argv):
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150)
     
     if args.ref_blast_file:
-        assGraph.outputOptimalRefPaths(args.ref_blast_file)
-
+        refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
+                
         assGraph.updatePhiFixed(100)
         glm = GLM(distr='poisson')
         scaler = StandardScaler().fit(assGraph.expPhi)
@@ -1058,7 +1062,7 @@ def main(argv):
 
         assGraph.update(50)
         
-        assGraph.getMaximalUnitigs("Haplo.fa")
+        assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
 
         assGraph.average_MSE_CV()
         #assGraph.getMaximalUnitigs("Haplo.fa")
