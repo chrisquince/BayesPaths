@@ -38,7 +38,7 @@ from mask import compute_folds
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,no_folds = 10):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=0.01,beta0=0.01,no_folds = 10, ARD = False):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -66,6 +66,9 @@ class AssemblyPathSVA():
         #prior parameters for Gamma tau
         self.alpha = alpha
         self.beta  = beta
+
+        if self.ARD:
+            self.alpha0, self.beta0 = alpha0, beta0
 
         self.V = 0
         self.mapIdx = {}
@@ -154,15 +157,31 @@ class AssemblyPathSVA():
         self.varGamma = np.zeros((self.G,self.S))
         #current excitations on the graph
         self.eLambda = np.zeros((self.V,self.S))
-        
         self.margG = [None]*self.G
         
-        self.elbo = 0.
+        if self.ARD:
+            self.alphak_s, self.betak_s = numpy.zeros(self.G), numpy.zeros(self.G)
+            self.exp_lambdak, self.exp_loglambdak = numpy.zeros(self.G), numpy.zeros(self.G)
+            for g in range(self.G):
+                self.alphak_s[g] = self.alpha0
+                self.betak_s[g] = self.beta0
+                self.update_exp_lambdak(g)
         
+        self.elbo = 0.
         self.expTau = 1.0
         self.alphaTau = 1.0
         self.betaTau = 1.0
-        
+    
+    def update_lambdak(self,k):   
+        ''' Parameter updates lambdak. '''
+        self.alphak_s[k] = self.alpha0 + self.S
+        self.betak_s[k] = self.beta0 + self.expGamma[k,:].sum()
+    
+    def update_exp_lambdak(self,g):
+        ''' Update expectation lambdak. '''
+        self.exp_lambdak[g] = self.alphak_s[g]/self.betak_s[g]
+        self.exp_loglambdak[g] = digamma(self.alphak_s[g]) - math.log(self.betak_s[g])
+    
     def writeNetworkGraph(self,networkGraph, fileName):
         copyGraph = networkGraph.copy()
         
@@ -568,7 +587,11 @@ class AssemblyPathSVA():
         dSum = np.sum(denom,0)
         nSum = np.sum(numer,0)
         
-        nSum -= 1.0/(self.epsilon*self.expTau)
+        lamb = 1.0/self.epsilon
+        if self.ARD:
+            lamb = self.exp_lambdak[g_idx] 
+            
+        nSum -= lamb/self.expTau
 
         muGammaG = nSum/dSum  
         tauGammaG = self.expTau*dSum
@@ -653,6 +676,12 @@ class AssemblyPathSVA():
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
        
                 self.addGamma(g)
+            
+            if self.ARD:
+                for g in range(self.G):
+                    self.update_lambdak(g)
+                    self.update_exp_lambdak(g)
+            
             
             for g in range(self.G):
                 self.updateGamma(g)
