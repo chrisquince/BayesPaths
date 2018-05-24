@@ -9,7 +9,7 @@ import scipy.misc as spm
 import scipy.special as sps
 import math
 import argparse
-
+import gfapy
 import networkx as nx
 
 import collections
@@ -99,7 +99,52 @@ class UnitigGraph():
             unitigGraph.covMap = read_coverage_file(covFile)
         unitigGraph.createDirectedBiGraph()
         return unitigGraph
+    
+    @classmethod
+    def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None):
+        gfa = gfapy.Gfa.from_file(sys.argv[2])
+    
+        if kmerLength is None:
+            if hasattr(gfa.header, 'kk') and gfa.header.kk is not None:
+                kmerLength = int(gfa.header.kk)
+            else:
+                raise ValueError("Problem setting kmerLength from gfa")
+                
+        unitigGraph = cls(kmerLength)
+        unitigGraph.N=len(gfa.segments)
         
+        # unitig lengths
+
+        for seg in gfa.segments:
+            id = seg.name
+            unitigGraph.lengths[id] = len(seg.sequence)
+            unitigGraph.sequences[id] = str(seq.sequence)
+            unitigGraph.undirectedUnitigGraph.add_node(id)
+        
+        for edge in gfa.edges:
+        
+            start = True
+            end = True
+            if edge.from_orient == "-":
+                start = False
+            
+            if edge.to_orient == "-":
+                end = False
+            
+            unitigGraph.overlaps[edge.from_segment.name][edge.to_segment.name].append((start,end))
+
+            unitigGraph.overlaps[edge.to_segment.name][edge.from_segment.name].append((not end,not start))
+                
+            unitigGraph.undirectedUnitigGraph.add_edge(edge.from_segment.name,edge.to_segment.name)
+        
+        unitigGraph.unitigs = unitigGraph.undirectedUnitigGraph.nodes()
+        unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
+        unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
+        if covFile is not None:
+            unitigGraph.covMap = read_coverage_file(covFile)
+        unitigGraph.createDirectedBiGraph()
+        return unitigGraph
+    
     def createUndirectedGraphSubset(self,unitigList):
         newGraph = UnitigGraph(self.overlapLength + 1)
     

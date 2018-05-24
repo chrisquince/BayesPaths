@@ -998,8 +998,11 @@ def main(argv):
 
     np.random.seed(2)
     prng = RandomState(238329)
-                
-    unitigGraph = UnitigGraph.loadGraph(args.unitig_file,int(args.kmer_length), args.cov_file)   
+    
+    if args.unitig_file.endswith('.gfa'):
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.unitig_file,int(args.kmer_length), args.cov_file)
+    else:
+        unitigGraph = UnitigGraph.loadGraph(args.unitig_file,int(args.kmer_length), args.cov_file)   
   
     #get separate components in graph
     components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
