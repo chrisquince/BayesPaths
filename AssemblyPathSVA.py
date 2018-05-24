@@ -133,6 +133,7 @@ class AssemblyPathSVA():
         #create mask matrices
         (self.M_trains, self.M_tests) = compute_folds(self.V,self.S,self.no_folds)
         self.M_train = self.M_trains[0]
+        self.M_train = np.ones((self.V,self.S))
         self.M_test = self.M_tests[0]
         self.m = 0
         #Now initialise SVA parameters
@@ -853,7 +854,7 @@ class AssemblyPathSVA():
 
     def predict(self, M_pred):
         ''' Predict missing values in R. '''
-        R_pred = self.lengths[:,np.newaxis]*numpy.dot(self.phiMean, self.expGamma)
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
         MSE = self.compute_MSE(M_pred, self.X, R_pred)
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
@@ -867,16 +868,16 @@ class AssemblyPathSVA():
 
     def average_MSE_CV(self):
 
-        dSumMSE = 0
+        dSumE = 0
         for n in range(self.no_folds):
             self.M_train = self.M_trains[n]
             self.M_test = self.M_tests[n]
         
-            assGraph.initNMF()
+            self.initNMF()
             
-            assGraph.update(50)
+            self.update(50)
             
-            dErr = assGraph.predict(self.M_test)
+            dErr = self.predict(self.M_test)
 
             dSumE += dErr
         dMeanE = dSumE/float(self.no_folds)
@@ -1050,6 +1051,12 @@ def main(argv):
         #assGraph.tau = 1.0e-4
         assGraph.update(100)
     else:
+        assGraph.initNMF()
+
+        assGraph.update(50)
+        
+        assGraph.getMaximalUnitigs("Haplo.fa")
+
         assGraph.average_MSE_CV()
         #assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
