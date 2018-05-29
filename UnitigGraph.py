@@ -355,7 +355,6 @@ class UnitigGraph():
                             sinks.append(ssMinus)
 
                         sinkTigs.append(sourceSink)
-                print("Debug")
 
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
