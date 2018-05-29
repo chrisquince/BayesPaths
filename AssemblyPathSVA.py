@@ -38,7 +38,7 @@ from mask import compute_folds
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=0.01,beta0=0.01,no_folds = 10, ARD = False):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=0.0001,beta0=0.0001,no_folds = 10, ARD = False):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -66,7 +66,7 @@ class AssemblyPathSVA():
         #prior parameters for Gamma tau
         self.alpha = alpha
         self.beta  = beta
-
+        self.ARD = ARD
         if self.ARD:
             self.alpha0, self.beta0 = alpha0, beta0
 
@@ -160,8 +160,8 @@ class AssemblyPathSVA():
         self.margG = [None]*self.G
         
         if self.ARD:
-            self.alphak_s, self.betak_s = numpy.zeros(self.G), numpy.zeros(self.G)
-            self.exp_lambdak, self.exp_loglambdak = numpy.zeros(self.G), numpy.zeros(self.G)
+            self.alphak_s, self.betak_s = np.zeros(self.G), np.zeros(self.G)
+            self.exp_lambdak, self.exp_loglambdak = np.zeros(self.G), np.zeros(self.G)
             for g in range(self.G):
                 self.alphak_s[g] = self.alpha0
                 self.betak_s[g] = self.beta0
@@ -1058,7 +1058,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150,ARD=True)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)

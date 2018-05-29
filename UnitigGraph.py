@@ -102,7 +102,7 @@ class UnitigGraph():
     
     @classmethod
     def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None):
-        gfa = gfapy.Gfa.from_file(sys.argv[2])
+        gfa = gfapy.Gfa.from_file(gfaFile)
     
         if kmerLength is None:
             if hasattr(gfa.header, 'kk') and gfa.header.kk is not None:
@@ -111,6 +111,7 @@ class UnitigGraph():
                 raise ValueError("Problem setting kmerLength from gfa")
                 
         unitigGraph = cls(kmerLength)
+        unitigGraph.overlapLength = kmerLength
         unitigGraph.N=len(gfa.segments)
         
         # unitig lengths
@@ -118,7 +119,7 @@ class UnitigGraph():
         for seg in gfa.segments:
             id = seg.name
             unitigGraph.lengths[id] = len(seg.sequence)
-            unitigGraph.sequences[id] = str(seq.sequence)
+            unitigGraph.sequences[id] = str(seg.sequence)
             unitigGraph.undirectedUnitigGraph.add_node(id)
         
         for edge in gfa.edges:
