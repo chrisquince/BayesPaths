@@ -914,8 +914,8 @@ class AssemblyPathSVA():
         
     def getMaximalUnitigs(self,fileName):
 
-        self.MAPs = []
-        haplotypes = []
+        self.MAPs = defaultdict(list)
+        haplotypes = defaultdict(list)
 
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
@@ -941,18 +941,19 @@ class AssemblyPathSVA():
 
                 outString = p.stdout.read()
 
-                self.MAPs.append(self.parseFGString(factorGraph,str(outString)))
+                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                 biGraph = self.factorDiGraphs[gene]
                 
-                pathG = self.convertMAPToPath(self.MAPs[g],biGraph)
+                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                haplotypes.append(unitig)
+                haplotypes[gene].append(unitig)
 
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
-                fastaFile.write(">" + str(g) + "\n")
-                fastaFile.write(haplotypes[g]+"\n")
+                for gene, factorGraph in self.factorGraphs.items():
+                    fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                    fastaFile.write(haplotypes[gene][g]+"\n")
 
     def outputOptimalRefPaths(self, ref_hit_file):
         
