@@ -48,8 +48,10 @@ def reverseDirn(node):
 class UnitigGraph():
     """Creates unitig graph"""
 
-    def __init__(self,kmerLength):
-        self.overlapLength = kmerLength - 1
+    def __init__(self,kmerLength,overlapLength):
+    
+        self.overlapLength = overlapLength
+        self.kmerLength = kmerLength 
         self.sequences = {}
         self.lengths = {}
         self.overlaps = defaultdict(lambda: defaultdict(list))
@@ -60,11 +62,14 @@ class UnitigGraph():
         self.start = {}
         self.NC = 0
         self.covMap = {}
-    
+        self.KC = {}
+        
     @classmethod
-    def loadGraph(cls,unitigFile, kmerLength, covFile = None):
+    def loadGraph(cls,unitigFile, kmerLength, overlapLength = None, covFile = None):
     
-        unitigGraph = cls(kmerLength)
+        if overlapLength == None:
+            overlapLength = kmerLength - 1
+        unitigGraph = cls(kmerLength, overlapLength)
     
         for record in SeqIO.parse(unitigFile, "fasta"):
             unitigGraph.sequences[record.id] = str(record.seq)
@@ -110,8 +115,8 @@ class UnitigGraph():
             else:
                 raise ValueError("Problem setting kmerLength from gfa")
                 
-        unitigGraph = cls(kmerLength)
-        unitigGraph.overlapLength = kmerLength
+        unitigGraph = cls(kmerLength, kmerLength)
+        
         unitigGraph.N=len(gfa.segments)
         
         # unitig lengths
@@ -121,7 +126,8 @@ class UnitigGraph():
             unitigGraph.lengths[id] = len(seg.sequence)
             unitigGraph.sequences[id] = str(seg.sequence)
             unitigGraph.undirectedUnitigGraph.add_node(id)
-        
+            unitigGraph.KC[id] = int(seg.KC)
+            
         for edge in gfa.edges:
         
             start = True
@@ -146,20 +152,82 @@ class UnitigGraph():
         unitigGraph.createDirectedBiGraph()
         return unitigGraph
     
-    def createUndirectedGraphSubset(self,unitigList):
-        newGraph = UnitigGraph(self.overlapLength + 1)
+    @classmethod
+    def getReachableSubset(cls,forwardGraph,coreNodes):
+        reverseGraph = forwardGraph.reverse()
+        reachable = []
+        setCoreNodes = set(coreNodes)
+        for node in forwardGraph.nodes():
+            if node in setCoreNodes:
+                reachable.append(node)
+            else:
+                nDes = nx.descendants(forwardGraph,node)
+                nAnc = nx.descendants(reverseGraph,node)
     
-        newGraph.overlapLength = self.overlapLength
+                if len(nDes & setCoreNodes) > 0 and len(nAnc & setCoreNodes) > 0:
+                    reachable.append(node)
+        
+        return reachable 
+    
+    def writeToGFA(self,fileName):
+    
+        with open(fileName, 'w') as gfaFile:
+    
+            for unitig in self.unitigs:
+                sVals = ['S',str(unitig),self.sequences[unitig],'LN:i:'+str(self.lengths[unitig])]
+                if self.KC[unitig] is not None:
+                    sVals.append('KC:i:' + str(self.KC[unitig]))
+                sString = '\t'.join(sVals)
+                gfaFile.write(sString + '\n')
+        
+            #just use this to only output list once
+            tempHash = {}
+            for unitig in self.unitigs:
+                for outUnitig,linkList in self.overlaps[unitig].items():
+                    hashTag = unitig + "_" + outUnitig
+                    rTag = outUnitig + "_" + unitig
+                    if hashTag not in tempHash and rTag not in tempHash:
+                   
+                        for link in linkList:
+                            if link[0]:
+                                link1 = '+'
+                            else:
+                                link1 = '-'
+                                
+                            if link[1]:
+                                link2 = '+'
+                            else:
+                                link2 = '-'
+                            
+                            lVals = ['L',str(unitig),link1,outUnitig,link2,str(self.overlapLength)+'M']
+                            
+                            
+                            lString = '\t'.join(lVals)
+                            
+                            gfaFile.write(lString + '\n')
+                        
+                        tempHash[hashTag] = 1
+                        tempHash[rTag]    = 1
+    
+    def createUndirectedGraphSubset(self,unitigList):
+        newGraph = UnitigGraph(self.kmerLength,self.overlapLength)
         
         newGraph.undirectedUnitigGraph = self.undirectedUnitigGraph.subgraph(unitigList) 
         
         newGraph.sequences = {k: self.sequences[k] for k in unitigList}
         
         newGraph.lengths = {k: self.lengths[k] for k in unitigList}
-        
-        newGraph.overlaps = {k: self.overlaps[k] for k in unitigList}
+       
+        newGraph.overlaps = defaultdict(dict)
+        for k in unitigList:
+            for l, links in self.overlaps[k].items():
+                if l in unitigList:
+                    newGraph.overlaps[k][l] = links
         
         newGraph.covMap = {k: self.covMap[k] for k in unitigList}
+        
+        if self.KC: 
+            newGraph.KC = {k: self.KC[k] for k in unitigList}
         
         newGraph.N = nx.number_of_nodes(newGraph.undirectedUnitigGraph)
         newGraph.unitigs = newGraph.undirectedUnitigGraph.nodes()
@@ -431,7 +499,7 @@ class UnitigGraph():
             sink_list = []
         
         return (source_list,sink_list)
-        
+    
     def createDirectedBiGraph(self):
         self.directedUnitigBiGraph = nx.DiGraph()
         

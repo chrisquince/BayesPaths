@@ -895,6 +895,64 @@ class AssemblyPathSVA():
         return (M * (R-R_pred)**2).sum() / float(M.sum())
 
 
+    def collapseDegenerate(self):
+        dist = np.zeros((self.G,self.G))
+        self.MAPs = defaultdict(list)
+        
+        pathsg = defaultdict(dict)
+        
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[g])
+
+                factorGraph.reset()
+
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+
+                cmd = './runfg ' + graphFileName + ' 0'
+
+                p = Popen(cmd, stdout=PIPE,shell=True)
+
+                outString = p.stdout.read()
+
+                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
+                biGraph = self.factorDiGraphs[gene]
+                
+                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                pathG.pop(0)
+                pathsg[g][gene] = pathG
+
+        for g in range(self.G):
+            for h in range(g+1,self.G):
+                diff = 0
+                for gene in self.genes:
+                    diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
+                dist[g,h] = diff 
+        
+        
+        collapsed = [False]*self.G 
+        for g in range(self.G):
+            
+            for h in range(g+1,self.G):
+                if dist[g,h] == 0 and collapsed[h] == False:
+                    self.expGamma[g,:] += self.expGamma[h,:]
+                    self.expGamma[h,:] = 0.
+                    self.expGamma2[h,:] = 0.
+                    self.muGamma[h,:] = 0.
+                    collapsed[h] = True
+        
+        
+
     def average_MSE_CV(self):
 
         dSumE = 0
@@ -916,6 +974,8 @@ class AssemblyPathSVA():
 
         self.MAPs = defaultdict(list)
         haplotypes = defaultdict(list)
+
+        output = np.sum(self.expGamma,axis=1) > 0.01
 
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
@@ -948,12 +1008,13 @@ class AssemblyPathSVA():
                 pathG.pop(0)
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                 haplotypes[gene].append(unitig)
-
+                
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
-                for gene, factorGraph in self.factorGraphs.items():
-                    fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                    fastaFile.write(haplotypes[gene][g]+"\n")
+                if output[g]:
+                    for gene, factorGraph in self.factorGraphs.items():
+                        fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                        fastaFile.write(haplotypes[gene][g]+"\n")
 
     def outputOptimalRefPaths(self, ref_hit_file):
         
