@@ -77,9 +77,11 @@ class AssemblyPathSVA():
         self.covMapAdj = {}
         
         self.unitigs = []
+        self.genes = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
         for gene, assemblyGraph in assemblyGraphs.items():
+            self.genes.append(gene)
             
             (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
@@ -157,8 +159,11 @@ class AssemblyPathSVA():
         self.varGamma = np.zeros((self.G,self.S))
         #current excitations on the graph
         self.eLambda = np.zeros((self.V,self.S))
-        self.margG = [None]*self.G
         
+        self.margG = dict()
+        for gene in self.genes:
+            self.margG[gene] = [dict() for x in range(self.G)]
+
         if self.ARD:
             self.alphak_s, self.betak_s = np.zeros(self.G), np.zeros(self.G)
             self.exp_lambdak, self.exp_loglambdak = np.zeros(self.G), np.zeros(self.G)
@@ -670,10 +675,10 @@ class AssemblyPathSVA():
                     outString = p.stdout.read()
                
                     margP = self.parseMargString(factorGraph,str(outString))
-                    if len(margP) > 0: 
-                        self.margG[g] = self.parseMargString(factorGraph,str(outString))
+                    if len(margP) > 0:
+                        self.margG[gene][g] = self.parseMargString(factorGraph,str(outString)) 
        
-                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
                 self.addGamma(g)
             
@@ -831,9 +836,10 @@ class AssemblyPathSVA():
                 
                 outString = p.stdout.read()
                 
-                self.margG[g] = self.parseMargString(factorGraph,str(outString))
-            
-                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
+             
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+                
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -905,7 +911,7 @@ class AssemblyPathSVA():
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
 
-                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[g])
+                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])
 
                 factorGraph.reset()
 
@@ -927,7 +933,7 @@ class AssemblyPathSVA():
 
                 self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                 biGraph = self.factorDiGraphs[gene]
-                
+
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
@@ -1051,9 +1057,9 @@ class AssemblyPathSVA():
 
                 refMAPs[r] = self.parseFGString(factorGraph, str(outString))
             
-                self.margG[ref] = self.convertMAPMarg(refMAPs[r],factorGraph.mapNodes)
-    
-                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[ref],r)
+                self.margG[gene][ref] = self.convertMAPMarg(refMAPs[r],factorGraph.mapNodes)
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][ref],r)
+        
                 biGraph = self.factorDiGraphs[gene]
                 pathG = self.convertMAPToPath(refMAPs[r], biGraph)
                 pathG.pop(0)
