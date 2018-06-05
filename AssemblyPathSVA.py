@@ -1117,7 +1117,9 @@ def main(argv):
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
             
-            (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+            #(source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+
+            (source_list, sink_list) = unitigSubGraph.selectAllSourceSinks()
 
             source_names = [convertNodeToName(source) for source in source_list] 
             sink_names = [convertNodeToName(sink) for sink in sink_list]

@@ -324,6 +324,115 @@ class UnitigGraph():
                 
         return (nodeReachable, unreachablePlusMinus)
     
+    def selectAllSourceSinks(self):
+    
+        sources = []
+        sinks = []
+        
+        sourceSinks = []
+        for unitig in self.undirectedUnitigGraph.nodes():
+            sourceSink = self.isSourceSink(unitig)
+            
+            if sourceSink is not None:
+                sourceSinks.append(unitig)
+            
+        #get all path lengths
+        self.createDirectedBiGraph()        
+
+        allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
+        allSSDict = defaultdict(dict)       
+        maxSourceSink = 0
+        maxSource = None
+        maxSink = None
+        for sourcePaths in allPaths:
+            source = sourcePaths[0]
+            unitig = source[:-1]
+            if unitig in sourceSinks:
+
+                for sink, length in sourcePaths[1].items(): 
+                    sinkUnitig = sink[:-1]
+                    if sinkUnitig in sourceSinks:
+                        allSSDict[source][sink] = length
+                        if length > maxSourceSink:
+                            maxSourceSink = length
+                            maxSource = source
+                            maxSink = sink
+
+        #set first node as source
+        sUnitig = sourceSinks.pop(0)
+        bForward = True
+        
+        if len(self.directedUnitigBiGraph.neighbours(sUnitig + "+")) > 0:
+            sources.append(sUnitig + "+")
+        else:
+            sources.append(sUnitig + "-")
+        
+        for sourceSink in sourceSinks:
+            ssPlus  = sourceSink + "+"
+            ssMinus = sourceSink + "-"            
+            
+            minSinkPlus = sys.float_info.max
+            for source in sources:
+                if ssPlus in allSSDict[source]:
+                    if allSSDict[source][ssPlus] < minSinkPlus:
+                        minSinkPlus = allSSDict[source][ssPlus]
+            
+            minSinkMinus = sys.float_info.max
+            for source in sources:
+                if ssMinus in allSSDict[source]:
+                    if allSSDict[source][ssMinus] < minSinkMinus:
+                        minSinkMinus = allSSDict[source][ssMinus]
+            
+            minSourcePlus = sys.float_info.max
+            for sink in sinks:
+                if sink in allSSDict[ssPlus]:
+                    if allSSDict[ssPlus][sink] < minSourcePlus:
+                        minSourcePlus = allSSDict[ssPlus][sink]
+            
+            minSourceMinus = sys.float_info.max
+            for sink in sinks:
+                if sink in allSSDict[ssMinus]:
+                    if allSSDict[ssMinus][sink] < minSourceMinus:
+                        minSourceMinus = allSSDict[ssMinus][sink]
+            
+            minSink   = sys.float_info.max
+            minSource = sys.float_info.max
+            bSinkPlus = True
+            if minSinkPlus < minSinkMinus:
+                minSink = minSinkPlus
+            else:
+                minSink = minSinkMinus
+                bSinkPlus = False
+            
+            bSourcePlus = True
+            if minSourcePlus < minSourceMinus:
+                minSource = minSourcePlus
+            else:
+                minSource = minSourceMinus
+                bSourcePlus = False
+            
+            if minSink < minSource:
+                if bSinkPlus:
+                    sinks.append(ssPlus)
+                else:
+                    sinks.append(ssMinus)
+            else:
+                if bSourcePlus:
+                    sources.append(ssPlus)
+                else:
+                    sources.append(ssMinus)    
+        
+        if len(sources) > 0:
+            source_list = list(map(convertNameToNode2, sources))
+        else:
+            source_list = []
+        if len(sinks) > 0:
+            sink_list = list(map(convertNameToNode2, sinks))
+        else:
+            sink_list = []
+        
+        return (source_list,sink_list)
+    
     def selectSourceSinks2(self, dFrac):
     
         sources = []
