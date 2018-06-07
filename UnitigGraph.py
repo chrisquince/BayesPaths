@@ -362,56 +362,76 @@ class UnitigGraph():
         sUnitig = sourceSinks.pop(0)
         bForward = True
         
-        if len(self.directedUnitigBiGraph.neighbours(sUnitig + "+")) > 0:
+        if len(list(self.directedUnitigBiGraph.neighbors(sUnitig + "+"))) > 0:  
             sources.append(sUnitig + "+")
         else:
             sources.append(sUnitig + "-")
+       
+        #add longest alternative as sink
+        newSink = None
+        maxSink = sys.float_info.max
+        for sourceSink in sourceSinks:
+            ssPlus  = sourceSink + "+"
+            ssMinus = sourceSink + "-"
+
+            if ssPlus in allSSDict[sources[0]]:
+                if allSSDict[sources[0]][ssPlus] < maxSink:
+                    maxSink = allSSDict[sources[0]][ssPlus]
+                    newSink = ssPlus
+            
+            if ssMinus in allSSDict[sources[0]]:
+                if allSSDict[sources[0]][ssMinus] < maxSink:
+                    maxSink = allSSDict[sources[0]][ssMinus]
+                    newSink = ssMinus
         
+        sinks.append(newSink)
+        sourceSinks.remove(newSink[:-1])    
+ 
         for sourceSink in sourceSinks:
             ssPlus  = sourceSink + "+"
             ssMinus = sourceSink + "-"            
             
-            minSinkPlus = sys.float_info.max
+            maxSinkPlus = 0.
             for source in sources:
                 if ssPlus in allSSDict[source]:
-                    if allSSDict[source][ssPlus] < minSinkPlus:
-                        minSinkPlus = allSSDict[source][ssPlus]
+                    if allSSDict[source][ssPlus] > maxSinkPlus:
+                        maxSinkPlus = allSSDict[source][ssPlus]
             
-            minSinkMinus = sys.float_info.max
+            maxSinkMinus = 0.0
             for source in sources:
                 if ssMinus in allSSDict[source]:
-                    if allSSDict[source][ssMinus] < minSinkMinus:
-                        minSinkMinus = allSSDict[source][ssMinus]
+                    if allSSDict[source][ssMinus] > maxSinkMinus:
+                        maxSinkMinus = allSSDict[source][ssMinus]
             
-            minSourcePlus = sys.float_info.max
+            maxSourcePlus = 0.0
             for sink in sinks:
                 if sink in allSSDict[ssPlus]:
-                    if allSSDict[ssPlus][sink] < minSourcePlus:
-                        minSourcePlus = allSSDict[ssPlus][sink]
+                    if allSSDict[ssPlus][sink] > maxSourcePlus:
+                        maxSourcePlus = allSSDict[ssPlus][sink]
             
-            minSourceMinus = sys.float_info.max
+            maxSourceMinus = 0.0
             for sink in sinks:
                 if sink in allSSDict[ssMinus]:
-                    if allSSDict[ssMinus][sink] < minSourceMinus:
-                        minSourceMinus = allSSDict[ssMinus][sink]
+                    if allSSDict[ssMinus][sink] > maxSourceMinus:
+                        maxSourceMinus = allSSDict[ssMinus][sink]
             
-            minSink   = sys.float_info.max
-            minSource = sys.float_info.max
+            maxSink   = 0.
+            maxSource = 0.
             bSinkPlus = True
-            if minSinkPlus < minSinkMinus:
-                minSink = minSinkPlus
+            if maxSinkPlus > maxSinkMinus:
+                maxSink = maxSinkPlus
             else:
-                minSink = minSinkMinus
+                maxSink = maxSinkMinus
                 bSinkPlus = False
             
             bSourcePlus = True
-            if minSourcePlus < minSourceMinus:
-                minSource = minSourcePlus
+            if maxSourcePlus > maxSourceMinus:
+                maxSource = maxSourcePlus
             else:
-                minSource = minSourceMinus
+                maxSource = maxSourceMinus
                 bSourcePlus = False
             
-            if minSink < minSource:
+            if maxSink > maxSource:
                 if bSinkPlus:
                     sinks.append(ssPlus)
                 else:

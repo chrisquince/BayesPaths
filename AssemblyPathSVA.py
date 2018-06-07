@@ -38,7 +38,7 @@ from mask import compute_folds
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=0.0001,beta0=0.0001,no_folds = 10, ARD = False):
+    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,no_folds = 10, ARD = False):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -641,7 +641,7 @@ class AssemblyPathSVA():
     
         iter = 0
    
-        self.expTau = 0.01 
+        self.expTau = 0.001 
         while iter < maxIter:
             #update phi marginals
             
@@ -1117,9 +1117,12 @@ def main(argv):
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
             
-            #(source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+            (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+            
+            #(source_list, sink_list) = unitigSubGraph.selectAllSourceSinks()
 
-            (source_list, sink_list) = unitigSubGraph.selectAllSourceSinks()
+    #        source_list = [('465248',True),('465730',True),('466718',True)]
+     #       sink_list = [('462250',True),('467494',True)]
 
             source_names = [convertNodeToName(source) for source in source_list] 
             sink_names = [convertNodeToName(sink) for sink in sink_list]
