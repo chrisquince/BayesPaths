@@ -3,13 +3,96 @@ import sys
 from UnitigGraph import UnitigGraph
 from Utils import convertNodeToName
 import networkx as nx
-
+from collections import deque
 #class GraphProcess():
  #   """ Class for processing assembly graph"""    
     
   #  def __init__(self):
     
+def generic_hairy_ego_graph(graph,source,radius,metric,neighbors,distanceSource):
+    sinks = []
+    visited = {source}
     
+    queue = deque([(source, neighbors(source))]) 
+    distance = {}
+    distance[source] = 0.0
+    
+    while queue:
+        parent, children = queue[0]
+        try:
+            child = next(children)
+            
+            if child not in visited:
+                visited.add(child)
+                
+                if distanceSource[child] > radius and len(list(neighbors(child))) == 1:
+                    sinks.append(child)
+                else:
+                    queue.append((child, neighbors(child)))
+        except StopIteration:
+            queue.popleft()
+    return sinks
+
+
+def generic_ego_graph(graph,source,radius,metric,neighbors,distanceSource):
+    sinks = []
+    visited = {source}
+    
+    queue = deque([(source, neighbors(source))]) 
+    distance = {}
+    distance[source] = 0.0
+    
+    while queue:
+        parent, children = queue[0]
+        try:
+            child = next(children)
+            
+            if child not in visited:
+                visited.add(child)
+                
+                if distanceSource[child] > radius:
+                    sinks.append(child)
+                else:
+                    queue.append((child, neighbors(child)))
+        except StopIteration:
+            queue.popleft()
+    return (visited,sinks)
+
+
+
+def get_hairy_ego_graph(directedGraph,origin,radius,metric):
+
+    successors = directedGraph.neighbors
+    
+    distanceSourceF = nx.shortest_path_length(directedGraph, source=origin,weight=metric)
+    
+    sinks = generic_hairy_ego_graph(directedGraph,origin,radius,metric,successors,distanceSourceF)
+
+    directedGraphR = directedGraph.reverse(copy=True)
+    distanceSourceR = nx.shortest_path_length(directedGraphR, source=origin,weight=metric)
+    
+    successors = directedGraph.predecessors
+    
+    sources = generic_hairy_ego_graph(directedGraph,origin,radius,metric,successors,distanceSourceR)
+ 
+    sink_reachable = set()
+    for sink in sinks:
+        #sink_reachable.add(sink)
+        distanceSink = nx.shortest_path_length(directedGraphR, source=sink,weight=metric)
+        (sink_reach,sink_sink) = generic_ego_graph(directedGraphR,sink,radius,metric,directedGraphR.neighbors,distanceSink)    
+        sink_reachable |= set(sink_reach)
+    
+    source_reachable = set()
+    for source in sources:
+        #source_reachable.add(source)
+        distanceSource = nx.shortest_path_length(directedGraph, source=source,weight=metric)
+        (source_reach,source_sink) = generic_ego_graph(directedGraph,source,radius,metric,directedGraph.neighbors,distanceSource) 
+        source_reachable |= set(source_reach)
+    
+    reachable = sink_reachable & source_reachable
+    
+    return list(reachable)
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -27,6 +110,19 @@ def main(argv):
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
+
+    unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
+
+    components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
+
+    c = 0
+    for component in components:
+        unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
+        
+        unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
+        
+        c = c + 1
+
 
     coreCogs = set()
     
@@ -51,8 +147,10 @@ def main(argv):
             if cog in coreCogs:
                 unitigCogMap[unitig] = cog
             
-            
-    unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
+    
+    #import ipdb; ipdb.set_trace()
+
+
     
     for coreCog in coreCogs:
         coreUnitigs = []
@@ -64,9 +162,11 @@ def main(argv):
         
         corePlusName = convertNodeToName((coreUnitig,True))
         
-        coreGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,undirected=True,radius=5000,distance='weight')
+        #coreGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,undirected=True,radius=50000,distance='weight')
         
-        coreGraphU = [x[:-1] for x in coreGraph.nodes()]
+        coreGraph = get_hairy_ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,2000,'weight')
+        
+        coreGraphU = [x[:-1] for x in coreGraph]
         
         coreUGraph = unitigGraph.createUndirectedGraphSubset(coreGraphU)
         
@@ -95,18 +195,7 @@ def main(argv):
         print("Debug")
 
 
-    #get separate components in graph
-    #components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
 
-    #c = 0
-    #for component in components:
-     #   unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
-        
-      #  unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
-        
-       # c = c + 1
-    
-    #import ipdb; ipdb.set_trace()
     
 if __name__ == "__main__":
     main(sys.argv[1:])
