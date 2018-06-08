@@ -637,13 +637,16 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def update(self, maxIter):
+    def update(self, maxIter, removeRedundant):
     
         iter = 0
    
         self.expTau = 0.001 
         while iter < maxIter:
             #update phi marginals
+            if removeRedundant:
+                if iter > 0 and iter % 10 == 0:
+                    self.removeRedundant(0.02, 10)
             
             for g in range(self.G):
                 
@@ -901,6 +904,127 @@ class AssemblyPathSVA():
         return (M * (R-R_pred)**2).sum() / float(M.sum())
 
 
+    def calcPathDist(self):
+        
+        dist = np.zeros((self.G,self.G))
+        
+        self.MAPs = defaultdict(list)
+        
+        pathsg = defaultdict(dict)
+        
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
+
+                factorGraph.reset()
+
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+
+                graphString = str(factorGraph)
+                graphFileName = 'graph_'+ str(g) + '.fg'
+
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+
+                cmd = './runfg ' + graphFileName + ' 0'
+
+                p = Popen(cmd, stdout=PIPE,shell=True)
+
+                outString = p.stdout.read()
+
+                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
+                biGraph = self.factorDiGraphs[gene]
+
+                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                pathG.pop(0)
+                pathsg[g][gene] = pathG
+        
+        for g in range(self.G):
+            for h in range(g+1,self.G):
+                diff = 0
+                for gene in self.genes:
+                    diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
+                dist[g,h] = diff     
+
+        return dist
+        
+    ''' Removes strain below a given total intensity and degenerate'''
+    def removeRedundant(self, minIntensity, gammaIter):
+    
+        #calculate number of good strains
+        nNewG = 0
+        
+        sumIntensity = np.sum(self.expGamma,axis=1)
+        
+        dist = self.calcPathDist()
+        
+        removed = sumIntensity < minIntensity
+        
+        for g in range(self.G):
+        
+            if removed[g] == False:    
+
+                for h in range(g+1,self.G):
+                    if dist[g,h] == 0 and removed[h] == False:
+                        removed[h] = True    
+        
+       
+        retained = not removed
+        nNewG = np.sum(retained)
+        if nNewG < self.G:
+            print("New strain number " + str(nNewG))
+            self.G = newNewG
+            newPhi  = self.expPhi[:,retained]        
+            newPhi2 = self.expPhi2[:,retained]
+            newPhiH = self.HPhi[:,retained] 
+
+            newExpGamma = self.expGamma[retained,:]
+            newExpGamma2 = self.expGamma2[retained,:]
+            newMuGamma   = self.muGamma[retained,:]     
+            newTauGamma  = self.tauGamma[retained,:]
+            newVarGamma  = self.varGamma[retained,:]
+        
+            self.expPhi  = newPhi
+            self.expPhi2 = newPhi2
+            self.HPhi    = newPhiH
+        
+            self.expGamma  = newExpGamma
+            self.expGamma2 = newExpGamma2
+            self.muGamma   = newMuGamma
+            self.tauGamma  = newTauGamma
+            self.varGamma  = newVarGamma
+        
+            if self.ARD:
+                self.alphak_s = self.alphak_s[retained]
+                self.betak_s  = self.betak_s[retained]
+                self.exp_lambdak = self.exp_lambdak[retained]
+                self.exp_loglambdak = self.exp_loglambdak[retained]
+        
+            self.G       = nNewG
+        
+            iter = 0    
+            while iter < gammaIter:
+        
+                if self.ARD:
+                    for g in range(self.G):
+                        self.update_lambdak(g)
+                        self.update_exp_lambdak(g)
+            
+                for g in range(self.G):
+                    self.updateGamma(g)
+
+                self.eLambda = np.zeros((self.V,self.S))
+                for g in range(self.G):
+                    self.addGamma(g)
+            
+                self.updateTau()
+            
+                iter += 1
+        
     def collapseDegenerate(self):
         dist = np.zeros((self.G,self.G))
         self.MAPs = defaultdict(list)
@@ -1162,7 +1286,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(50)
+        assGraph.update(50, True)
         
         assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
 
