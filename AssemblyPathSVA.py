@@ -645,8 +645,8 @@ class AssemblyPathSVA():
         while iter < maxIter:
             #update phi marginals
             if removeRedundant:
-                if iter > 0 and iter % 10 == 0:
-                    self.removeRedundant(0.02, 10)
+                if iter > 50 and iter % 10 == 0:
+                    self.removeRedundant(0.005, 10)
             
             for g in range(self.G):
                 
@@ -800,8 +800,8 @@ class AssemblyPathSVA():
                 
                 outString = p.stdout.read()
                 
-                self.margG[g] = self.parseMargString(factorGraph,str(outString))
-                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[g],g)
+                self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -915,8 +915,7 @@ class AssemblyPathSVA():
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
-
-                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
+                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])
 
                 factorGraph.reset()
 
@@ -958,10 +957,10 @@ class AssemblyPathSVA():
         #calculate number of good strains
         nNewG = 0
         
-        sumIntensity = np.sum(self.expGamma,axis=1)
+        sumIntensity = np.max(self.expGamma,axis=1)
         
-        dist = self.calcPathDist()
-        
+        #dist = self.calcPathDist()
+        dist = np.ones((self.G,self.G))
         removed = sumIntensity < minIntensity
         
         for g in range(self.G):
@@ -973,11 +972,11 @@ class AssemblyPathSVA():
                         removed[h] = True    
         
        
-        retained = not removed
+        retained = np.logical_not(removed) 
         nNewG = np.sum(retained)
         if nNewG < self.G:
             print("New strain number " + str(nNewG))
-            self.G = newNewG
+            self.G = nNewG
             newPhi  = self.expPhi[:,retained]        
             newPhi2 = self.expPhi2[:,retained]
             newPhiH = self.HPhi[:,retained] 
@@ -1025,6 +1024,11 @@ class AssemblyPathSVA():
             
                 iter += 1
         
+        self.margG = dict()
+        for gene in self.genes:
+            self.margG[gene] = [dict() for x in range(self.G)]       
+ 
+
     def collapseDegenerate(self):
         dist = np.zeros((self.G,self.G))
         self.MAPs = defaultdict(list)
@@ -1111,8 +1115,7 @@ class AssemblyPathSVA():
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
 
-                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[g])
-
+                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])        
                 factorGraph.reset()
 
                 factorGraph.var['zero+source+'].condition(1)
@@ -1286,7 +1289,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(50, True)
+        assGraph.update(100, True)
         
         assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
 
