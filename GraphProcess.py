@@ -33,6 +33,45 @@ def generic_hairy_ego_graph(graph,source,radius,metric,neighbors,distanceSource)
             queue.popleft()
     return sinks
 
+    
+def findSuperBubble(directedGraph, source, descendents, parents):
+
+    queue = deque([source])
+    
+    seen = set()
+    visited = set()
+    
+    sink = None
+    
+    while queue:
+        node = queue.popleft()
+        
+        visited.add(node)
+        if node in seen:
+            seen.remove(node)
+            
+        nList = list(descendents(node))
+        
+        if len(nList) > 0:
+            for child in nList:
+                if child == source:
+                    break
+                
+                seen.add(child)
+                         
+                childVisited = set(parents(child))
+
+                if childVisited.issubset(visited): 
+                    queue.append(child)
+        
+        if len(queue) == 1 and len(seen) < 2:
+            if len(seen) == 0 or queue[0] in seen:
+                if not directedGraph.has_edge(queue[0],source):
+                    sink = queue[0]
+                    break
+                
+    return sink
+    
 
 def generic_ego_graph(graph,source,radius,metric,neighbors,distanceSource):
     sinks = []
@@ -113,17 +152,6 @@ def main(argv):
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
-    components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
-
-    c = 0
-    for component in components:
-        unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
-        
-        unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
-        
-        c = c + 1
-
-
     coreCogs = set()
     
     with open(args.core_cogs) as f:
@@ -150,7 +178,6 @@ def main(argv):
     
     #import ipdb; ipdb.set_trace()
 
-
     
     for coreCog in coreCogs:
         coreUnitigs = []
@@ -162,9 +189,11 @@ def main(argv):
         
         corePlusName = convertNodeToName((coreUnitig,True))
         
-        #coreGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,undirected=True,radius=50000,distance='weight')
+        #start at focal node and move down graph finding bubbles
+        corePlusName = '221616044-'
         
-        coreGraph = get_hairy_ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,2000,'weight')
+        coreSink = findSuperBubble(unitigGraph.directedUnitigBiGraph, corePlusName,unitigGraph.directedUnitigBiGraph.neighbors,unitigGraph.directedUnitigBiGraph.predecessors)
+        
         
         coreGraphU = [x[:-1] for x in coreGraph]
         
@@ -194,7 +223,15 @@ def main(argv):
         
         print("Debug")
 
+    components = sorted(nx.connected_components(unitigGraph.undirectedUnitigGraph), key = len, reverse=True)
 
+    c = 0
+    for component in components:
+        unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
+        
+        unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
+        
+        c = c + 1
 
     
 if __name__ == "__main__":
