@@ -1103,7 +1103,23 @@ class AssemblyPathSVA():
             dSumE += dErr
         dMeanE = dSumE/float(self.no_folds)
         print(str(self.G) + ",MeanE=" + str(dMeanE))
-        
+
+    def writeMarginals(self,fileName):
+
+        output = np.sum(self.expGamma,axis=1) > 0.01
+
+        with open(fileName, "w") as margFile:
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                for unitig in unitigs:
+                    vals = []
+                    for g in range(self.G):
+                        vals.append(str(self.margG[gene][g][unitig]))
+                    vString = ",".join(vals)
+                    
+                    margFile.write(gene + "_" + unitig + "," + vString)
+
     def getMaximalUnitigs(self,fileName):
 
         self.MAPs = defaultdict(list)
@@ -1291,9 +1307,11 @@ def main(argv):
 
         assGraph.update(100, True)
         
+        assGraph.writeMarginals("margFile.csv")
+        
         assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
 
-        assGraph.average_MSE_CV()
+        #assGraph.average_MSE_CV()
         #assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
     main(sys.argv[1:])
