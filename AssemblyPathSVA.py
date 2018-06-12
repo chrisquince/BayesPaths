@@ -732,7 +732,7 @@ class AssemblyPathSVA():
     def convertMAPToPath(self,mapPath,factorGraph):
     
         path = []
-    
+        visited = set()
         current = self.sourceNode
     
         while current != self.sinkNode:
@@ -740,7 +740,8 @@ class AssemblyPathSVA():
             outPaths = list(factorGraph.successors(current))
             
             for outPath in outPaths:
-                if mapPath[outPath] == 1:
+                if mapPath[outPath] == 1 and outPath not in visited:
+                    visited.add(outPath)
                     break
             
             path.append(current)
