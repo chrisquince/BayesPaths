@@ -959,8 +959,8 @@ class AssemblyPathSVA():
         
         sumIntensity = np.max(self.expGamma,axis=1)
         
-        #dist = self.calcPathDist()
-        dist = np.ones((self.G,self.G))
+        dist = self.calcPathDist()
+    #    dist = np.ones((self.G,self.G))
         removed = sumIntensity < minIntensity
         
         for g in range(self.G):
@@ -1106,19 +1106,35 @@ class AssemblyPathSVA():
 
     def writeMarginals(self,fileName):
 
-        output = np.sum(self.expGamma,axis=1) > 0.01
+        with open(fileName, "w") as margFile:
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                for unitig in unitigs:
+                    if unitig in self.margG[gene][0]:
+                        vals = []
+                        for g in range(self.G):
+                            vals.append(str(self.margG[gene][g][unitig][1]))
+                        vString = ",".join(vals)
+                    
+                        margFile.write(gene + "_" + unitig + "," + vString + "\n")
+
+    def writeMaximals(self,fileName):
 
         with open(fileName, "w") as margFile:
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
 
                 for unitig in unitigs:
-                    vals = []
-                    for g in range(self.G):
-                        vals.append(str(self.margG[gene][g][unitig]))
-                    vString = ",".join(vals)
-                    
-                    margFile.write(gene + "_" + unitig + "," + vString)
+                    if unitig in self.margG[gene][0]:
+                        vals = []
+                        for g in range(self.G):
+                            if self.MAPs[gene][g][unitig] == 1:
+                                vals.append(g)                  
+                        vString = "\t".join([str(x) for x in vals])
+
+                        margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
+
 
     def getMaximalUnitigs(self,fileName):
 
@@ -1217,6 +1233,18 @@ class AssemblyPathSVA():
                 fastaFile.write(">" + ref + "\n")
                 fastaFile.write(refs[r]+"\n")
                 r = r + 1
+
+    def writeGammaMatrix(self, gammaFile):
+
+        with open(gammaFile, "w") as gammaFile:
+            for g in range(self.G):
+                gammaVals = self.expGamma[g,:].tolist()
+                
+                gString = ",".join([str(x) for x in gammaVals])
+
+                gammaFile.write(str(g) + "," + gString + "\n")
+
+
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -1225,6 +1253,8 @@ def main(argv):
     parser.add_argument("cov_file", help="coverage file")
 
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
+
+    parser.add_argument("outFileStub", help="stub for output file names")
 
     parser.add_argument('-fg','--gamma_file', nargs='?',help="gamma file")
 
@@ -1307,11 +1337,15 @@ def main(argv):
 
         assGraph.update(100, True)
         
-        assGraph.writeMarginals("margFile.csv")
-        
-        assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
-
+        assGraph.writeMarginals(args.outFileStub + "margFile.csv")
+   
+        assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa")
+ 
+        assGraph.writeMaximals(args.outFileStub + "maxFile.tsv")
+   
+        assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
         #assGraph.average_MSE_CV()
         #assGraph.getMaximalUnitigs("Haplo.fa")
 if __name__ == "__main__":
     main(sys.argv[1:])
+
