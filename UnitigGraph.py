@@ -628,6 +628,7 @@ class UnitigGraph():
             sink_list = []
         
         return (source_list,sink_list)
+
     
     def createDirectedBiGraph(self):
         self.directedUnitigBiGraph = nx.DiGraph()
