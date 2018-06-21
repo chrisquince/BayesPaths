@@ -38,9 +38,9 @@ def main(argv):
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
         
-        gene = fileName.split('_')[0]
+        gene = fileName.split('_')[1]
         
-        covFile = gfaFile[:-3] + ".csv"
+        covFile = gfaFile[:-3] + "csv"
         
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
             
