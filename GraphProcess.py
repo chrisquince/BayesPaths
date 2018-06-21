@@ -4,6 +4,8 @@ from UnitigGraph import UnitigGraph
 from Utils import convertNodeToName
 import networkx as nx
 from collections import deque
+import numpy as np
+
 #class GraphProcess():
  #   """ Class for processing assembly graph"""    
     
@@ -110,6 +112,63 @@ def searchBubbleReverse(forwardGraph,reverseGraph,nextSink):
 
     return (None,None,None)
 
+def bubbleOut2(forwardGraph, fullGraph, reverseFullGraph, sourceNode,sinkNode,labelledNodes):
+
+    reverseGraph = forwardGraph.reverse()
+
+    #get first bubble out
+    out_bubbles = []
+    for node in nx.algorithms.bfs_tree(reverseGraph, sourceNode):
+        (visited,sink) = findSuperBubble(forwardGraph,node,forwardGraph.neighbors,forwardGraph.predecessors)
+        if sink is not None:
+            out_bubbles.append((node,sink,visited))
+            break
+    
+    in_bubbles = []
+    for node in nx.algorithms.bfs_tree(forwardGraph, sinkNode):
+        (visited,sink) = findSuperBubble(reverseGraph,node,reverseGraph.neighbors,reverseGraph.predecessors)
+        if sink is not None:
+            in_bubbles.append((node,sink,visited))
+            break
+    
+    #then add as many extra bubbles as possible
+    if len(out_bubbles) > 0:
+        nextSource = out_bubbles[0][1]
+        while nextSource:
+            (visited,sink) = findSuperBubble(forwardGraph,nextSource,forwardGraph.neighbors,forwardGraph.predecessors)
+            if sink is not None:
+                out_bubbles.append((nextSource,sink,visited))
+            nextSource = sink
+         #remove last bubble if not really a bubble
+        lastBubble = out_bubbles.pop()
+        (visitedTest,sinkTest) = findSuperBubble(fullGraph,lastBubble[0],fullGraph.neighbors,fullGraph.predecessors)
+        if sinkTest != None:
+            out_bubbles.append((lastBubble[0],sinkTest,visitedTest))
+        
+    if len(in_bubbles) > 0:
+        nextSource = in_bubbles[0][1]
+        while nextSource:
+            (visited,sink) = findSuperBubble(reverseGraph,nextSource,reverseGraph.neighbors,reverseGraph.predecessors)
+            if sink is not None:
+                in_bubbles.append((nextSource,sink,visited))
+            nextSource = sink
+
+        #remove last bubble if not really a bubble
+        lastBubble = in_bubbles.pop()
+        (visitedTest,sinkTest) = findSuperBubble(reverseFullGraph,lastBubble[0],reverseFullGraph.neighbors,reverseFullGraph.predecessors)
+        if sinkTest != None:
+            out_bubbles.append((lastBubble[0],sinkTest,visitedTest))
+        
+    bubbleNodes = set()
+    
+    for bubble in in_bubbles + out_bubbles:
+        bubbleNodes.add(bubble[1])
+        bubbleNodes.add(bubble[0])
+        bubbleNodes.update(bubble[2])
+    
+    return bubbleNodes
+
+
 def bubbleOut(forwardGraph, sourceNode,labelledNodes):
 
     reverseGraph = forwardGraph.reverse()
@@ -123,7 +182,7 @@ def bubbleOut(forwardGraph, sourceNode,labelledNodes):
             break
     
     in_bubbles = []
-    for node in nx.algorithms.bfs_tree(reverseGraph, sourceNode):
+    for node in nx.algorithms.bfs_tree(reverseGraph, sinkNode):
         (visited,sink) = findSuperBubble(forwardGraph,node,forwardGraph.neighbors,forwardGraph.predecessors)
         if sink is not None:
             in_bubbles.append((node,sink,visited))
@@ -236,8 +295,56 @@ def get_hairy_ego_graph(directedGraph,origin,radius,metric):
     reachable = sink_reachable & source_reachable
     
     return list(reachable)
+    
+def getMaximumCoverageWalk(focalGraph,bubbleNodes,covMap):
+    
+    sources = []
+    sinks = []
+    
+    directedGraph = nx.DiGraph(focalGraph.subgraph(bubbleNodes))
+    
+    inDegree = directedGraph.in_degree(directedGraph.nodes())
+            
+    reachableSources = []
+    for node,nDegree in inDegree:
+        if nDegree == 0:
+            sources.append(node)
+            
+    outDegree = directedGraph.out_degree(directedGraph.nodes())
+            
+    for node,nDegree in outDegree:
+        if nDegree == 0:
+            sinks.append(node)
+    
+    
+    directedGraph.add_node('source')
+    for source in sources:
+        directedGraph.add_edge('source',source)
+    
+    directedGraph.add_node('sink')
+    for sink in sinks:
+        directedGraph.add_edge(sink,'sink')
+    
+    capacities = {}
+    for e in directedGraph.edges:
+        if e[1] == 'sink':
+            capacities[e] = sys.float_info.max
+        else:
+            unitigU = e[1][:-1]
+            capacities[e] = np.sum(covMap[unitigU])
 
-
+    nx.set_edge_attributes(directedGraph,capacities,'capacity')
+    flow_value, flow_dict = nx.maximum_flow(directedGraph, 'source', 'sink')
+    
+    maxWalk = []
+    node = 'source'
+    
+    while node != 'sink':
+        maxWalk.append(node)
+        node = max(flow_dict[node], key=flow_dict[node].get)
+    maxWalk.pop(0)
+    return maxWalk
+    
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -258,7 +365,8 @@ def main(argv):
     import ipdb; ipdb.set_trace()
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
-
+    fullGraph = unitigGraph.directedUnitigBiGraph
+    reverseFullGraph = fullGraph.reverse()
     coreCogs = {}
     
     with open(args.core_cogs) as f:
@@ -285,6 +393,8 @@ def main(argv):
     
     import ipdb; ipdb.set_trace()
 
+    covs = {}
+    seqs = {}
     
     for coreCog,cogLength in coreCogs.items():
         
@@ -299,8 +409,12 @@ def main(argv):
             coreUnitig = coreUnitigs[0]
         
             corePlusName = convertNodeToName((coreUnitig,True))
-        
+            
             focalGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=6.0*cogLength,center=True,undirected=True,distance='weight')
+            focalGraphL = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=10.0*cogLength,center=True,undirected=True,distance='weight')
+            
+            
+            
             focalUnitigs = [n[:-1] for n in focalGraph.nodes()]
             focalCore = set(coreUnitigs).intersection(focalUnitigs)  
             focalCoreDirected = [] 
@@ -327,7 +441,15 @@ def main(argv):
                 if nDegree == 0:
                     reachableSources.append(node)
         
-            bubbleNodes = bubbleOut(focalGraph,reachableSources[0],reachable)
+            outDegree = reachableGraph.out_degree(reachableGraph.nodes())
+            
+            reachableSinks = []
+            for node,nDegree in outDegree:
+                if nDegree == 0:
+                    reachableSinks.append(node)        
+        
+            #bubbleNodes = bubbleOut(focalGraph,reachableSources[0],reachableSinks[0],reachable)
+            bubbleNodes = bubbleOut2(focalGraph, fullGraph, reverseFullGraph,reachableSources[0],reachableSinks[0],reachable)
         
             coreFound = set([x[:-1] for x in bubbleNodes]) & focalCore
             
@@ -337,16 +459,43 @@ def main(argv):
         
             if len(bubbleU) > 0:
                 bubbleUGraph = unitigGraph.createUndirectedGraphSubset(bubbleU)
-            
+                
+                covBubble = bubbleUGraph.computeMeanCoverage()
+                
+                id = coreCog + "_" + str(g)
+                covs[id] = covBubble
+                
+                maxWalk = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
+                contig = unitigGraph.getUnitigWalk(maxWalk)
+                
+                seqs[id] = contig
+                
                 if len(coreFound) == len(focalCore):
                     bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "B_" + str(g) + ".gfa")
+                    bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "B_" + str(g) + ".csv")
                 else:
                     print("Incomplete Bubble\t" + str(g) + "\t" + str(len(focalCore) - len(coreFound)))
                     bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "I_" + str(g) + ".gfa")
+                    bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "I_" + str(g) + ".csv")
             else:
                 print("Empty Bubble\t" + str(g) + "\t" + str(len(bubbleU)))
             g = g + 1
-        
+    
+    with open(args.outFileStub + 'coreContigs.fa','w') as f:
+        for id, seq in seqs.items():
+            f.write(">" + id + "\n")
+            f.write(seq + "\n")
+    
+    with open(args.outFileStub + 'coreContigs_cov.csv','w') as f:
+        for id, covs in covs.items():
+            f.write(id + ",")
+            cString = ",".join([str(x) for x in covs.tolist()])
+            f.write(cString + "\n")
+    
+    print("Debug")
+        #    for u in coreGraphUnitigsU:
+         #       f.write(u + '\t0\n')
+    
         
     import ipdb; ipdb.set_trace()
         #focalGraph = get_hairy_ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,5000,'weight')
@@ -366,9 +515,7 @@ def main(argv):
         
         #coreGraphUnitigsU = [x[:-1] for x in coreGraphUnitigs]
         
-       # with open('coreU.txt','w') as f:
-        #    for u in coreGraphUnitigsU:
-         #       f.write(u + '\t0\n')
+
         
         
        # reachableCore = UnitigGraph.getReachableSubset(coreGraph,coreGraphUnitigs)
