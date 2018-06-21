@@ -14,8 +14,6 @@ def main(argv):
 
     parser.add_argument("Gene_dir", help="directory with gfa files in")
 
-    parser.add_argument("cov_file", help="coverage file")
-
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
@@ -41,8 +39,10 @@ def main(argv):
         fileName = os.path.basename(gfaFile)
         
         gene = fileName.split('_')[0]
-    
-        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), args.cov_file)
+        
+        covFile = gfaFile[:-3] + ".csv"
+        
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
             
         (source_list, sink_list) = unitigGraph.selectSourceSinks2(args.frac)
 
@@ -57,9 +57,15 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(50)
+    assGraph.update(100, True)
         
-    assGraph.getMaximalUnitigs("Haplo_" + str(assGraph.G) + ".fa")
+    assGraph.writeMarginals(args.outFileStub + "margFile.csv")
+   
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa")
+ 
+    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv")
+   
+    assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
