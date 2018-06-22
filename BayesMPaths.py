@@ -32,7 +32,7 @@ def overlapDist(gammaMatrixG, gammaMatrixH):
     H = gammaMatrixH.shape[0]
     S = gammaMatrixH.shape[1]
     
-    GCopy = np.sum(gammaMatrixG)
+    GCopy = np.copy(gammaMatrixG)
     
     GSum = np.sum(gammaMatrixG,axis=1)
     
@@ -86,7 +86,8 @@ def main(argv):
     assemblyGraphs = defaultdict(list)
     sink_maps = defaultdict(list)
     source_maps = defaultdict(list)
-    stubs = defaultdict(list)
+    stub_maps = defaultdict(list)
+    stubs = []
     idx_map = {}
     reverse_map = {}
     genes = set()
@@ -110,7 +111,9 @@ def main(argv):
         source_names = [convertNodeToName(source) for source in source_list] 
         sink_names = [convertNodeToName(sink) for sink in sink_list]
     
-        stubs[gene].append(stub)        
+        stubs.append(stub)
+
+        stub_maps[gene].append(stub)        
         sink_maps[gene].append(sink_list)
         source_maps[gene].append(source_list)
         assemblyGraphs[gene].append(unitigGraph)
@@ -125,7 +128,7 @@ def main(argv):
     assGraphs = {}
     for gene in sorted(genes):
         idx = 0
-        for (stub,sink_map,source_map,assemblyGraph) in zip(stubs[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
+        for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
             
             assGraph = AssemblyPathSVA(prng, {stub:assemblyGraph}, {stub:source_map}, {stub:sink_map}, G = args.strain_number, readLength=150,ARD=True)
     
@@ -153,7 +156,7 @@ def main(argv):
     for stubI in stubs:
         for stubJ in stubs:
         
-            distStubs[distI][distJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
+            distStubs[stubI][stubJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
     
     
 if __name__ == "__main__":
