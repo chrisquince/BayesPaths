@@ -36,7 +36,7 @@ def overlapDist(gammaMatrixG, gammaMatrixH):
     
     GSum = np.sum(gammaMatrixG,axis=1)
     
-    gSort = np.argsort(GSum):
+    gSort = np.argsort(GSum)
     
     assigned = np.full(H,-1)
     totalDist = 0.
@@ -86,10 +86,10 @@ def main(argv):
     assemblyGraphs = defaultdict(list)
     sink_maps = defaultdict(list)
     source_maps = defaultdict(list)
+    stubs = defaultdict(list)
     idx_map = {}
     reverse_map = {}
     genes = set()
-    stubs = []
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
         
@@ -100,17 +100,17 @@ def main(argv):
         idx = toks[2]
         
         #comp1R_COG0090B_1.csv
-        stub = gfaFile[:-3]
-        stubs.append(stub)
-        covFile = stub + "csv"
-        
+        stub2 = gfaFile[:-4]
+        covFile = stub2 + ".csv"
+        stub = fileName[:-4]
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
             
         (source_list, sink_list) = unitigGraph.selectSourceSinks2(args.frac)
 
         source_names = [convertNodeToName(source) for source in source_list] 
         sink_names = [convertNodeToName(sink) for sink in sink_list]
-            
+    
+        stubs[gene].append(stub)        
         sink_maps[gene].append(sink_list)
         source_maps[gene].append(source_list)
         assemblyGraphs[gene].append(unitigGraph)
@@ -125,14 +125,14 @@ def main(argv):
     assGraphs = {}
     for gene in sorted(genes):
         idx = 0
-        for (sink_map,source_map,assemblyGraph) in zip(sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
-            assGraph = AssemblyPathSVA(prng, assemblyGraph, source_map, sink_map, G = args.strain_number, readLength=150,ARD=True)
+        for (stub,sink_map,source_map,assemblyGraph) in zip(stubs[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
+            
+            assGraph = AssemblyPathSVA(prng, {stub:assemblyGraph}, {stub:source_map}, {stub:sink_map}, G = args.strain_number, readLength=150,ARD=True)
     
             assGraph.initNMF()
 
             assGraph.update(100, True)
             
-            stub = reverse_map[(gene,idx)]
             assGraphs[stub] = assGraph
             
             stubFile = args.outFileStub + stub
