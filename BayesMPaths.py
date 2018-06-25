@@ -4,6 +4,8 @@ import glob
 import numpy as np
 import os
 
+from copy import deepcopy
+
 from UnitigGraph import UnitigGraph
 from AssemblyPathSVA import AssemblyPathSVA
 from Utils import convertNodeToName
@@ -23,6 +25,21 @@ def overlap(a, b):
     overlap = np.sum(np.minimum(a,b))
 
     return min(np.sum(a),np.sum(b)) - overlap
+
+def pathOverlap(assGraphG,assGraphH):
+
+    #determine extent to which G can be explained by H
+    
+    copyGraphG = deepcopy(assGraphG)
+    
+    copyGraphG.expGamma = np.copy(assGraphH.expGamma)
+    
+    copyGraphG.expGamma2 = np.copy(assGraphH.expGamma2)
+    
+    copyGraphG.initNMFGamma(copyGraphG.expGamma)
+    
+    assGraphG.updateFixedGamma()
+
 
 def overlapDist(gammaMatrixG, gammaMatrixH):
 
@@ -154,12 +171,14 @@ def main(argv):
     
 
     distStubs = defaultdict(dict)
+    pathDists = defaultdict(dict)
     
     for stubI in stubs:
         for stubJ in stubs:
         
             distStubs[stubI][stubJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
-    
+            pathDists[stubI][stubJ] = pathOverlap(assGraphs[stubI], assGraphs[stubJ])
+            
     print("Debug")
     
 if __name__ == "__main__":

@@ -703,6 +703,63 @@ class AssemblyPathSVA():
             print(str(iter)+","+ str(self.divF())+ "," + str(total_elbo))  
             iter += 1
     
+    def updateGammaFixed(self, maxIter, tau = None):
+    
+        iter = 0
+   
+        if tau is not None:
+            self.expTau = tau
+        else:
+            self.expTau = 0.001
+         
+        while iter < maxIter:
+            #update phi marginals
+            
+            for g in range(self.G):
+                
+                self.removeGamma(g)
+            
+                for gene, factorGraph in self.factorGraphs.items():
+                    unitigs = self.assemblyGraphs[gene].unitigs
+                   
+                    
+                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
+                    
+        
+                    factorGraph.reset()
+        
+                    factorGraph.var['zero+source+'].condition(1)
+
+                    factorGraph.var['sink+infty+'].condition(1)
+                    
+                    graphString = str(factorGraph)
+                    graphFileName = 'graph_'+ str(g) + '.fg'
+                
+                    with open(graphFileName, "w") as text_file:
+                        print(graphString, file=text_file)
+                
+                    cmd = './runfg_marg ' + graphFileName + ' 0'
+                
+                    p = Popen(cmd, stdout=PIPE,shell=True)
+        
+                    outString = p.stdout.read()
+               
+                    margP = self.parseMargString(factorGraph,str(outString))
+                    if len(margP) > 0:
+                        self.margG[gene][g] = self.parseMargString(factorGraph,str(outString)) 
+       
+                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+       
+                self.addGamma(g)
+            
+            if tau is not None:            
+                self.updateTau()
+            
+            #total_elbo = self.calc_elbo()    
+            print(str(iter)+","+ str(self.divF())) #+"," + str(total_elbo))  
+            iter += 1
+    
+    
     def updatePhiFixed(self, maxIter):
     
         iter = 0
@@ -776,7 +833,7 @@ class AssemblyPathSVA():
         covNMF.factorizeW()
         
         initEta = covNMF.W
-            
+        
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
@@ -812,7 +869,7 @@ class AssemblyPathSVA():
         covNMF.random_initialize() 
         covNMF.H = np.copy(gamma)
         covNMF.factorizeW()
-        
+        self.eLambda = np.zeros((self.V,self.S))
         initEta = covNMF.W
             
         for g in range(self.G):
