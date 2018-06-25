@@ -54,10 +54,10 @@ def overlapDist(gammaMatrixG, gammaMatrixH):
         
         totalOverlap += maxOverlap
         assigned[hidx] = maxG
-        GCopy[gidx,:] = np.maximum(GCopy[maxG,:] - gammaMatrixH[hidx],0)
+        GCopy[maxG,:] = np.maximum(GCopy[maxG,:] - gammaMatrixH[hidx,:],0)
     
     dSum = max(np.sum(gammaMatrixG),np.sum(gammaMatrixH))
-    dist = dSum - maxOverlap
+    dist = dSum - totalOverlap
     
     return dist, dist/dSum
     
@@ -160,6 +160,7 @@ def main(argv):
         
             distStubs[stubI][stubJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
     
+    print("Debug")
     
 if __name__ == "__main__":
     main(sys.argv[1:])
