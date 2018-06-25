@@ -34,31 +34,33 @@ def overlapDist(gammaMatrixG, gammaMatrixH):
     
     GCopy = np.sum(gammaMatrixG)
     
-    GSum = np.sum(gammaMatrixG,axis=1)
-    
-    gSort = np.argsort(GSum)
+    gSort = np.argsort(np.sum(gammaMatrixG,axis=1))
+    hSort =  np.argsort(np.sum(gammaMatrixH,axis=1))
     
     assigned = np.full(H,-1)
-    totalDist = 0.
-    for gidx in gSort:
-        minDist = sys.float_info.max
-        minH = -1
-        for h in range(H):
-            if assigned[h] < 0:    
-                distGH = overlap(GCopy[gidx,:],gammaMatrixH[h,:])
-                if distGH < minDist:
-                    minDist = distGH
-                    minH = h
-        if minH >= 0:
-            assigned[minH] = gidx
-            totalDist += minDist
-            GCopy[gidx,:] = np.maximum(GCopy[gidx,:] - gammaMatrixH[minH],0)
+    totalOverlap = 0.
     
-    for h in range(H):
-        if assigned[h] < 0.:
-            totalDist += np.sum(gammaMatrixH[h,:])
+    for hidx in hSort:
+        
+        maxOverlap = -1.
+        maxG = -1
+        
+        for gidx in gSort:
+            overlap = np.sum(np.minimum(GCopy[gidx,:],gammaMatrixH[hidx,:]))
+            
+            if overlap > maxOverlap:
+                maxOverlap = overlap
+                maxG = gidx
+        
+        totalOverlap += maxOverlap
+        assigned[hidx] = maxG
+        GCopy[gidx,:] = np.maximum(GCopy[maxG,:] - gammaMatrixH[hidx],0)
     
-    return (totalDist,totalDist/np.sum(gammaMatrixH))
+    dSum = max(np.sum(gammaMatrixG),np.sum(gammaMatrixH))
+    dist = dSum - maxOverlap
+    
+    return dist, dist/dSum
+    
 def main(argv):
     parser = argparse.ArgumentParser()
 
