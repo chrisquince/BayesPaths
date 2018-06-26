@@ -798,8 +798,8 @@ class AssemblyPathSVA():
             if tau is not None:            
                 self.updateTau()
             
-            #total_elbo = self.calc_elbo()    
-            print(str(iter)+","+ str(self.divF())) #+"," + str(total_elbo))  
+            total_elbo = self.calc_elbo()    
+            print(str(iter)+","+ str(self.divF()) +"," + str(total_elbo))  
             iter += 1
     
     
@@ -968,15 +968,28 @@ class AssemblyPathSVA():
         total_elbo += 0.5*self.Omega*(self.expLogtau - math.log(2*math.pi) ) 
         total_elbo -= 0.5*self.expTau*self.exp_square_diff()
 
-        #add gamma prior
-        total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
-
+        # Prior lambdak, if using ARD, and prior U, V
+        if self.ARD:
+            
+            total_elbo += self.alpha0 * math.log(self.beta0) - scipy.special.gammaln(self.alpha0) \
+                          + (self.alpha0 - 1.)*self.exp_loglambdak.sum() - self.beta0 * self.exp_lambdak.sum()
+            
+            total_elbo += self.S * numpy.log(self.exp_lambdak).sum() - (self.exp_lambdak * self.expGamma).sum()
+            
+        else:
+            total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
+            
         #add phio prior assuming uniform 
         total_elbo += self.G*np.sum(self.logPhiPrior)
         
         #add tau prior
         total_elbo += self.alpha * math.log(self.beta) - sps.gammaln(self.alpha) 
         total_elbo += (self.alpha - 1.)*self.expLogtau - self.beta*self.expTau
+
+        # q for lambdak, if using ARD
+        if self.ARD:
+            total_elbo += - sum([v1*math.log(v2) for v1,v2 in zip(self.alphak_s,self.betak_s)]) + sum([scipy.special.gammaln(v) for v in self.alphak_s]) \
+                          - ((self.alphak_s - 1.)*self.exp_loglambdak).sum() + (self.betak_s * self.exp_lambdak).sum()
 
         #add q for gamma
         qGamma = -0.5*np.log(self.tauGamma).sum() + 0.5*self.G*self.S*math.log(2.*math.pi)
