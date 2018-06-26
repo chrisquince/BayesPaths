@@ -35,11 +35,14 @@ def pathOverlap(assGraphG,assGraphH):
     copyGraphG.expGamma = np.copy(assGraphH.expGamma)
     
     copyGraphG.expGamma2 = np.copy(assGraphH.expGamma2)
+
+    copyGraphG.G = assGraphH.G
     
     copyGraphG.initNMFGamma(copyGraphG.expGamma)
     
-    assGraphG.updateFixedGamma()
+    copyGraphG.updateGammaFixed(10,assGraphH.expTau)
 
+    return copyGraphG.divF()
 
 def overlapDist(gammaMatrixG, gammaMatrixH):
 

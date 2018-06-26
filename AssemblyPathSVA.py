@@ -865,7 +865,7 @@ class AssemblyPathSVA():
 
     def initNMFGamma(self,gamma):
         
-        covNMF =  NMF(self.XN,self.G,n_run = 10)
+        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10)
         covNMF.random_initialize() 
         covNMF.H = np.copy(gamma)
         covNMF.factorizeW()
