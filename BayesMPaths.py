@@ -195,7 +195,7 @@ def main(argv):
             reverse = False
             
             idx = 0
-            for strain, mapped in strains.items():
+            for strain in strains:
                 if pathDists[stub][strain] < minDist:
                     minStrainIdx = idx
                     minStrain = strain
