@@ -11,6 +11,7 @@ import scipy.misc as spm
 import scipy.special as sps
 from scipy.special import psi as digamma
 
+from copy import deepcopy
 import math
 from subprocess import Popen, PIPE, STDOUT
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
@@ -202,7 +203,7 @@ class AssemblyPathSVA():
         copyGraphG.eLambda = np.zeros((copyGraphG.V,copyGraphG.S))
         
         copyGraphG.margG = dict()
-        for gene in self.genes:
+        for gene in copyGraphG.genes:
             copyGraphG.margG[gene] = [dict() for x in range(copyGraphG.G)]
 
         if copyGraphG.ARD:
