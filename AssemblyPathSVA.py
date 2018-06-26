@@ -12,6 +12,8 @@ import scipy.special as sps
 from scipy.special import psi as digamma
 
 from copy import deepcopy
+from copy import copy
+
 import math
 from subprocess import Popen, PIPE, STDOUT
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
@@ -181,7 +183,7 @@ class AssemblyPathSVA():
     @classmethod
     def copyGamma(cls,assGraphG, assGraphH):
     
-        copyGraphG = deepcopy(assGraphG)
+        copyGraphG = copy(assGraphG)
     
         copyGraphG.G = assGraphH.G
  
@@ -219,7 +221,100 @@ class AssemblyPathSVA():
         copyGraphG.betaTau = assGraphH.betaTau
         
         return copyGraphG
+    
+    def addGenes(assemblyToAdd):
+    
+        self.assemblyGraphs.update(assemblyToAdd.assemblyGraphs)
         
+        self.source_maps.update(assemblyToAdd.source_maps)
+        
+        self.sink_maps.update(assemblyToAdd.sink_maps)
+ 
+        self.factorGraphs.update(assemblyToAdd.factorGraphs) 
+
+        self.factorDiGraphs.update(assemblyToAdd.factorDiGraphs)
+
+        self.unitigFactorNodes.update(assemblyToAdd.unitigFactorNodes)
+
+        self.V += assemblyToAdd.V
+                
+        self.mapUnitigs.update(assemblyToAdd.mapUnitigs)  
+        self.adjLengths.update(assemblyToAdd.adjLengths) 
+        self.covMapAdj.update(assemblyToAdd.covMapAdj)
+        
+        self.unitigs = []
+        self.genes = []
+        self.mapIdx = {}
+        self.mapGeneIdx = collections.defaultdict(dict)
+        
+        bFirst = True
+        
+        self.V = 0
+        for gene, assemblyGraph in self.assemblyGraphs.items():
+            self.genes.append(gene)
+            unitigFactorNode = self.unitigFactorNodes[gene]
+    
+            unitigsDash = list(unitigFactorNode.keys())
+            unitigsDash.sort(key=int) 
+    
+            unitigAdj = [gene + "_" + s for s in unitigsDash]
+            self.unitigs.extend(unitigAdj)
+            
+            for (unitigNew, unitig) in zip(unitigAdj,unitigsDash):
+            
+                self.mapIdx[unitigNew] = self.V
+                self.mapGeneIdx[gene][unitig] = self.V 
+                
+                self.V += 1
+                
+        self.X = np.zeros((self.V,self.S))
+        self.XN = np.zeros((self.V,self.S))
+        self.lengths = np.zeros(self.V)
+        
+        #note really need to remove unreachable nodes from calculations
+        self.logPhiPrior = np.zeros(self.V)
+        for gene, unitigFactorNode in self.unitigFactorNodes.items(): 
+            self.setPhiConstant(self.mapUnitigs[gene], self.mapGeneIdx[gene], unitigFactorNode)
+
+        idx = 0
+        for v in self.unitigs:
+            covName = None
+            if v in self.covMapAdj:
+                covName = self.covMapAdj[v]
+            else:
+                print("Serious problem")
+                
+            self.lengths[idx] = self.adjLengths[v]
+            self.X[idx,:] = covName
+            self.XN[idx,:] = covName/self.lengths[idx] 
+            idx=idx+1
+       
+        self.XD = np.floor(self.X).astype(int)
+        
+        #create mask matrices
+        (self.M_trains, self.M_tests) = compute_folds(self.V,self.S,self.no_folds)
+        self.M_train = self.M_trains[0]
+        self.M_train = np.ones((self.V,self.S))
+        self.M_test = self.M_tests[0]
+        self.m = 0
+
+        self.Omega = self.M_train.sum()      
+ 
+        #list of mean assignments of strains to graph
+        self.expPhi = np.zeros((self.V,self.G))
+        self.expPhi2 = np.zeros((self.V,self.G))
+        self.HPhi = np.zeros((self.V,self.G))
+
+        #current excitations on the graph
+        self.eLambda = np.zeros((self.V,self.S))
+        
+        self.margG = dict()
+        for gene in self.genes:
+            self.margG[gene] = [dict() for x in range(self.G)]
+        
+        self.elbo = 0.
+    
+    
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
