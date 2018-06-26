@@ -177,6 +177,48 @@ class AssemblyPathSVA():
         self.alphaTau = 1.0
         self.betaTau = 1.0
     
+    @classmethod
+    def copyGamma(cls,assGraphG, assGraphH):
+    
+        copyGraphG = deepcopy(assGraphG)
+    
+        copyGraphG.G = assGraphH.G
+ 
+        #list of mean assignments of strains to graph
+        copyGraphG.expPhi = np.zeros((copyGraphG.V,copyGraphG.G))
+        copyGraphG.expPhi2 = np.zeros((copyGraphG.V,copyGraphG.G))
+        copyGraphG.HPhi = np.zeros((copyGraphG.V,copyGraphG.G))
+
+        copyGraphG.epsilon = assGraphH.epsilon #parameter for gamma exponential prior
+        
+        copyGraphG.expGamma = np.copy(assGraphH.expGamma)
+    
+        copyGraphG.expGamma2 = np.copy(assGraphH.expGamma2)
+        
+        copyGraphG.muGamma = np.copy(assGraphH.muGamma)
+        copyGraphG.tauGamma = np.copy(assGraphH.tauGamma)
+        copyGraphG.varGamma = np.copy(assGraphH.varGamma)
+        #current excitations on the graph
+        copyGraphG.eLambda = np.zeros((copyGraphG.V,copyGraphG.S))
+        
+        copyGraphG.margG = dict()
+        for gene in self.genes:
+            copyGraphG.margG[gene] = [dict() for x in range(copyGraphG.G)]
+
+        if copyGraphG.ARD:
+            copyGraphG.alphak_s = np.copy(assGraphH.alphak_s)
+            copyGraphG.betak_s = np.copy(assGraphH.betak_s)
+        
+            copyGraphG.exp_lambdak =  np.copy(assGraphH.exp_lambdak)
+            copyGraphG.exp_loglambdak = np.copy(assGraphH.exp_loglambdak)
+            
+        copyGraphG.elbo = 0.
+        copyGraphG.expTau = assGraphH.expTau
+        copyGraphG.alphaTau = assGraphH.alphaTau
+        copyGraphG.betaTau = assGraphH.betaTau
+        
+        return copyGraphG
+        
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S

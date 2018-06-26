@@ -30,13 +30,7 @@ def pathOverlap(assGraphG,assGraphH):
 
     #determine extent to which G can be explained by H
     
-    copyGraphG = deepcopy(assGraphG)
-    
-    copyGraphG.expGamma = np.copy(assGraphH.expGamma)
-    
-    copyGraphG.expGamma2 = np.copy(assGraphH.expGamma2)
-
-    copyGraphG.G = assGraphH.G
+    copyGraphG = AssemblyPathSVA.copyGamma(assGraphG,assGraphH)
     
     copyGraphG.initNMFGamma(copyGraphG.expGamma)
     
