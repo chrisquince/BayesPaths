@@ -171,11 +171,54 @@ def main(argv):
     distStubs = defaultdict(dict)
     pathDists = defaultdict(dict)
     
+    
     for stubI in stubs:
         for stubJ in stubs:
         
             distStubs[stubI][stubJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
             pathDists[stubI][stubJ] = pathOverlap(assGraphs[stubI], assGraphs[stubJ])
+    
+    threshDist = 0.5
+    
+    strains = []
+    mapped = []
+    #current strains as dictionary of stub names matched to mapped
+    
+    for gene in sorted(genes):
+        #loop through stubs for each gene
+        for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
+            
+            #compare to strains find closest match
+            minDist = sys.float_info.max
+            minStrainIdx = None
+            minStrain = None
+            reverse = False
+            
+            idx = 0
+            for strain, mapped in strains.items():
+                if pathDists[stub][strain] < minDist:
+                    minStrainIdx = idx
+                    minStrain = strain
+                    minDist = pathDists[stub][strain] 
+                    
+                if pathDists[strain][stub] < minDist:
+                    minStrainIdx = idx
+                    minStrain = strain
+                    minDist = pathDists[strain][stub] 
+                    reverse = True
+                
+                idx = idx + 1
+            
+            if minDist < threshDist:
+                mapped[minStrainIdx].append(stub)
+                
+                if reverse:
+                    mapped[minStrainIdx] = stub
+                
+            else:
+                strains.append(stub)
+                mapped.append([stub])
+            
             
     print("Debug")
     
