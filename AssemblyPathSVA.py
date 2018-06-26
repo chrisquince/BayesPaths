@@ -832,7 +832,7 @@ class AssemblyPathSVA():
     def divF(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         R = self.M_train*(self.eLambda - self.XN)
-        return np.multiply(R, R).sum()
+        return np.multiply(R, R).sum()/np.sum(self.M_train)
 
     def convertMAPToPath(self,mapPath,factorGraph):
     

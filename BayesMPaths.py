@@ -36,7 +36,8 @@ def pathOverlap(assGraphG,assGraphH):
     
     copyGraphG.updateGammaFixed(10,assGraphH.expTau)
 
-    return copyGraphG.divF()
+    divG = assGraphG.divF()
+    return (copyGraphG.divF() - divG)/divG
 
 def overlapDist(gammaMatrixG, gammaMatrixH):
 
