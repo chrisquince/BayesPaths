@@ -150,7 +150,7 @@ def main(argv):
     
             assGraph.initNMF()
 
-            assGraph.update(100, True)
+            assGraph.update(100, True, stub + "logFile.csv")
             
             assGraphs[stub] = assGraph
             

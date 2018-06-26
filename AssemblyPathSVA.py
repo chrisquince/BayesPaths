@@ -680,8 +680,8 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def update(self, maxIter, removeRedundant):
-    
+    def update(self, maxIter, removeRedundant,logFile=None):
+
         iter = 0
    
         self.expTau = 0.001 
@@ -743,7 +743,12 @@ class AssemblyPathSVA():
             
             self.updateTau()
             total_elbo = self.calc_elbo()    
-            print(str(iter)+","+ str(self.divF())+ "," + str(total_elbo))  
+            DivF = self.divF()
+            print(str(iter)+","+ str(DivF)+ "," + str(total_elbo))
+
+            if logFile is not None:
+                with open(logFile, 'a') as logF:            
+                    logF.write(str(iter)+","+ str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
     
     def updateGammaFixed(self, maxIter, tau = None):
@@ -971,10 +976,10 @@ class AssemblyPathSVA():
         # Prior lambdak, if using ARD, and prior U, V
         if self.ARD:
             
-            total_elbo += self.alpha0 * math.log(self.beta0) - scipy.special.gammaln(self.alpha0) \
+            total_elbo += self.alpha0 * math.log(self.beta0) - sp.special.gammaln(self.alpha0) \
                           + (self.alpha0 - 1.)*self.exp_loglambdak.sum() - self.beta0 * self.exp_lambdak.sum()
             
-            total_elbo += self.S * numpy.log(self.exp_lambdak).sum() - (self.exp_lambdak * self.expGamma).sum()
+            total_elbo += self.S * np.log(self.exp_lambdak).sum() - (self.exp_lambdak[:,np.newaxis] * self.expGamma).sum()
             
         else:
             total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
@@ -988,7 +993,7 @@ class AssemblyPathSVA():
 
         # q for lambdak, if using ARD
         if self.ARD:
-            total_elbo += - sum([v1*math.log(v2) for v1,v2 in zip(self.alphak_s,self.betak_s)]) + sum([scipy.special.gammaln(v) for v in self.alphak_s]) \
+            total_elbo += - sum([v1*math.log(v2) for v1,v2 in zip(self.alphak_s,self.betak_s)]) + sum([sp.special.gammaln(v) for v in self.alphak_s]) \
                           - ((self.alphak_s - 1.)*self.exp_loglambdak).sum() + (self.betak_s * self.exp_lambdak).sum()
 
         #add q for gamma
