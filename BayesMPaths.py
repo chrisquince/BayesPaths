@@ -174,12 +174,10 @@ def main(argv):
     
     for stubI in stubs:
         for stubJ in stubs:
-        
             distStubs[stubI][stubJ] = overlapDist(assGraphs[stubI].expGamma, assGraphs[stubJ].expGamma)
-            pathDists[stubI][stubJ] = pathOverlap(assGraphs[stubI], assGraphs[stubJ])
     
     threshDist = 0.5
-    
+    maxOverlap = 0.5
     strains = []
     mapped = []
     #current strains as dictionary of stub names matched to mapped
@@ -196,16 +194,19 @@ def main(argv):
             
             idx = 0
             for strain in strains:
-                if pathDists[stub][strain] < minDist:
-                    minStrainIdx = idx
-                    minStrain = strain
-                    minDist = pathDists[stub][strain] 
+                if overlapDist[stub][strain] < maxOverlap:
+                    pathDist = pathOverlap(assGraphs[stub], assGraphs[strain])
+                
+                    if pathDists[stub][strain] < minDist:
+                        minStrainIdx = idx
+                        minStrain = strain
+                        minDist = pathDists[stub][strain] 
                     
-                if pathDists[strain][stub] < minDist:
-                    minStrainIdx = idx
-                    minStrain = strain
-                    minDist = pathDists[strain][stub] 
-                    reverse = True
+                    if pathDists[strain][stub] < minDist:
+                        minStrainIdx = idx
+                        minStrain = strain
+                        minDist = pathDists[strain][stub] 
+                        reverse = True
                 
                 idx = idx + 1
             
