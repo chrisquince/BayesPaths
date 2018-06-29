@@ -214,13 +214,13 @@ def main(argv):
                 mapped[minStrainIdx].append(stub)
                 
                 if reverse:
-                    mapped[minStrainIdx] = stub
+                    strains[minStrainIdx] = stub
                 
             else:
                 strains.append(stub)
                 mapped.append([stub])
             
-        idx = 0
+    idx = 0
         
     for strain in strains:
         combinedGraph = assGraphs[strain]
