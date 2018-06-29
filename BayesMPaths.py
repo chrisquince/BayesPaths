@@ -220,7 +220,34 @@ def main(argv):
                 strains.append(stub)
                 mapped.append([stub])
             
-            
+        idx = 0
+        
+    for strain in strains:
+        combinedGraph = assGraphs[strain]
+        sString = ",".join(mapped[idx])
+        print(strain,sString)
+        for addGraph in mapped[idx]:
+            if addGraph != strain:
+                combinedGraph.addGenes(assGraphs[addGraph])
+
+        idx=idx+1
+
+    for strain in strains:
+        assGraph = assGraphs[strain]
+
+        assGraph.initNMF()
+
+        assGraph.update(100, True, strain + "logFile.csv")
+
+        assGraph.writeMarginals(strain + "margFile.csv")
+
+        assGraph.getMaximalUnitigs(strain + "Haplo_" + str(assGraph.G) + ".fa")
+
+        assGraph.writeMaximals(strain + "maxFile.tsv")
+
+        assGraph.writeGammaMatrix(strain + "Gamma.csv")
+    
+    
     print("Debug")
         
     
