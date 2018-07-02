@@ -196,13 +196,14 @@ def main(argv):
             reverse = False
 
             for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
-                if overlapDists[stub][strain] < maxOverlap:
+                if stub not in assigned and overlapDists[stub][strain] < maxOverlap:
                     pathDist = pathOverlap(assGraphs[stub], assGraphs[strain])
                 
                     if pathDist < minDist:
                         minStub = stub
                         minDist = pathDist 
                     
+                    pathDist = pathOverlap(assGraphs[strain], assGraphs[stub])
                     if pathDist < minDist:
                         minStub = stub
                         minDist = pathDist
