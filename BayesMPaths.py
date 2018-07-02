@@ -211,12 +211,12 @@ def main(argv):
 
                 
             if minDist < threshDist:
-                mapped[strainIdx].append(stub)
+                mapped[strainIdx].append(minStub)
                 
                 if reverse:
-                    strains[strainIdx] = stub
+                    strains[strainIdx] = minStub
                 
-                assigned[stub] = strains[strainIdx]
+                assigned[minStub] = strains[strainIdx]
             
             strainIdx += 1
             
@@ -227,7 +227,8 @@ def main(argv):
                 strains.append(stub)
                 mapped.append([stub])
                 
-        
+    
+    idx = 0    
     for strain in strains:
         combinedGraph = assGraphs[strain]
         sString = ",".join(mapped[idx])
