@@ -38,7 +38,7 @@ def main(argv):
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
         
-        gene = fileName.split('_')[1]
+        gene = fileName.split('_')[0]
         
         covFile = gfaFile[:-3] + "csv"
         

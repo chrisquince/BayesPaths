@@ -222,7 +222,7 @@ class AssemblyPathSVA():
         
         return copyGraphG
     
-    def addGenes(assemblyToAdd):
+    def addGenes(self,assemblyToAdd):
     
         self.assemblyGraphs.update(assemblyToAdd.assemblyGraphs)
         
