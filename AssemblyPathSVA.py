@@ -1,3 +1,4 @@
+import uuid
 import re
 import operator
 import sys, getopt
@@ -804,7 +805,7 @@ class AssemblyPathSVA():
                     factorGraph.var['sink+infty+'].condition(1)
                     
                     graphString = str(factorGraph)
-                    graphFileName = 'graph_'+ str(g) + '.fg'
+                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'
                 
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
@@ -821,6 +822,7 @@ class AssemblyPathSVA():
        
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
+                    os.remove(graphFileName)
                 self.addGamma(g)
             
             if self.ARD:
@@ -876,7 +878,7 @@ class AssemblyPathSVA():
                     factorGraph.var['sink+infty+'].condition(1)
                     
                     graphString = str(factorGraph)
-                    graphFileName = 'graph_'+ str(g) + '.fg'
+                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                    
                 
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
@@ -892,7 +894,7 @@ class AssemblyPathSVA():
                         self.margG[gene][g] = self.parseMargString(factorGraph,str(outString)) 
        
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-       
+                    os.remove(graphFileName) 
                 self.addGamma(g)
             
             if tau is not None:            
@@ -990,7 +992,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
                     
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'
                 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1003,6 +1005,7 @@ class AssemblyPathSVA():
                 
                 self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+                os.remove(graphFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -1029,7 +1032,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
                     
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
                 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1043,7 +1046,7 @@ class AssemblyPathSVA():
                 self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
              
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-                
+                os.remove(graphFileName) 
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -1138,7 +1141,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1155,7 +1158,7 @@ class AssemblyPathSVA():
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
-        
+                os.remove(graphFileName)
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1262,7 +1265,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1279,7 +1282,7 @@ class AssemblyPathSVA():
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
-
+                os.remove(graphFileName)
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1369,7 +1372,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(g) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1387,7 +1390,7 @@ class AssemblyPathSVA():
                 pathG.pop(0)
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                 haplotypes[gene].append(unitig)
-                
+                os.remove(graphFileName)
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
                 if output[g]:
@@ -1417,7 +1420,7 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = 'graph_'+ str(ref) + '.fg'
+                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1439,7 +1442,7 @@ class AssemblyPathSVA():
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                     
                 refs.append(unitig)    
-
+                os.remove(graphFileName)
             r = r + 1
         r = 0
         with open("Ref.fa", "w") as fastaFile:

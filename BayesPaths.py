@@ -16,6 +16,8 @@ def main(argv):
 
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
 
+    parser.add_argument("outFileStub", help="output file stub")
+
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
 
