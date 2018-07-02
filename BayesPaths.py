@@ -58,8 +58,8 @@ def main(argv):
         meanCov = unitigGraph.computeMeanCoverage()
         cov_maps[gene] = meanCov
     
-    for gene,meanCov in cov_maps.items:
-        cString = ",".join([str(x) for x in meanCov.toList()])
+    for gene,meanCov in cov_maps.items():
+        cString = ",".join([str(x) for x in meanCov.tolist()])
         print(gene + "," + cString)
     
 
