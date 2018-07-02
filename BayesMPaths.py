@@ -75,7 +75,8 @@ def overlapDist(gammaMatrixG, gammaMatrixH):
     dist = dSum - totalOverlap
     
     return dist, dist/dSum
-    
+
+
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -184,43 +185,47 @@ def main(argv):
     
     for gene in sorted(genes):
         #loop through stubs for each gene
-        for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
-            
+        
+        #assign best gene to each strain
+        assigned = {}
+        strainIdx = 0
+        for strain in strains:
             #compare to strains find closest match
             minDist = sys.float_info.max
-            minStrainIdx = None
-            minStrain = None
+            minStub = None
             reverse = False
-            
-            idx = 0
-            for strain in strains:
+
+            for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):
                 if overlapDists[stub][strain] < maxOverlap:
                     pathDist = pathOverlap(assGraphs[stub], assGraphs[strain])
                 
                     if pathDist < minDist:
-                        minStrainIdx = idx
-                        minStrain = strain
+                        minStub = stub
                         minDist = pathDist 
                     
                     if pathDist < minDist:
-                        minStrainIdx = idx
-                        minStrain = strain
+                        minStub = stub
                         minDist = pathDist
                         reverse = True
+
                 
-                idx = idx + 1
-            
             if minDist < threshDist:
-                mapped[minStrainIdx].append(stub)
+                mapped[strainIdx].append(stub)
                 
                 if reverse:
-                    strains[minStrainIdx] = stub
+                    strains[strainIdx] = stub
                 
-            else:
+                assigned[stub] = strains[strainIdx]
+            
+            strainIdx += 1
+            
+        
+        for (stub,sink_map,source_map,assemblyGraph) in zip(stub_maps[gene],sink_maps[gene],source_maps[gene],assemblyGraphs[gene]):    
+            
+            if stub not in assigned:
                 strains.append(stub)
                 mapped.append([stub])
-            
-    idx = 0
+                
         
     for strain in strains:
         combinedGraph = assGraphs[strain]
