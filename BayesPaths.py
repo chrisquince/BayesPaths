@@ -36,7 +36,7 @@ def main(argv):
     assemblyGraphs = {}
     sink_maps = {}
     source_maps = {}
-    
+    cov_maps = {}
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
         
@@ -54,6 +54,14 @@ def main(argv):
         sink_maps[gene] = sink_list
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
+        
+        meanCov = unitigGraph.computeMeanCoverage()
+        cov_maps[gene] = meanCov
+    
+    for gene,meanCov in cov_maps.items:
+        cString = ",".join([str(x) for x in meanCov.toList()])
+        print(gene + "," + cString)
+    
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150,ARD=True)
     
