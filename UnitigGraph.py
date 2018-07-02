@@ -97,7 +97,7 @@ class UnitigGraph():
                 unitigGraph.overlaps[record.id][linkTo].append((start,end))
                 
                 unitigGraph.undirectedUnitigGraph.add_edge(record.id,linkTo)
-        unitigGraph.unitigs = unitigGraph.undirectedUnitigGraph.nodes()
+        unitigGraph.unitigs = list(unitigGraph.undirectedUnitigGraph.nodes())
         unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
         unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
         if covFile is not None:
@@ -144,7 +144,7 @@ class UnitigGraph():
                 
             unitigGraph.undirectedUnitigGraph.add_edge(edge.from_segment.name,edge.to_segment.name)
         
-        unitigGraph.unitigs = unitigGraph.undirectedUnitigGraph.nodes()
+        unitigGraph.unitigs = list(unitigGraph.undirectedUnitigGraph.nodes())
         unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
         unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
         if covFile is not None:
@@ -168,6 +168,18 @@ class UnitigGraph():
                     reachable.append(node)
         
         return reachable 
+    
+    def writeCovToCSV(self,fileName):
+        if self.covMap is None:
+            raise TypeError
+    
+        with open(fileName, 'w') as covFile:
+    
+            for unitig in self.unitigs:
+                cString = ",".join([str(x) for x in self.covMap[unitig].tolist()])
+                
+                covFile.write(unitig + "," + cString + "\n")
+    
     
     def writeToGFA(self,fileName):
     
@@ -230,7 +242,7 @@ class UnitigGraph():
             newGraph.KC = {k: self.KC[k] for k in unitigList}
         
         newGraph.N = nx.number_of_nodes(newGraph.undirectedUnitigGraph)
-        newGraph.unitigs = newGraph.undirectedUnitigGraph.nodes()
+        newGraph.unitigs = list(newGraph.undirectedUnitigGraph.nodes())
         newGraph.forward = {}
         newGraph.start = {}
         newGraph.NC = nx.number_connected_components(newGraph.undirectedUnitigGraph)
@@ -778,7 +790,23 @@ class UnitigGraph():
                 endPos = newEndPos
                 self.propagateEndPath(path, endPos)
         return endPos
+    
+    def computeMeanCoverage(self):
         
+        if len(self.unitigs) > 0:
+            covMean = np.zeros(self.covMap[self.unitigs[0]].shape)
+            lengthSum = 0.
+            
+            for unitig in self.unitigs:
+                covMean += self.lengths[unitig]*self.covMap[unitig]
+                lengthSum += self.lengths[unitig]
+            
+            return covMean/lengthSum
+        
+        else:
+            return None
+        
+    
     def propagateStartPath(self, path, startPos):
     
         startUnitig = path[0][0]
