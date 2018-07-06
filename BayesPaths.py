@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import os
 
+from GraphProcess import getMaximumCoverageWalk
 from UnitigGraph import UnitigGraph
 from AssemblyPathSVA import AssemblyPathSVA
 from Utils import convertNodeToName
@@ -55,7 +56,7 @@ def main(argv):
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
         
-        meanCov = unitigGraph.computeMeanCoverage()
+        #meanCov = unitigGraph.computeMeanCoverage()
         cov_maps[gene] = meanCov
     
     for gene,meanCov in cov_maps.items():

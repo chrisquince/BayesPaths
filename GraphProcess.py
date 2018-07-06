@@ -343,7 +343,7 @@ def getMaximumCoverageWalk(focalGraph,bubbleNodes,covMap):
         maxWalk.append(node)
         node = max(flow_dict[node], key=flow_dict[node].get)
     maxWalk.pop(0)
-    return maxWalk
+    return (flow_value, maxWalk)
     
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -365,6 +365,9 @@ def main(argv):
     import ipdb; ipdb.set_trace()
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
+
+    #splitComponents(unitigGraph)
+
     fullGraph = unitigGraph.directedUnitigBiGraph
     reverseFullGraph = fullGraph.reverse()
     coreCogs = {}
@@ -395,7 +398,7 @@ def main(argv):
 
     covs = {}
     seqs = {}
-    
+    maxFlows = {}
     for coreCog,cogLength in coreCogs.items():
         
         g = 0
@@ -460,14 +463,15 @@ def main(argv):
             if len(bubbleU) > 0:
                 bubbleUGraph = unitigGraph.createUndirectedGraphSubset(bubbleU)
                 
-                covBubble = bubbleUGraph.computeMeanCoverage()
-                
                 id = coreCog + "_" + str(g)
-                covs[id] = covBubble
                 
-                maxWalk = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
+                
+                (maxFlow,maxWalk) = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
+                maxFlows[id] = maxFlow
+                print("Max flow: " + str(maxFlow))
                 contig = unitigGraph.getUnitigWalk(maxWalk)
-                
+                covBubble = bubbleUGraph.computeMeanCoverage(len(contig))
+                covs[id] = covBubble
                 seqs[id] = contig
                 
                 if len(coreFound) == len(focalCore):
@@ -491,6 +495,11 @@ def main(argv):
             f.write(id + ",")
             cString = ",".join([str(x) for x in covs.tolist()])
             f.write(cString + "\n")
+    
+    with open(args.outFileStub + 'maxFlow.csv','w') as f:
+        for id, maxFlow in maxFlows.items():
+            f.write(id + "," + str(maxFlow) + "\n")
+            
     
     print("Debug")
         #    for u in coreGraphUnitigsU:
