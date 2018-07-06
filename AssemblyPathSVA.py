@@ -1050,6 +1050,17 @@ class AssemblyPathSVA():
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
+
+    def exp_square_lambda(self):
+        ''' Compute: sum_s E_q(phi,gamma) [ sum ( Phi_v Gamma_s )^2 ]. '''
+        self.eLambda = np.dot(self.expTau, self.expGamma)
+        
+        eLambda2Sum = self.eLambda*self.eLambda
+        
+        diagonal = np.dot(self.expTau*self.expTau,self.expGamma*self.expGamma)
+        
+        return np.sum(eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2), axis = 1)
+
     def exp_square_diff(self): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
