@@ -791,7 +791,7 @@ class UnitigGraph():
                 self.propagateEndPath(path, endPos)
         return endPos
     
-    def computeMeanCoverage(self):
+    def computeMeanCoverage(self, length):
         
         if len(self.unitigs) > 0:
             covMean = np.zeros(self.covMap[self.unitigs[0]].shape)
@@ -801,7 +801,7 @@ class UnitigGraph():
                 covMean += self.lengths[unitig]*self.covMap[unitig]
                 lengthSum += self.lengths[unitig]
             
-            return covMean/lengthSum
+            return covMean/length
         
         else:
             return None
@@ -877,4 +877,6 @@ class UnitigGraph():
             self.factorGraph.add_edge(edgeName,sourceName)
             
             self.factorGraph.add_edge(self.sourceNode,edgeName)
-
+    
+        
+        
