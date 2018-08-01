@@ -354,18 +354,20 @@ def main(argv):
     
     parser.add_argument("core_cogs", help="list of core cogs")
     
-    parser.add_argument("cov_file", help="unitig coverages")
-    
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
     
     parser.add_argument("outFileStub", help="stub for output files")
+    
+    parser.add_argument('-c','--cov_file',nargs='?', help="unitig coverages")
     
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
 
-    unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
-
+    if args.cov_file is not None:
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
+    else:
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length))
     #splitComponents(unitigGraph)
 
     fullGraph = unitigGraph.directedUnitigBiGraph
@@ -394,7 +396,7 @@ def main(argv):
                 unitigCogMap[unitig] = cog
             
     
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     covs = {}
     seqs = {}
@@ -414,9 +416,12 @@ def main(argv):
             corePlusName = convertNodeToName((coreUnitig,True))
             
             focalGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=6.0*cogLength,center=True,undirected=True,distance='weight')
+            reverseFocalGraph = focalGraph.reverse()
+            
             focalGraphL = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=10.0*cogLength,center=True,undirected=True,distance='weight')
+            reverseFocalGraphL = focalGraphL.reverse()
             
-            
+            assert nx.is_directed_acyclic_graph (focalGraph)
             
             focalUnitigs = [n[:-1] for n in focalGraph.nodes()]
             focalCore = set(coreUnitigs).intersection(focalUnitigs)  
@@ -425,8 +430,21 @@ def main(argv):
             for u in focalCore:
                 focalCoreDirected.extend(getDirected(focalGraph,u))
         
-            reachable = get_labelled_subgraph(focalGraph, focalCoreDirected)
-        
+            
+            if nx.is_directed_acyclic_graph (focalGraphL):          
+                extractGraph = focalGraphL
+                reverseExtractGraph = reverseFocalGraphL
+            else:
+                extractGraph = focalGraph
+                reverseExtractGraph = reverseFocalGraph
+                
+                
+            lcd = UnitigGraph.getLowestCommonDescendant(extractGraph,focalCoreDirected)
+            
+            lca = UnitigGraph.getLowestCommonDescendant(reverseExtractGraph,focalCoreDirected)
+                
+            reachable = get_labelled_subgraph(extractGraph, lca + lcd)
+            
             reachableU = [x[:-1] for x in reachable]
         
             reachableUGraph = unitigGraph.createUndirectedGraphSubset(reachableU)
@@ -436,7 +454,12 @@ def main(argv):
             for f in focalCore:
                 coreUnitigs.remove(f)
         
-            reachableGraph = focalGraph.subgraph(reachable)
+            with open(args.outFileStub + coreCog + "R_" + str(g) + ".tsv",'w') as f:
+                for x in focalCore:
+                    f.write(x + "\n")
+            
+        
+            reachableGraph = extractGraph.subgraph(reachable)
             inDegree = reachableGraph.in_degree(reachableGraph.nodes())
             
             reachableSources = []
@@ -450,55 +473,63 @@ def main(argv):
             for node,nDegree in outDegree:
                 if nDegree == 0:
                     reachableSinks.append(node)        
-        
-            #bubbleNodes = bubbleOut(focalGraph,reachableSources[0],reachableSinks[0],reachable)
-            bubbleNodes = bubbleOut2(focalGraph, fullGraph, reverseFullGraph,reachableSources[0],reachableSinks[0],reachable)
-        
-            coreFound = set([x[:-1] for x in bubbleNodes]) & focalCore
             
-            print("Bubble\t" + str(g) + "\t" + str(len(coreFound)))
+            if lca is not None and lcd is not None:
+                bubbleNodes = bubbleOut2(fullGraph, fullGraph, reverseFullGraph,lca[0],lcd[0],reachable)
+                   
+                coreFound = set([x[:-1] for x in bubbleNodes]) & focalCore
             
-            bubbleU = [x[:-1] for x in bubbleNodes]
+                print("Bubble\t" + str(g) + "\t" + str(len(coreFound)))
+            
+                bubbleU = [x[:-1] for x in bubbleNodes]
         
-            if len(bubbleU) > 0:
-                bubbleUGraph = unitigGraph.createUndirectedGraphSubset(bubbleU)
+                if len(bubbleU) > 0:
+                    bubbleUGraph = unitigGraph.createUndirectedGraphSubset(bubbleU)
                 
-                id = coreCog + "_" + str(g)
+                    id = coreCog + "_" + str(g)
                 
+                    if args.cov_file is not None:
+                        (maxFlow,maxWalk) = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
+                        maxFlows[id] = maxFlow
+                        print("Max flow: " + str(maxFlow))
+                        contig = unitigGraph.getUnitigWalk(maxWalk)
+            
+                        covBubble = bubbleUGraph.computeMeanCoverage(len(contig))
+                        covs[id] = covBubble
+                        seqs[id] = contig
                 
-                (maxFlow,maxWalk) = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
-                maxFlows[id] = maxFlow
-                print("Max flow: " + str(maxFlow))
-                contig = unitigGraph.getUnitigWalk(maxWalk)
-                covBubble = bubbleUGraph.computeMeanCoverage(len(contig))
-                covs[id] = covBubble
-                seqs[id] = contig
-                
-                if len(coreFound) == len(focalCore):
-                    bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "B_" + str(g) + ".gfa")
-                    bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "B_" + str(g) + ".csv")
+                    if len(coreFound) == len(focalCore):
+                        bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "B_" + str(g) + ".gfa")
+                    
+                        if args.cov_file is not None:
+                            bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "B_" + str(g) + ".csv")
+                    else:
+                        print("Incomplete Bubble\t" + str(g) + "\t" + str(len(focalCore) - len(coreFound)))
+                        bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "I_" + str(g) + ".gfa")
+                    
+                        if args.cov_file is not None:
+                            bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "I_" + str(g) + ".csv")
                 else:
-                    print("Incomplete Bubble\t" + str(g) + "\t" + str(len(focalCore) - len(coreFound)))
-                    bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "I_" + str(g) + ".gfa")
-                    bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "I_" + str(g) + ".csv")
+                    print("Empty Bubble\t" + str(g) + "\t" + str(len(bubbleU)))
             else:
-                print("Empty Bubble\t" + str(g) + "\t" + str(len(bubbleU)))
+                print("Failed to locate lca lcd\t" + str(g))
             g = g + 1
     
-    with open(args.outFileStub + 'coreContigs.fa','w') as f:
-        for id, seq in seqs.items():
-            f.write(">" + id + "\n")
-            f.write(seq + "\n")
+    if args.cov_file is not None:
+        with open(args.outFileStub + 'coreContigs.fa','w') as f:
+            for id, seq in seqs.items():
+                f.write(">" + id + "\n")
+                f.write(seq + "\n")
     
-    with open(args.outFileStub + 'coreContigs_cov.csv','w') as f:
-        for id, covs in covs.items():
-            f.write(id + ",")
-            cString = ",".join([str(x) for x in covs.tolist()])
-            f.write(cString + "\n")
+        with open(args.outFileStub + 'coreContigs_cov.csv','w') as f:
+            for id, covs in covs.items():
+                f.write(id + ",")
+                cString = ",".join([str(x) for x in covs.tolist()])
+                f.write(cString + "\n")
     
-    with open(args.outFileStub + 'maxFlow.csv','w') as f:
-        for id, maxFlow in maxFlows.items():
-            f.write(id + "," + str(maxFlow) + "\n")
+        with open(args.outFileStub + 'maxFlow.csv','w') as f:
+            for id, maxFlow in maxFlows.items():
+                f.write(id + "," + str(maxFlow) + "\n")
             
     
     print("Debug")
