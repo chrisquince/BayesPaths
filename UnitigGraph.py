@@ -149,6 +149,8 @@ class UnitigGraph():
         unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
         if covFile is not None:
             unitigGraph.covMap = read_coverage_file(covFile)
+        else:
+            unitigGraph.covMap = None
         unitigGraph.createDirectedBiGraph()
         return unitigGraph
     
@@ -168,6 +170,97 @@ class UnitigGraph():
                     reachable.append(node)
         
         return reachable 
+    
+    @classmethod
+    def getLowestCommonDescendant(cls,forwardGraph,coreNodes):
+    
+        assert nx.is_directed_acyclic_graph(forwardGraph), "Graph has to be acyclic and directed."
+
+        # get descendentgs of all
+
+        core_descendents = []
+        for coreNode in coreNodes:
+            tDec = nx.descendants(forwardGraph,coreNode)
+            tDec.add(coreNode)
+            core_descendents.append(tDec)
+            
+        common_descendants = set.intersection(*core_descendents)
+    
+        allPaths = nx.all_pairs_dijkstra_path_length(forwardGraph)
+
+        allSSDict = defaultdict(dict)       
+  
+        for sourcePaths in allPaths:
+            source = sourcePaths[0]
+    
+            if source in coreNodes:
+
+                for sink, length in sourcePaths[1].items(): 
+                    
+                    if sink in common_descendants:
+                        allSSDict[source][sink] = length
+                        
+        # get sum of path lengths
+        if len(common_descendants) > 0:
+            sum_of_path_lengths = np.zeros((len(common_descendants)))
+            common_descendants_list = list(common_descendants)
+            for ii, c in enumerate(common_descendants_list):
+            
+                for coreNode in coreNodes:
+                    sum_of_path_lengths[ii] += allSSDict[coreNode][c]
+        
+            minima = np.where(sum_of_path_lengths == np.min(sum_of_path_lengths))
+    
+            lca = [common_descendants_list[ii] for ii in minima[0]]
+        else:
+            lca = None
+             
+        return lca
+
+    @classmethod
+    def getLowestCommonDescendantG(cls,forwardGraph,coreNodes):
+    
+        allPaths = nx.all_pairs_dijkstra_path_length(forwardGraph)
+        
+        decCore = defaultdict(set)
+        allSSDict = defaultdict(dict)  
+               
+        for sourcePaths in allPaths:
+            source = sourcePaths[0]
+    
+            if source in coreNodes:
+                for sink, length in sourcePaths[1].items(): 
+                    decCore[source].add(sink)
+                    allSSDict[source][sink] = length
+                    
+        # get descendentgs of all
+
+        core_descendents = []
+        for coreNode in coreNodes:
+            tDec = decCore[coreNode]
+            tDec.add(coreNode)
+            core_descendents.append(tDec)
+            
+        common_descendants = set.intersection(*core_descendents)     
+
+                        
+        # get sum of path lengths
+        if len(common_descendants) > 0:
+            sum_of_path_lengths = np.zeros((len(common_descendants)))
+            common_descendants_list = list(common_descendants)
+            for ii, c in enumerate(common_descendants_list):
+            
+                for coreNode in coreNodes:
+                    sum_of_path_lengths[ii] += allSSDict[coreNode][c]
+        
+            minima = np.where(sum_of_path_lengths == np.min(sum_of_path_lengths))
+    
+            lca = [common_descendants_list[ii] for ii in minima[0]]
+        else:
+            lca = None
+             
+        return lca
+
     
     def writeCovToCSV(self,fileName):
         if self.covMap is None:
@@ -236,7 +329,10 @@ class UnitigGraph():
                 if l in unitigList:
                     newGraph.overlaps[k][l] = links
         
-        newGraph.covMap = {k: self.covMap[k] for k in unitigList}
+        if self.covMap is not None:
+            newGraph.covMap = {k: self.covMap[k] for k in unitigList}
+        else:
+            newGraph.covMap = None
         
         if self.KC: 
             newGraph.KC = {k: self.KC[k] for k in unitigList}
@@ -792,6 +888,9 @@ class UnitigGraph():
         return endPos
     
     def computeMeanCoverage(self, length):
+        
+        if self.covMap is None:
+            raise ValueError()
         
         if len(self.unitigs) > 0:
             covMean = np.zeros(self.covMap[self.unitigs[0]].shape)

@@ -4,6 +4,7 @@ from UnitigGraph import UnitigGraph
 from Utils import convertNodeToName
 import networkx as nx
 from collections import deque
+from collections import defaultdict
 import numpy as np
 
 #class GraphProcess():
@@ -317,34 +318,63 @@ def getMaximumCoverageWalk(focalGraph,bubbleNodes,covMap):
             sinks.append(node)
     
     
-    directedGraph.add_node('source')
-    for source in sources:
-        directedGraph.add_edge('source',source)
+    if len(sources) > 0 and len(sinks) > 0:
+        directedGraph.add_node('source')
+        for source in sources:
+            directedGraph.add_edge('source',source)
     
-    directedGraph.add_node('sink')
-    for sink in sinks:
-        directedGraph.add_edge(sink,'sink')
+        directedGraph.add_node('sink')
+        for sink in sinks:
+            directedGraph.add_edge(sink,'sink')
     
-    capacities = {}
-    for e in directedGraph.edges:
-        if e[1] == 'sink':
-            capacities[e] = sys.float_info.max
-        else:
-            unitigU = e[1][:-1]
-            capacities[e] = np.sum(covMap[unitigU])
+        capacities = {}
+        for e in directedGraph.edges:
+            if e[1] == 'sink':
+                capacities[e] = sys.float_info.max
+            else:
+                unitigU = e[1][:-1]
+                capacities[e] = np.sum(covMap[unitigU])
 
-    nx.set_edge_attributes(directedGraph,capacities,'capacity')
-    flow_value, flow_dict = nx.maximum_flow(directedGraph, 'source', 'sink')
+        nx.set_edge_attributes(directedGraph,capacities,'capacity')
+        flow_value, flow_dict = nx.maximum_flow(directedGraph, 'source', 'sink')
     
-    maxWalk = []
-    node = 'source'
+        maxWalk = []
+        node = 'source'
     
-    while node != 'sink':
-        maxWalk.append(node)
-        node = max(flow_dict[node], key=flow_dict[node].get)
-    maxWalk.pop(0)
+        bProblem = False
+        while node != 'sink':
+            maxWalk.append(node)
+            if len(flow_dict[node]) > 0:
+                node = max(flow_dict[node], key=flow_dict[node].get)
+            else:
+                break
+                bProblem = True
+        
+        if bProblem == False:
+            maxWalk.pop(0)
+    else:
+        flow_value = None
+        maxWalk = None      
+        
     return (flow_value, maxWalk)
+
+def determineSourceSink(focalGraph,reverseFocalGraph,focalCoreDirected):
     
+    if nx.is_directed_acyclic_graph (focalGraph):                
+        lcd = UnitigGraph.getLowestCommonDescendant(focalGraph,focalCoreDirected)
+            
+        lca = UnitigGraph.getLowestCommonDescendant(reverseFocalGraph,focalCoreDirected)
+                        
+    else:
+                
+        print("Going to try and find lca/lcd on this local graph even though it is not a DAG")
+                
+        lcd = UnitigGraph.getLowestCommonDescendantG(focalGraph,focalCoreDirected)
+            
+        lca = UnitigGraph.getLowestCommonDescendantG(reverseFocalGraph,focalCoreDirected)
+
+    return (lcd,lca)
+
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -360,9 +390,11 @@ def main(argv):
     
     parser.add_argument('-c','--cov_file',nargs='?', help="unitig coverages")
     
+    parser.add_argument('-e','--expansion_factor',nargs='?', help="expansion around core cogs",default=5.0,type=float)
+    
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     if args.cov_file is not None:
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
@@ -401,6 +433,9 @@ def main(argv):
     covs = {}
     seqs = {}
     maxFlows = {}
+    
+    cogFragments = defaultdict(list)
+    
     for coreCog,cogLength in coreCogs.items():
         
         g = 0
@@ -410,18 +445,23 @@ def main(argv):
             if x in unitigCogMap and unitigCogMap[x] == coreCog:
                 coreUnitigs.append(x)
         print("Total Unitigs\t" + coreCog + "\t" + str(len(coreUnitigs)))
+        
         while len(coreUnitigs) > 0:
             coreUnitig = coreUnitigs[0]
         
             corePlusName = convertNodeToName((coreUnitig,True))
+        
+            id = coreCog + "_" + str(g)
+            bFragment = False
+            bBubble = False
+            nBubbleFound = 0
+            nFocalFound = 0
+            nReachableFound = 0
+            nRSize = 0
+            nBSize = 0
             
-            focalGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=6.0*cogLength,center=True,undirected=True,distance='weight')
+            focalGraph = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=args.expansion_factor*cogLength,center=True,undirected=True,distance='weight')
             reverseFocalGraph = focalGraph.reverse()
-            
-            focalGraphL = nx.ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,radius=10.0*cogLength,center=True,undirected=True,distance='weight')
-            reverseFocalGraphL = focalGraphL.reverse()
-            
-            assert nx.is_directed_acyclic_graph (focalGraph)
             
             focalUnitigs = [n[:-1] for n in focalGraph.nodes()]
             focalCore = set(coreUnitigs).intersection(focalUnitigs)  
@@ -429,91 +469,116 @@ def main(argv):
         
             for u in focalCore:
                 focalCoreDirected.extend(getDirected(focalGraph,u))
-        
+
+            nFocalFound = len(focalCore)
+            print("Graph\t" + str(g) + "\t" + str(nFocalFound))
+
+            focalUGraph = unitigGraph.createUndirectedGraphSubset(focalUnitigs)
             
-            if nx.is_directed_acyclic_graph (focalGraphL):          
-                extractGraph = focalGraphL
-                reverseExtractGraph = reverseFocalGraphL
-            else:
-                extractGraph = focalGraph
-                reverseExtractGraph = reverseFocalGraph
-                
-                
-            lcd = UnitigGraph.getLowestCommonDescendant(extractGraph,focalCoreDirected)
-            
-            lca = UnitigGraph.getLowestCommonDescendant(reverseExtractGraph,focalCoreDirected)
-                
-            reachable = get_labelled_subgraph(extractGraph, lca + lcd)
-            
-            reachableU = [x[:-1] for x in reachable]
+            focalUGraph.writeToGFA(args.outFileStub + id + "F.gfa")
         
-            reachableUGraph = unitigGraph.createUndirectedGraphSubset(reachableU)
-        
-            reachableUGraph.writeToGFA(args.outFileStub + coreCog + "R_" + str(g) + ".gfa")
-            print("Graph\t" + str(g) + "\t" + str(len(focalCore)))
-            for f in focalCore:
-                coreUnitigs.remove(f)
-        
-            with open(args.outFileStub + coreCog + "R_" + str(g) + ".tsv",'w') as f:
+            with open(args.outFileStub + id + "R.tsv",'w') as f:
                 for x in focalCore:
                     f.write(x + "\n")
-            
         
-            reachableGraph = extractGraph.subgraph(reachable)
-            inDegree = reachableGraph.in_degree(reachableGraph.nodes())
-            
-            reachableSources = []
-            for node,nDegree in inDegree:
-                if nDegree == 0:
-                    reachableSources.append(node)
+            (lcd, lca) = determineSourceSink(focalGraph,reverseFocalGraph,focalCoreDirected)
         
-            outDegree = reachableGraph.out_degree(reachableGraph.nodes())
+            if lcd is None or lca is None:
+                
+                print("Finding lca/lcd failed but these unitigs appear to be whole genes anyway...")
+                l = 0
+                for x in focalCore:
+                    if focalUGraph.lengths[x] > 3.0*cogLength:
+                        print(x)
+                        focalXGraph = unitigGraph.createUndirectedGraphSubset([x])
+                        focalXGraph.writeToGFA(args.outFileStub + id + "_" + str(l) + "X.gfa")
+                        
+                        if args.cov_file is not None:
+                            focalXGraph.writeCovToCSV(args.outFileStub + id + "_" + str(l) + "X.csv")
+
+                            l = l + 1
+            else:
+                bFragment = True
+                reachable = get_labelled_subgraph(focalGraph, lca + lcd)
             
-            reachableSinks = []
-            for node,nDegree in outDegree:
-                if nDegree == 0:
-                    reachableSinks.append(node)        
+                reachableU = [x[:-1] for x in reachable]
+        
+                reachableUGraph = unitigGraph.createUndirectedGraphSubset(reachableU)
+    
+                reachableGraph = focalGraph.subgraph(reachable)
+                nRSize = len(reachableU)
+                nReachableFound = len(set(reachableU) & focalCore)
+                if nReachableFound == nFocalFound:
+                    
+                    reachableUGraph.writeToGFA(args.outFileStub + id + "R.gfa")
+                    
+                    if args.cov_file is not None:
+
+                        (maxFlow,maxWalk) = getMaximumCoverageWalk(fullGraph,reachable,unitigGraph.covMap)
+                        
+                        maxFlows[id] = maxFlow
+                        
+                        print("Max flow: " + str(maxFlow))
+                        
+                        if maxWalk is not None:
+                            contig = unitigGraph.getUnitigWalk(maxWalk)
             
-            if lca is not None and lcd is not None:
+                        covReachable = reachableUGraph.computeMeanCoverage(len(contig))
+                        covs[id] = covReachable
+                        seqs[id] = contig
+                    
+                    if args.cov_file is not None:
+                            reachableUGraph.writeCovToCSV(args.outFileStub + id + "R.csv")
+                else:
+                    print("Incomplete Reachable\t" + str(g) + "\t" + str(nFocalFound - nReachableFound))
+                    reachableUGraph.writeToGFA(args.outFileStub + id + "J.gfa")
+        
+    
                 bubbleNodes = bubbleOut2(fullGraph, fullGraph, reverseFullGraph,lca[0],lcd[0],reachable)
                    
                 coreFound = set([x[:-1] for x in bubbleNodes]) & focalCore
             
-                print("Bubble\t" + str(g) + "\t" + str(len(coreFound)))
+                nBubbleFound = len(coreFound)
             
+                print("Bubble\t" + str(g) + "\t" + str(nBubbleFound))
+                    
                 bubbleU = [x[:-1] for x in bubbleNodes]
-        
+                nBSize = len(bubbleU)
                 if len(bubbleU) > 0:
+                    bBubble = True
                     bubbleUGraph = unitigGraph.createUndirectedGraphSubset(bubbleU)
                 
-                    id = coreCog + "_" + str(g)
-                
-                    if args.cov_file is not None:
-                        (maxFlow,maxWalk) = getMaximumCoverageWalk(focalGraph,bubbleNodes,unitigGraph.covMap)
-                        maxFlows[id] = maxFlow
-                        print("Max flow: " + str(maxFlow))
-                        contig = unitigGraph.getUnitigWalk(maxWalk)
-            
-                        covBubble = bubbleUGraph.computeMeanCoverage(len(contig))
-                        covs[id] = covBubble
-                        seqs[id] = contig
-                
-                    if len(coreFound) == len(focalCore):
-                        bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "B_" + str(g) + ".gfa")
+                    if nBubbleFound == nFocalFound:
+                        bubbleUGraph.writeToGFA(args.outFileStub + id + "B.gfa")
                     
                         if args.cov_file is not None:
-                            bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "B_" + str(g) + ".csv")
+                            bubbleUGraph.writeCovToCSV(args.outFileStub + id + "B.csv")
                     else:
-                        print("Incomplete Bubble\t" + str(g) + "\t" + str(len(focalCore) - len(coreFound)))
-                        bubbleUGraph.writeToGFA(args.outFileStub + coreCog + "I_" + str(g) + ".gfa")
+                        print("Incomplete Bubble\t" + str(g) + "\t" + str(nFocalFound - nBubbleFound))
+                        bubbleUGraph.writeToGFA(args.outFileStub + id + "I.gfa")
                     
                         if args.cov_file is not None:
-                            bubbleUGraph.writeCovToCSV(args.outFileStub + coreCog + "I_" + str(g) + ".csv")
+                            bubbleUGraph.writeCovToCSV(args.outFileStub + id + "I.csv")
                 else:
                     print("Empty Bubble\t" + str(g) + "\t" + str(len(bubbleU)))
-            else:
-                print("Failed to locate lca lcd\t" + str(g))
+            
+            for x in focalCore:
+                coreUnitigs.remove(x)
+            
+            cogFragments[coreCog].append((id,bFragment,bBubble,nRSize, nBSize, nFocalFound,nReachableFound,nBubbleFound))
+            
             g = g + 1
+            
+    with open(args.outFileStub + 'fragments.tsv','w') as f:
+        for coreCog,cogLength in coreCogs.items():
+            fragmentList = cogFragments[coreCog]
+        
+            for fidx, fragment in enumerate(fragmentList):
+                fList = list(fragment)
+                fString = "\t".join([str(x) for x in fList])
+            
+                f.write(coreCog + "\t" + str(fidx) + "\t" + fString + "\n")
+    
     
     if args.cov_file is not None:
         with open(args.outFileStub + 'coreContigs.fa','w') as f:
@@ -524,20 +589,15 @@ def main(argv):
         with open(args.outFileStub + 'coreContigs_cov.csv','w') as f:
             for id, covs in covs.items():
                 f.write(id + ",")
+            
                 cString = ",".join([str(x) for x in covs.tolist()])
                 f.write(cString + "\n")
     
         with open(args.outFileStub + 'maxFlow.csv','w') as f:
             for id, maxFlow in maxFlows.items():
                 f.write(id + "," + str(maxFlow) + "\n")
-            
-    
-    print("Debug")
-        #    for u in coreGraphUnitigsU:
-         #       f.write(u + '\t0\n')
     
         
-    import ipdb; ipdb.set_trace()
         #focalGraph = get_hairy_ego_graph(unitigGraph.directedUnitigBiGraph,corePlusName,5000,'weight')
         
         
