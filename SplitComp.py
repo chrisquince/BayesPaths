@@ -16,7 +16,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
@@ -27,6 +27,8 @@ def main(argv):
         unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
         
         unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
+
+        unitigSubGraph.writeCovToCSV('component_' + str(c) + '.csv')
         
         c = c + 1
 
