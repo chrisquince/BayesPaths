@@ -44,7 +44,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = False, muTheta0 = 1.0, tauTheta0 = 10.0):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 10.0):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -754,7 +754,7 @@ class AssemblyPathSVA():
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.tauTheta = self.expTau*self.exp_square_lambda(tempLambda)*self.lengths*self.lengths + self.tauTheta0 
+        self.tauTheta = self.expTau*self.exp_square_lambda()*self.lengths*self.lengths + self.tauTheta0 
         
         numer =  self.expTau*self.lengths*np.sum(self.X*self.eLambda,axis=1) + self.muTheta0*self.tauTheta0 
         
