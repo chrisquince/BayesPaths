@@ -752,9 +752,9 @@ class AssemblyPathSVA():
 
     def updateTheta(self):
         
-        self.eLambda = np.dot(self.expTau, self.expGamma)
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.tauTheta = self.expTau*self.exp_square_lambda()*self.lengths*self.lengths + self.tauTheta0 
+        self.tauTheta = self.expTau*self.exp_square_lambda(tempLambda)*self.lengths*self.lengths + self.tauTheta0 
         
         numer =  self.expTau*self.lengths*np.sum(self.X*self.eLambda,axis=1) + self.muTheta0*self.tauTheta0 
         
@@ -1117,7 +1117,7 @@ class AssemblyPathSVA():
         
         eLambda2Sum = self.eLambda*self.eLambda
         
-        diagonal = np.dot(self.expTau*self.expTau,self.expGamma*self.expGamma)
+        diagonal = np.dot(self.expPhi*self.expPhi,self.expGamma*self.expGamma)
         
         return np.sum(eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2), axis = 1)
 
