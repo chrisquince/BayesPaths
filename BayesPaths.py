@@ -62,7 +62,7 @@ def main(argv):
         
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
             
-        (source_list, sink_list) = unitigGraph.selectSourceSinks2(args.frac)
+        (source_list, sink_list) = unitigGraph.selectSourceSinks(args.frac)
 
         source_names = [convertNodeToName(source) for source in source_list] 
         sink_names = [convertNodeToName(sink) for sink in sink_list]
@@ -85,6 +85,8 @@ def main(argv):
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv")
    
     assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
+
+    assGraph.writeTheta(args.outFileStub + "Theta.csv") 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
