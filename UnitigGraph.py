@@ -31,7 +31,7 @@ from Utils import read_coverage_file
 mapDirn = {'True' : "+", 'False' : "-"}
 
 def dijkstra(graph, source, sink):
-
+    """Wrapper for networkx shortest path algorithm"""
     try:
         (length,path) = nx.bidirectional_dijkstra(graph,source,sink)
         return (length,path) 
@@ -39,7 +39,7 @@ def dijkstra(graph, source, sink):
         return False
 
 def reverseDirn(node):
-
+    """Reverses node direction"""
     if node[-1] == '+':
         node[-1] == '-'
     elif node[-1] == '+':
@@ -49,26 +49,26 @@ class UnitigGraph():
     """Creates unitig graph"""
 
     def __init__(self,kmerLength,overlapLength):
-    
-        self.overlapLength = overlapLength
-        self.kmerLength = kmerLength 
+        """Empty UnitigGraph object"""
+        self.overlapLength = overlapLength # overlap length for unitig assume fixed
+        self.kmerLength = kmerLength # de Bruijn graph kmer length
         self.sequences = {}
         self.lengths = {}
-        self.overlaps = defaultdict(lambda: defaultdict(list))
-        self.undirectedUnitigGraph = nx.Graph()
-        self.unitigs = []
-        self.N = 0
-        self.forward = {}
+        self.overlaps = defaultdict(lambda: defaultdict(list)) # unitig overlaps as 2d dict of lists
+        self.undirectedUnitigGraph = nx.Graph() # undirected graph representation
+        self.unitigs = [] #list of untig names
+        self.N = 0 # number of unitigs
+        self.forward = {} 
         self.start = {}
-        self.NC = 0
+        self.NC = 0 #number of components
         self.covMap = {}
         self.KC = {}
         
     @classmethod
     def loadGraph(cls,unitigFile, kmerLength, overlapLength = None, covFile = None):
-    
+        """Creates graphs from a Bcalm output file"""
         if overlapLength == None:
-            overlapLength = kmerLength - 1
+            overlapLength = kmerLength - 1 # if overlapLength not provided assume kmerLength - 1
         unitigGraph = cls(kmerLength, overlapLength)
     
         for record in SeqIO.parse(unitigFile, "fasta"):
@@ -107,6 +107,7 @@ class UnitigGraph():
     
     @classmethod
     def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None):
+        """Creates graphs from a GFA file and an optional coverage file as csv without header"""
         gfa = gfapy.Gfa.from_file(gfaFile)
     
         if kmerLength is None:
@@ -275,7 +276,7 @@ class UnitigGraph():
     
     
     def writeToGFA(self,fileName):
-    
+        """Writes UnitigGraph to GFA file"""
         with open(fileName, 'w') as gfaFile:
     
             for unitig in self.unitigs:
