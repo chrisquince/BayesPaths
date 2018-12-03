@@ -562,7 +562,7 @@ class UnitigGraph():
         
         return (source_list,sink_list)
     
-    def selectSourceSinks2(self, dFrac):
+    def selectSourceSinks(self, dFrac):
     
         sources = []
         sinks = []
@@ -668,71 +668,6 @@ class UnitigGraph():
             source_list = []
         if len(sinks) > 0:
             sink_list = list(map(convertNameToNode2, sinks))
-        else:
-            sink_list = []
-        
-        return (source_list,sink_list)
-    
-    
-    def selectSourceSinks(self, sub_unitig_order, dFrac, dIFrac):
-        
-        self.setDirectionOrder(sub_unitig_order)
-    
-        (sources, sinks) = self.getSourceSinks()
-        
-        sourceSinkLength = defaultdict(dict)
-        maxSourceSink = 0.
-        maxSource = None
-        maxSink = None
-        for source in sources:
-            pathLengths = nx.single_source_dijkstra_path_length(self.directedUnitigBiGraph,source)
-            
-            for sink in sinks:
-                if sink in pathLengths:
-                    sourceSinkLength[source][sink] = pathLengths[sink]
-                    if pathLengths[sink] > maxSourceSink:
-                        maxSourceSink = pathLengths[sink]
-                        maxSource = source
-                        maxSink = sink
-        if maxSource is not None:
-            source_select = {maxSource}
-        else:
-            source_select = {}
-        
-        if maxSink is not None:
-            sink_select = {maxSink}
-        else:
-            sink_select = {}
-        
-        for source in sources:
-            for sink in sinks:
-                if sink in sourceSinkLength[source] and sourceSinkLength[source][sink] > dFrac*maxSourceSink:
-                    source_select.add(source)
-                    sink_select.add(sink)
-                
-        for source in source_select:
-            sourceLengths = single_source_dijkstra_path_length(self.directedUnitigBiGraph, source)
-            
-            for newSink, length in pathLengths.items():
-                if newSink not in sink_select and length > dIFrac*maxSourceSink:
-                   sink_select.add(newSink) 
-        
-        for sink in sink_select:
-            sourceSink = reverseDirn(sink)
-        
-            sinkLengths = single_source_dijkstra_path_length(self.directedUnitigBiGraph, sourceSink)
-            
-            for newSource, length in pathLengths.items():
-                newSourceR = reverseDirn(newSource)
-                if newSourceR not in sink_select and length > dIFrac*maxSourceSink:
-                   source_select.add(newSourceR)           
-        
-        if len(source_select) > 0:
-            source_list = list(map(convertNameToNode2, source_select))
-        else:
-            source_list = []
-        if len(sink_select) > 0:
-            sink_list = list(map(convertNameToNode2, sink_select))
         else:
             sink_list = []
         
