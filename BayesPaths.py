@@ -3,10 +3,11 @@ import sys
 import glob
 import numpy as np
 import os
+import re
 
 from GraphProcess import getMaximumCoverageWalk
 from UnitigGraph import UnitigGraph
-from AssemblyPathSVA import AssemblyPathSVA
+from AssemblyPathSVAB import AssemblyPathSVA
 from Utils import convertNodeToName
 from numpy.random import RandomState
 
@@ -25,6 +26,9 @@ def main(argv):
     parser.add_argument('-f','--frac',nargs='?', default=0.75, type=float, 
         help=("fraction for path source sink"))
 
+    parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
+        help=("read length used for sequencing defaults 100bp"))
+
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
@@ -40,8 +44,15 @@ def main(argv):
     cov_maps = {}
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
+
+        p = re.compile('COG[0-9]+')
+
+        m = p.search(gfaFile)
         
-        gene = fileName.split('_')[0]
+        if m is None:
+            raise ValueError
+
+        gene = m.group()
         
         covFile = gfaFile[:-3] + "csv"
         
@@ -56,15 +67,8 @@ def main(argv):
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
         
-        #meanCov = unitigGraph.computeMeanCoverage()
-        cov_maps[gene] = meanCov
     
-    for gene,meanCov in cov_maps.items():
-        cString = ",".join([str(x) for x in meanCov.tolist()])
-        print(gene + "," + cString)
-    
-
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150,ARD=True)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True)
     
     assGraph.initNMF()
 
