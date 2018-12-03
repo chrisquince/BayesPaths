@@ -29,19 +29,23 @@ def main(argv):
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
 
+    parser.add_argument('-s', '--random_seed', default=23724839, type=int,
+        help="specifies seed for numpy random number generator defaults to 23724839 applied after random filtering")
+
+
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
     
-    np.random.seed(2)
-    prng = RandomState(238329)
+    np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
+    prng = RandomState(args.random_seed) #create prng from seed 
     
     gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')    
 
-    assemblyGraphs = {}
-    sink_maps = {}
-    source_maps = {}
-    cov_maps = {}
+    assemblyGraphs = {} #dictionary of assembly graphs by gene name
+    sink_maps = {} # sinks (in future these defined outside)
+    source_maps = {} #sources
+    cov_maps = {} #coverages
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
 
