@@ -263,6 +263,20 @@ def get_labelled_subgraph(forwardGraph, labelled):
     
     return list(reachable)
 
+def add_connecting_nodes(reachable, forwardGraph, labelled):
+
+    augmented = set(reachable)
+    
+    for node in reachable:
+        if node not in labelled:
+            for neighbor in forwardGraph.neighbors(node):
+                augmented.add(neighbor)
+                
+            for neighbor in forwardGraph.predecessors(node):
+                augmented.add(neighbor)
+                
+    return list(augmented)
+
 
 def get_hairy_ego_graph(directedGraph,origin,radius,metric):
 
@@ -394,7 +408,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     if args.cov_file is not None:
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
@@ -499,8 +513,9 @@ def main(argv):
                             l = l + 1
             else:
                 bFragment = True
+                
                 reachable = get_labelled_subgraph(focalGraph, lca + lcd)
-            
+                reachable = add_connecting_nodes(reachable, focalGraph, lca + lcd)
                 reachableU = [x[:-1] for x in reachable]
         
                 reachableUGraph = unitigGraph.createUndirectedGraphSubset(reachableU)
