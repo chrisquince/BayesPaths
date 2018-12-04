@@ -673,6 +673,9 @@ class UnitigGraph():
         
         return (source_list,sink_list)
 
+
+        
+            
     
     def createDirectedBiGraph(self):
         self.directedUnitigBiGraph = nx.DiGraph()
@@ -708,13 +711,16 @@ class UnitigGraph():
                     edgeName = convertNodeToName(addEdge)
                     nodePlusOutName = convertNodeToName((outnode,end))
                     lengthPlus = self.lengths[node] - self.overlapLength
+                    nodePlusSumCov = np.sum(self.covMap[node])*lengthPlus
+                    
                     nodeMinusOutName = convertNodeToName((outnode,not end))
                     lengthMinus = self.lengths[outnode] - self.overlapLength
+                    nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
                     
                     if start:
-                        self.directedUnitigBiGraph.add_edge(nodePlusName, nodePlusOutName, weight=lengthPlus)
+                        self.directedUnitigBiGraph.add_edge(nodePlusName, nodePlusOutName, weight=lengthPlus,covweight=-nodePlusSumCov)
                     else:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodePlusName, weight=lengthMinus)        
+                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodePlusName, weight=lengthMinus,covweight=-nodeMinusSumCov)        
             
                     #add negative edges
                     if start:
@@ -726,17 +732,17 @@ class UnitigGraph():
                     edgeName = convertNodeToName(addEdge)
                 
                     if start:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodeMinusName, weight=lengthMinus)
+                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodeMinusName, weight=lengthMinus,covweight=-nodeMinusSumCov)
                     else:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusName, nodePlusOutName, weight=lengthPlus)
+                        self.directedUnitigBiGraph.add_edge(nodeMinusName, nodePlusOutName, weight=lengthPlus,covweight=-nodePlusSumCov)
         #if node is sink need to add extra length
         for node in self.directedUnitigBiGraph.nodes():   
             if self.directedUnitigBiGraph.out_degree(node) == 0:
                 for innode in self.directedUnitigBiGraph.predecessors(node):
 
                     newWeight = self.directedUnitigBiGraph[innode][node]['weight'] + self.lengths[node[:-1]]  
-
-                    self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight)
+                    newSum = self.directedUnitigBiGraph[innode][node]['covweight'] - self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
+                    self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight,covweight=newSum)
                     
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):
     
@@ -840,7 +846,31 @@ class UnitigGraph():
         
         else:
             return None
+            
+
+    def computePathCoverage(self, path):
         
+        if self.covMap is None:
+            raise ValueError()
+        
+        totalLength = 0.
+       
+        covSum = None
+        np.zeros_like(self.covMap[path[0][:-1]])
+        
+        for noded in path[:-1]:
+            node = noded[:-1]
+            if covSum is None:
+                covSum = np.zeros_like(self.covMap[node])
+            lengthPlus = self.lengths[node] - self.overlapLength
+            totalLength += lengthPlus
+            covSum += lengthPlus*self.covMap[node]
+        
+        nodeLast = path[-1][:-1]
+        totalLength += self.lengths[nodeLast]
+        covSum += self.lengths[nodeLast]*self.covMap[nodeLast]
+        
+        return covSum/totalLength    
     
     def propagateStartPath(self, path, startPos):
     
