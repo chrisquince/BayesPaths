@@ -1407,6 +1407,20 @@ class AssemblyPathSVA():
                     
                         margFile.write(gene + "_" + unitig + "," + vString + "\n")
 
+    def writeTheta(self,fileName):
+
+        with open(fileName, "w") as thetaFile:
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                for unitig in unitigs:
+                    if unitig in self.mapGeneIdx[gene]:
+                        
+                        v = self.mapGeneIdx[gene][v]
+                        
+                        thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
+
+
     def writeMaximals(self,fileName):
 
         with open(fileName, "w") as margFile:
