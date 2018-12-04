@@ -1416,7 +1416,7 @@ class AssemblyPathSVA():
                 for unitig in unitigs:
                     if unitig in self.mapGeneIdx[gene]:
                         
-                        v = self.mapGeneIdx[gene][v]
+                        v = self.mapGeneIdx[gene][unitig]
                         
                         thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
 
