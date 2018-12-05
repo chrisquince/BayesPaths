@@ -16,6 +16,8 @@ def main(argv):
     
     parser.add_argument("out_stub", help="output_stub")
     
+    parser.add_argument('-k', '--kAbund', action='store_true',help=("input coverages as kmer counts"))
+    
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
@@ -46,10 +48,13 @@ def main(argv):
                         maxWeight = weight
                         maxPred[node] = predecessor
                 
-                if unitigSubGraph.directedUnitigBiGraph.out_degree(node) == 0:
-                    lengthPlus = unitigSubGraph.lengths[noded]
+                if args.kAbund == True:
+                    lengthPlus = 1.
                 else:
-                    lengthPlus = unitigSubGraph.lengths[noded] - unitigSubGraph.overlapLength
+                    if unitigSubGraph.directedUnitigBiGraph.out_degree(node) == 0:
+                        lengthPlus = unitigSubGraph.lengths[noded]
+                    else:
+                        lengthPlus = unitigSubGraph.lengths[noded] - unitigSubGraph.overlapLength
                 
                 myWeight = np.sum(unitigSubGraph.covMap[noded])*lengthPlus
                 maxWeightNode[node] = maxWeight + myWeight
