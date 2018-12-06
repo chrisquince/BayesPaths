@@ -1592,7 +1592,7 @@ def main(argv):
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
             
-            (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+            (source_list, sink_list) = unitigSubGraph.selectSourceSinks(args.frac)
             
             #(source_list, sink_list) = unitigSubGraph.selectAllSourceSinks()
 
