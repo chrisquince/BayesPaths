@@ -902,7 +902,8 @@ class AssemblyPathSVA():
             
             total_elbo = self.calc_elbo()    
             DivF = self.divF()
-            print(str(iter)+","+ str(DivF)+ "," + str(total_elbo))
+            Div  = self.div()
+            print(str(iter)+ "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
