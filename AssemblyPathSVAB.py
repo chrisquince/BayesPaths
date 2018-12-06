@@ -28,13 +28,13 @@ from collections import Counter
 from numpy.random import RandomState
 
 from graph import Graph
-from Utils import convertNodeToName
-from Utils import elop
-from Utils import expNormLogProb
-from Utils import TN_vector_expectation
-from Utils import TN_vector_variance
-from Utils import readRefAssign
-from UnitigGraph import UnitigGraph
+from Utils.Utils import convertNodeToName
+from Utils.Utils import elop
+from Utils.Utils import expNormLogProb
+from Utils.Utils import TN_vector_expectation
+from Utils.Utils import TN_vector_variance
+from Utils.Utils import readRefAssign
+from Utils.UnitigGraph import UnitigGraph
 from NMFM import NMF
 
 from mask import compute_folds

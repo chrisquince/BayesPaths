@@ -23,10 +23,10 @@ from Bio import pairwise2
 
 MAX_EVALUE = 0.01
 
-from Utils import reverseComplement
-from Utils import convertNodeToName
-from Utils import convertNameToNode2
-from Utils import read_coverage_file
+from Utils.Utils import reverseComplement
+from Utils.Utils import convertNodeToName
+from Utils.Utils import convertNameToNode2
+from Utils.Utils import read_coverage_file
 
 mapDirn = {'True' : "+", 'False' : "-"}
 
