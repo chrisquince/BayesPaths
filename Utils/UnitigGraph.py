@@ -23,10 +23,10 @@ from Bio import pairwise2
 
 MAX_EVALUE = 0.01
 
-from Utils.Utils import reverseComplement
-from Utils.Utils import convertNodeToName
-from Utils.Utils import convertNameToNode2
-from Utils.Utils import read_coverage_file
+from UtilsFunctions import reverseComplement
+from UtilsFunctions import convertNodeToName
+from UtilsFunctions import convertNameToNode2
+from UtilsFunctions import read_coverage_file
 
 mapDirn = {'True' : "+", 'False' : "-"}
 
@@ -718,9 +718,9 @@ class UnitigGraph():
                     nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
                     
                     if start:
-                        self.directedUnitigBiGraph.add_edge(nodePlusName, nodePlusOutName, weight=lengthPlus,covweight=-nodePlusSumCov)
+                        self.directedUnitigBiGraph.add_edge(nodePlusName, nodePlusOutName, weight=lengthPlus,covweight=nodePlusSumCov)
                     else:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodePlusName, weight=lengthMinus,covweight=-nodeMinusSumCov)        
+                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodePlusName, weight=lengthMinus,covweight=nodeMinusSumCov)        
             
                     #add negative edges
                     if start:
@@ -732,16 +732,16 @@ class UnitigGraph():
                     edgeName = convertNodeToName(addEdge)
                 
                     if start:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodeMinusName, weight=lengthMinus,covweight=-nodeMinusSumCov)
+                        self.directedUnitigBiGraph.add_edge(nodeMinusOutName, nodeMinusName, weight=lengthMinus,covweight=nodeMinusSumCov)
                     else:
-                        self.directedUnitigBiGraph.add_edge(nodeMinusName, nodePlusOutName, weight=lengthPlus,covweight=-nodePlusSumCov)
+                        self.directedUnitigBiGraph.add_edge(nodeMinusName, nodePlusOutName, weight=lengthPlus,covweight=nodePlusSumCov)
         #if node is sink need to add extra length
         for node in self.directedUnitigBiGraph.nodes():   
             if self.directedUnitigBiGraph.out_degree(node) == 0:
                 for innode in self.directedUnitigBiGraph.predecessors(node):
 
                     newWeight = self.directedUnitigBiGraph[innode][node]['weight'] + self.lengths[node[:-1]]  
-                    newSum = self.directedUnitigBiGraph[innode][node]['covweight'] - self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
+                    newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
                     self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight,covweight=newSum)
                     
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):

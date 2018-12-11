@@ -7,11 +7,11 @@ from collections import Counter,defaultdict
 
 #Color_scheme=["#0277BD",]
 
-Color_scheme=['#42A5F5','#FF00FF','#66BB6A','#EF5350','#FFEB3B',"#993F00","#4C005C"]
+#Color_scheme=['#42A5F5','#FF00FF','#66BB6A','#EF5350','#FFEB3B',"#993F00","#4C005C"]
 
 #'#F0A3FF', '#0075DC']
 
-#Color_scheme=["#F0A3FF", "#0075DC", "#993F00","#4C005C","#2BCE48","#FFCC99","#808080","#94FFB5","#8F7C00","#9DCC00","#C20088","#003380","#FFA405","#FFA8BB","#426600","#FF0010","#5EF1F2","#00998F","#740AFF","#990000","#FFFF00"]
+Color_scheme=["#F0A3FF", "#0075DC", "#993F00","#4C005C","#2BCE48","#FFCC99","#808080","#94FFB5","#8F7C00","#9DCC00","#C20088","#003380","#FFA405","#FFA8BB","#426600","#FF0010","#5EF1F2","#00998F","#740AFF","#990000","#FFFF00"]
 NColors = len(Color_scheme)
 
 def merge_color(Listcolor,List_merged):

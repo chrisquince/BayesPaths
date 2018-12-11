@@ -1647,8 +1647,8 @@ def main(argv):
         assGraph.writeMaximals(args.outFileStub + "maxFile.tsv")
    
         assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
-        #assGraph.average_MSE_CV()
-        #assGraph.getMaximalUnitigs("Haplo.fa")
+
+
 if __name__ == "__main__":
     main(sys.argv[1:])
 
