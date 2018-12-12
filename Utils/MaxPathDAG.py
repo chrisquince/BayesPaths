@@ -201,7 +201,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
@@ -220,16 +220,16 @@ def main(argv):
         
         nS = unitigSubGraph.covMap[unitigSubGraph.unitigs[0]].shape[0]
         (minPath, maxSeq, covPath) = calcMaxPath(dGraph,unitigSubGraph,range(nS), args.kAbund)
-
-        with open(args.out_stub + ".tsv", "w") as tsvFile:
+        outc = args.out_stub + "_" + str(c)
+        with open(outc + ".tsv", "w") as tsvFile:
             for node in minPath:
                 tsvFile.write(node + "\n")
 
-        with open(args.out_stub + ".fa", "w") as fastaFile:
+        with open(outc + ".fa", "w") as fastaFile:
             fastaFile.write(">" + args.out_stub + "\n")
             fastaFile.write(maxSeq + "\n")
 
-        with open(args.out_stub + ".csv", "w") as covFile:
+        with open(outc + ".csv", "w") as covFile:
             cList = covPath.tolist()
             cString = ",".join([str(x) for x in cList])
             covFile.write(cString  + "\n") 
@@ -238,15 +238,15 @@ def main(argv):
                   
             (minPathS, maxSeqS, covPathS) = calcMaxPath(dGraph,unitigSubGraph,[s], args.kAbund)
 
-            with open(args.out_stub + "_" + str(s) + ".tsv", "w") as tsvFile:
+            with open(outc + "_" + str(s) + ".tsv", "w") as tsvFile:
                 for node in minPathS:
                     tsvFile.write(node + "\t" + str(s) + "\n")
 
-            with open(args.out_stub + "_" + str(s) + ".fa", "w") as fastaFile:
+            with open(outc + "_" + str(s) + ".fa", "w") as fastaFile:
                 fastaFile.write(">" + args.out_stub + "\n")
                 fastaFile.write(maxSeqS + "\n")
 
-            with open(args.out_stub +  "_" + str(s) + ".csv", "w") as covFile:
+            with open(outc +  "_" + str(s) + ".csv", "w") as covFile:
                 cList = covPathS.tolist()
                 cString = ",".join([str(x) for x in cList])
                 covFile.write(cString  + "\n")   
