@@ -226,7 +226,7 @@ def main(argv):
                 tsvFile.write(node + "\n")
 
         with open(outc + ".fa", "w") as fastaFile:
-            fastaFile.write(">" + args.out_stub + "\n")
+            fastaFile.write(">" + argc + "\n")
             fastaFile.write(maxSeq + "\n")
 
         with open(outc + ".csv", "w") as covFile:
@@ -243,7 +243,7 @@ def main(argv):
                     tsvFile.write(node + "\t" + str(s) + "\n")
 
             with open(outc + "_" + str(s) + ".fa", "w") as fastaFile:
-                fastaFile.write(">" + args.out_stub + "\n")
+                fastaFile.write(">" + argc + "_" + str(s)+ "\n")
                 fastaFile.write(maxSeqS + "\n")
 
             with open(outc +  "_" + str(s) + ".csv", "w") as covFile:
