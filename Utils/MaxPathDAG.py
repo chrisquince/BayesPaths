@@ -236,18 +236,18 @@ def main(argv):
             
         for s in range(nS):
                   
-            (minPath, maxSeqS, covPathS) = calcMaxPath(dGraph,unitigSubGraph,[s], args.kAbund)
+            (minPathS, maxSeqS, covPathS) = calcMaxPath(dGraph,unitigSubGraph,[s], args.kAbund)
 
             with open(args.out_stub + "_" + str(s) + ".tsv", "w") as tsvFile:
-                for node in minPath:
+                for node in minPathS:
                     tsvFile.write(node + "\t" + str(s) + "\n")
 
             with open(args.out_stub + "_" + str(s) + ".fa", "w") as fastaFile:
                 fastaFile.write(">" + args.out_stub + "\n")
-                fastaFile.write(maxSeq + "\n")
+                fastaFile.write(maxSeqS + "\n")
 
             with open(args.out_stub +  "_" + str(s) + ".csv", "w") as covFile:
-                cList = covPath.tolist()
+                cList = covPathS.tolist()
                 cString = ",".join([str(x) for x in cList])
                 covFile.write(cString  + "\n")   
           
