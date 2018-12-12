@@ -857,7 +857,6 @@ class UnitigGraph():
             totalLength = 0.
        
             covSum = None
-            np.zeros_like(self.covMap[path[0][:-1]])
         
             for noded in path[:-1]:
                 node = noded[:-1]
@@ -872,7 +871,8 @@ class UnitigGraph():
         
             return covSum/totalLength
         else:
-            return 0.    
+            covSum = np.zeros_like(self.covMap[self.unitigs[0]])
+            return covSum    
     
     def propagateStartPath(self, path, startPos):
     
