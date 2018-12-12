@@ -856,12 +856,10 @@ class UnitigGraph():
         if len(path) > 0:
             totalLength = 0.
        
-            covSum = None
+            covSum = np.zeros_like(self.covMap[self.unitigs[0]])
         
             for noded in path[:-1]:
                 node = noded[:-1]
-                if covSum is None:
-                    covSum = np.zeros_like(self.covMap[node])
                 lengthPlus = self.lengths[node] - self.overlapLength
                 totalLength += lengthPlus
                 covSum += lengthPlus*self.covMap[node]
