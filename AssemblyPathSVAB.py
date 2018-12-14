@@ -1563,6 +1563,9 @@ def main(argv):
 
     parser.add_argument('-fr','--ref_blast_file', nargs='?',help="ref blast file")
 
+    parser.add_argument('-r','--read_length',nargs='?', default=100, type=int, 
+        help=("read length"))
+
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
 
@@ -1607,7 +1610,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=150,ARD=True)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=True)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
