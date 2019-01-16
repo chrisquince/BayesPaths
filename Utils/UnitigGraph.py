@@ -711,12 +711,19 @@ class UnitigGraph():
                     edgeName = convertNodeToName(addEdge)
                     nodePlusOutName = convertNodeToName((outnode,end))
                     lengthPlus = self.lengths[node] - self.overlapLength
-                    nodePlusSumCov = np.sum(self.covMap[node])*lengthPlus
-                    
+                    if self.covMap is not None:
+                        nodePlusSumCov = np.sum(self.covMap[node])*lengthPlus
+                    else:
+                        nodePlusSumCov = self.KC[node]
+                        
                     nodeMinusOutName = convertNodeToName((outnode,not end))
                     lengthMinus = self.lengths[outnode] - self.overlapLength
-                    nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
                     
+                    if self.covMap is not None:
+                        nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
+                    else:
+                        nodeMinusSumCov = self.KC[outnode]
+                        
                     if start:
                         self.directedUnitigBiGraph.add_edge(nodePlusName, nodePlusOutName, weight=lengthPlus,covweight=nodePlusSumCov)
                     else:
@@ -741,7 +748,10 @@ class UnitigGraph():
                 for innode in self.directedUnitigBiGraph.predecessors(node):
 
                     newWeight = self.directedUnitigBiGraph[innode][node]['weight'] + self.lengths[node[:-1]]  
-                    newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
+                    if self.covMap is not None:
+                        newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
+                    else:
+                        newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*self.KC[node[:-1]] 
                     self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight,covweight=newSum)
                     
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):
