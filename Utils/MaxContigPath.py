@@ -1,5 +1,5 @@
 import argparse
-import sys
+import glob, sys, os
 from UnitigGraph import UnitigGraph
 from UtilsFunctions import convertNodeToName
 import networkx as nx
@@ -193,7 +193,7 @@ def main(argv):
     
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
     
-    parser.add_argument("path_file", help="labelled paths")
+    parser.add_argument("path_file_dir", help="directory of paths")
     
     #parser.add_argument("cov_file", help="coverages")
     
@@ -207,34 +207,72 @@ def main(argv):
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length))
 
+    os.chdir(args.path_file_dir)
+    contigs = {}
+    filenames = {}
+    for file in glob.glob("*.txt"):
+        print(file)
+        #NODE_469_length_15023_cov_447.352084_10 COG0016 strand=+
+        
+        with open(file) as txt:
+            contig_namet = txt.readline()
+            contig_namet =  contig_namet.rstrip()
+            path = txt.readline()
+            path_string = path.rstrip()
+            path_nodest = path_string.split(',')
+            contigs[contig_namet] = path_nodest
+            filenames[contig_namet] = file
     
-    with open(args.path_file) as txt:
-        contig_name = txt.readline()
-        path = txt.readline()
-        path_string = path.rstrip()
-        path_nodes = path_string.split(',')
+    new_seqs = {}
+    for contig_name, path_nodes in contigs.items():
+
+        bContig = True
+        
+        dGraph = unitigGraph.directedUnitigBiGraph
+        
+        for node1,node2 in zip(path_nodes,path_nodes[1:]):
+            if not dGraph.has_edge(node1, node2):
+                bContig = False
+                break
+
+        if not bContig:
+            print("Not contigious")
+            hashDist = {x:1.0 for x in path}
     
-    hashDist = {x:1.0 for x in path_nodes}
+        
+            for (u,v) in dGraph.edges:
+                if u in hashDist:
+                    dGraph.edges[u,v]['weight'] = 0.
+                else:
+                    dGraph.edges[u,v]['weight'] = 1.
     
-    dGraph = unitigGraph.directedUnitigBiGraph
-    for (u,v) in dGraph.edges:
-        if u in hashDist:
-            dGraph.edges[u,v]['weight'] = 0.
+            source = path_nodes[0]
+            sink = path_nodes[-1]
+    
+            best_path = nx.shortest_path(dGraph, source=source, target=sink, weight='weight')
+    
+            for node in best_path:
+                print(node)
+    
+            seq = unitigGraph.getUnitigWalk(best_path)
+            new_seqs[contig_name] = seq
+        
+            newfilename = filenames[contig_namet][:-4] + "_c.fna"
+        
+            with open(newfilename, 'w') as out:
+                out.write(">" + contig_name + "\n")
+                out.write(seq + "\n")
         else:
-            dGraph.edges[u,v]['weight'] = 1.
-    
-    source = path_nodes[0]
-    sink = path_nodes[-1]
-    
-    best_path = nx.shortest_path(dGraph, source=source, target=sink, weight='weight')
-    
-    for node in best_path:
-        print(node)
-    
-    seq = unitigGraph.getUnitigWalk(best_path)
-    
-    print(">bpath")
-    print(seq)
+            seq = unitigGraph.getUnitigWalk(path_nodes)
+            new_seqs[contig_name] = seq
+        
+            newfilename = filenames[contig_namet][:-4] + ".fna"
+        
+            with open(newfilename, 'w') as out:
+                out.write(">" + contig_name + "\n")
+                out.write(seq + "\n")
+        
+            
     
 if __name__ == "__main__":
     main(sys.argv[1:])
