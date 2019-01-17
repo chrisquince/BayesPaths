@@ -6,9 +6,9 @@ import os
 import re
 
 from GraphProcess import getMaximumCoverageWalk
-from UnitigGraph import UnitigGraph
+from Utils.UnitigGraph import UnitigGraph
 from AssemblyPathSVAB import AssemblyPathSVA
-from Utils import convertNodeToName
+from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
 def main(argv):
@@ -35,7 +35,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
