@@ -193,7 +193,7 @@ def main(argv):
     
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
     
-    parser.add_argument("path_file_dir", help="directory of paths")
+    parser.add_argument("path_file", help="path file")
     
     #parser.add_argument("cov_file", help="coverages")
     
@@ -201,27 +201,37 @@ def main(argv):
      
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     #unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length))
 
-    os.chdir(args.path_file_dir)
+    #os.chdir(args.path_file_dir)
     contigs = {}
     filenames = {}
-    for file in glob.glob("*.txt"):
-        print(file)
-        #NODE_469_length_15023_cov_447.352084_10 COG0016 strand=+
-        
-        with open(file) as txt:
-            contig_namet = txt.readline()
+
+    with open(args.path_file) as txt:
+        for line in txt:
+            contig_namet = line
             contig_namet =  contig_namet.rstrip()
             path = txt.readline()
             path_string = path.rstrip()
             path_nodest = path_string.split(',')
             contigs[contig_namet] = path_nodest
-            filenames[contig_namet] = file
+
+    #for file in glob.glob("*.txt"):
+     #   print(file)
+        #NODE_469_length_15023_cov_447.352084_10 COG0016 strand=+
+        
+      #  with open(file) as txt:
+       #     contig_namet = txt.readline()
+        #    contig_namet =  contig_namet.rstrip()
+         #   path = txt.readline()
+          #  path_string = path.rstrip()
+           # path_nodest = path_string.split(',')
+            #contigs[contig_namet] = path_nodest
+            #filenames[contig_namet] = file
     
     new_seqs = {}
     for contig_name, path_nodes in contigs.items():
@@ -257,21 +267,14 @@ def main(argv):
             seq = unitigGraph.getUnitigWalk(best_path)
             new_seqs[contig_name] = seq
         
-            newfilename = filenames[contig_namet][:-4] + "_c.fna"
-        
-            with open(newfilename, 'w') as out:
-                out.write(">" + contig_name + "\n")
-                out.write(seq + "\n")
         else:
             seq = unitigGraph.getUnitigWalk(path_nodes)
             new_seqs[contig_name] = seq
         
-            newfilename = filenames[contig_namet][:-4] + ".fna"
-        
-            with open(newfilename, 'w') as out:
-                out.write(">" + contig_name + "\n")
-                out.write(seq + "\n")
-        
+    with open(args.out_stub + ".fna", 'w') as out:
+        for (contig_name,seq) in new_seqs.items():
+            out.write(">" + contig_name + "\n")
+            out.write(seq + "\n")
             
     
 if __name__ == "__main__":
