@@ -19,7 +19,6 @@
 using namespace dai;
 using namespace std;
 
-
 int main( int argc, char *argv[] ) 
 {
     if ( argc != 3 && argc != 4 ) {
@@ -30,110 +29,91 @@ int main( int argc, char *argv[] )
         cout << "total number of states less than maxstates." << endl << endl;
         return 1;
     } 
-    else {
-        ofstream myfile;
-        // Read FactorGraph from the file specified by the first command line argument
-        FactorGraph fg;
-        fg.ReadFromFile(argv[1]);
-        
-        myfile.open (argv[2]);
-
-        
-        for( size_t I = 0; I < fg.nrFactors(); I++ ){
-            Factor factorI = fg.factor( I );
-//            cout << "Normalise " << I << endl;
-            factorI.normalize();
-        }
-
-        size_t maxstates = MAX_STATES;
-        bool runJT = false;
-        bool do_jt = true;
-        if( argc == 3 ){
-            maxstates = fromString<size_t>( argv[3] );
-            if (maxstates <= 0){
-                maxstates = MAX_STATES;
-            }
-            runJT = true;
-        }
-        if (runJT == true){
-            do_jt = true;
-        }
-        else{
-            do_jt = false;
-        }
-
-        // Set some constants
-        size_t maxiter = 10000;
-        Real   tol = 1e-9;
-        size_t verb = 1;
-
-        // Store the constants in a PropertySet object
-        PropertySet opts;
-        opts.set("maxiter",maxiter);  // Maximum number of iterations
-        opts.set("tol",tol);          // Tolerance for convergence
-        opts.set("verbose",verb);     // Verbosity (amount of output generated)
-        if (runJT == true){
-            // Bound treewidth for junctiontree
-            size_t tWidth;
-            BigInt tState;
-            try {
-                std::pair< size_t, BigInt > p = boundTreewidth(fg, &eliminationCost_MinFill, maxstates );
-                myfile << "Running junction tree width " << p.first << " " << p.second << endl;
-                tWidth = p.first;
-                tState = p.second;
-             } catch( Exception &e ) {
-                if( e.getCode() == Exception::OUT_OF_MEMORY ) {
-                    do_jt = false;
-                    myfile << "Skipping junction tree (need more than " << maxstates << " states)." << endl;
-                }
-                else
-                    throw;
-            }
-
-            if (tWidth > MAX_WIDTH || tState > maxstates){
-                myfile << "Running BP maxwidth exceeded" << endl;
-                do_jt = false;
-            } 
     
-            if( do_jt ) {
-                JTree jt;
-                // Construct another JTree (junction tree) object that is used to calculate
-                // the joint configuration of variables that has maximum probability (MAP state)
-                jt = JTree( fg, opts("updates",string("HUGIN"))("logdomain",true) );
-                //jtmap = JTree( fg, opts("updates",string("HUGIN"))("inference",string("MAXPROD")) );
-                // Initialize junction tree algorithm
-                jt.init();
-                // Run junction tree algorithm
-                jt.run();
-                // Calculate joint state of all variables that has maximum probability
-                //jtmapstate = jtmap.findMaximum();
-            
+    FactorGraph fg;
+    fg.ReadFromFile(argv[1]);
+    
+    size_t maxstates = MAX_STATES;
+    bool runJT = false;
+        
+    if(argc == 4){
+        maxstates = fromString<size_t>(argv[3]);
+        if (maxstates <= 0){
+            maxstates = MAX_STATES;
+        }
+        runJT = true;
+    }
+    
+    // Set some constants
+    size_t maxiter = 10000;
+    Real   tol = 1e-9;
+    size_t verb = 1;
 
-                myfile << "Exact variable marginals:" << endl;
-                for( size_t i = 0; i < fg.nrVars(); i++ ){ // iterate over all variables in fg
-                    myfile << jt.belief(fg.var(i)) << endl; // display the "belief" of jt for that variable
-                }
+    // Store the constants in a PropertySet object
+    PropertySet opts;
+    opts.set("maxiter",maxiter);  // Maximum number of iterations
+    opts.set("tol",tol);          // Tolerance for convergence
+    opts.set("verbose",verb);     // Verbosity (amount of output generated)
+    
+    if (runJT == true){
+        // Bound treewidth for junctiontree
+        size_t tWidth;
+        BigInt tState;
+        try {
+            std::pair< size_t, BigInt > p = boundTreewidth(fg, &eliminationCost_MinFill, maxstates );
+            cout << "Running junction tree width " << p.first << " " << p.second << endl;
+            tWidth = p.first;
+            tState = p.second;
+        } catch( Exception &e ) {
+            if( e.getCode() == Exception::OUT_OF_MEMORY ) {
+                runJT = false;
+                cout << "Skipping junction tree (need more than " << maxstates << " states)." << endl;
             }
             else{
-                // Construct a BP (belief propagation) object from the FactorGraph fg
-                // using the parameters specified by opts and two additional properties,
-                // specifying the type of updates the BP algorithm should perform and
-                // whether they should be done in the real or in the logdomain
-                //
-                // Note that inference is set to MAXPROD, which means that the object
-                // will perform the max-product algorithm instead of the sum-product algorithm
-                BP bp(fg, opts("updates",string("SEQRND"))("logdomain",true));
-                // Initialize belief propagation algorithm
-                bp.init();
-                // Run belief propagation algorithm
-                bp.run();
-
-                myfile << "Approximate (loopy belief propagation) factor marginals:" << endl;
-                for( size_t I = 0; I < fg.nrFactors(); I++ ){ // iterate over all factors in fg
-                    myfile << bp.belief(fg.factor(I).vars()) << endl; // display the belief of bp for the variables in that factor
-                }
+                throw;
             }
-            myfile.close();
-        return 0;
+        }
+
+        if (tWidth > MAX_WIDTH || tState > maxstates){
+            cout << "Running BP maxwidth exceeded or maxstates exceeded" << endl;
+            
+            runJT = false;
+        }
+    } 
+    
+    if(runJT == true) {
+        JTree jt;
+
+        jt = JTree( fg, opts("updates",string("HUGIN"))("logdomain",true) );
+
+        jt.init();
+ 
+        jt.run();
+
+        outfile.open(argv[2]);
+        outfile << "Exact variable marginals:" << endl;
+        
+        for( size_t i = 0; i < fg.nrVars(); i++ ){ // iterate over all variables in fg
+            outfile << jt.belief(fg.var(i)) << endl; // display the "belief" of jt for that variable
+        }
+        outfile.close();
     }
+    else{
+        BP bp(fg, opts("updates",string("SEQRND"))("logdomain",true));
+                    // Initialize belief propagation algorithm
+        bp.init();
+        // Run belief propagation algorithm
+        
+        bp.run();
+        
+        outfile.open(argv[2]);
+        outfile << "Approximate (loopy belief propagation) factor marginals:" << endl;
+        for( size_t I = 0; I < fg.nrFactors(); I++ ){ // iterate over all factors in fg
+            outfile << bp.belief(fg.factor(I).vars()) << endl; // display the belief of bp for the variables in that factor
+        }
+        outfile.close();
+    }
+
+    return 0;
 }
+
