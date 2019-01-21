@@ -39,6 +39,33 @@ from NMFM import NMF
 
 from mask import compute_folds
 
+import threading
+import time
+
+exitFlag = 0
+
+class fgThread (threading.Thread):
+    def __init__(self, threadID, name, counter, graphFileName, outFileName):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.counter = counter
+        self.graphFileName = graphFileName
+        self.outFileName = outFileName 
+    
+    def run(self):
+        cmd = './runfg_marg ' + self.graphFileName + ' ' + self.outFileName + ' 0'
+                
+        p = Popen(cmd, stdout=PIPE,shell=True)
+        
+        print ("Starting " + self.name)
+        
+        outString = p.stdout.read()
+        
+        return outString
+        
+      
+
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3    
@@ -847,14 +874,14 @@ class AssemblyPathSVA():
             for g in range(self.G):
                 
                 self.removeGamma(g)
-            
+                fgFileStubs = {}
+                threads = []
+                gidx = 0
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                    
-                    
                     self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
                     
-        
                     factorGraph.reset()
         
                     factorGraph.var['zero+source+'].condition(1)
@@ -862,16 +889,31 @@ class AssemblyPathSVA():
                     factorGraph.var['sink+infty+'].condition(1)
                     
                     graphString = str(factorGraph)
-                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'
+                    graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
+                    
                 
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
+                    
+                    fgFileStubs[gene] = graphFileName
                 
-                    cmd = './runfg_marg ' + graphFileName + ' 0'
+                    threadg = fgThread(gidx, "Thread-1",gidx, graphFileStub + '.fg', graphFileStub + '.out')
+                    
+                    threads.append(threadg)
                 
-                    p = Popen(cmd, stdout=PIPE,shell=True)
-        
-                    outString = p.stdout.read()
+                    gidx += 1
+                
+                for thread in threads:
+                    thread.start()
+                    
+                    thread.join()
+                    
+                for gene, factorGraph in self.factorGraphs.items():
+                
+                    outFile = fgFileStubs[gene] + '.out'
+                
+                    with open (outFile, "r") as myfile:
+                        outString = outFile.readlines()
                
                     margP = self.parseMargString(factorGraph,str(outString))
                     if len(margP) > 0:
@@ -879,7 +921,9 @@ class AssemblyPathSVA():
        
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
-                    os.remove(graphFileName)
+                    os.remove(outFile)
+                    os.remove(graphFileStub + '.fg')
+                    
                 self.addGamma(g)
             
             if self.ARD:
@@ -1055,15 +1099,16 @@ class AssemblyPathSVA():
                     
                 graphString = str(factorGraph)
                 graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'
-                
+                outFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                 
-                cmd = './runfg_marg ' + graphFileName + ' 0'
+                cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
                 
                 p = Popen(cmd, stdout=PIPE,shell=True)
                 
-                outString = p.stdout.read()
+                with open (outFileName, "r") as myfile:
+                    outString=myfile.readlines()
                 
                 self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
@@ -1095,15 +1140,16 @@ class AssemblyPathSVA():
                     
                 graphString = str(factorGraph)
                 graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
-                
+                outFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
-                
-                cmd = './runfg_marg ' + graphFileName + ' 0'
+                      
+                cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
                 
                 p = Popen(cmd, stdout=PIPE,shell=True)
                 
-                outString = p.stdout.read()
+                with open (outFileName, "r") as myfile:
+                    outString=myfile.readlines()
                 
                 self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
              
