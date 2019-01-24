@@ -1074,7 +1074,7 @@ class AssemblyPathSVA():
 
     def initNMF(self):
         
-        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10)
+        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10, prng = self.prng)
     
         covNMF.factorize()
         covNMF.factorizeH()
@@ -1118,7 +1118,7 @@ class AssemblyPathSVA():
 
     def initNMFGamma(self,gamma):
         
-        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10)
+        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10, prng = self.prng)
         covNMF.random_initialize() 
         covNMF.H = np.copy(gamma)
         covNMF.factorizeW()
