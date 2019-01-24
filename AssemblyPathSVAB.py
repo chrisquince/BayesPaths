@@ -16,6 +16,7 @@ from copy import deepcopy
 from copy import copy
 
 import math
+import subprocess
 from subprocess import Popen, PIPE, STDOUT
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
 import networkx as nx
@@ -54,15 +55,10 @@ class fgThread (threading.Thread):
         self.outFileName = outFileName 
     
     def run(self):
-        cmd = './runfg_marg ' + self.graphFileName + ' ' + self.outFileName + ' 0'
+        cmd = './runfg_marg_old ' + self.graphFileName + ' 0 >' +  self.outFileName 
+        print(cmd)       
+        subprocess.run(cmd,shell=True)
                 
-        p = Popen(cmd, stdout=PIPE,shell=True)
-        
-        print ("Starting " + self.name)
-        
-        outString = p.stdout.read()
-        
-        return outString
         
       
 
@@ -890,14 +886,14 @@ class AssemblyPathSVA():
                     
                     graphString = str(factorGraph)
                     graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
+                    graphFileName = graphFileStub + '.fg'
                     
-                
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
                     
-                    fgFileStubs[gene] = graphFileName
+                    fgFileStubs[gene] = graphFileStub
                 
-                    threadg = fgThread(gidx, "Thread-1",gidx, graphFileStub + '.fg', graphFileStub + '.out')
+                    threadg = fgThread(gidx, "Thread-" + str(gidx), gidx, graphFileName, graphFileStub + '.out')
                     
                     threads.append(threadg)
                 
@@ -912,8 +908,8 @@ class AssemblyPathSVA():
                 
                     outFile = fgFileStubs[gene] + '.out'
                 
-                    with open (outFile, "r") as myfile:
-                        outString = outFile.readlines()
+                    with open (outFile, "r") as infile:
+                        outString = infile.readlines()
                
                     margP = self.parseMargString(factorGraph,str(outString))
                     if len(margP) > 0:
@@ -922,7 +918,7 @@ class AssemblyPathSVA():
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
                     os.remove(outFile)
-                    os.remove(graphFileStub + '.fg')
+        #            os.remove(fgFileStubs[gene]  + '.fg')
                     
                 self.addGamma(g)
             
@@ -1098,14 +1094,17 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
                     
                 graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'
-                outFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.out'
+                stubName = str(uuid.uuid4()) + 'graph_'+ str(g)
+                graphFileName = stubName + '.fg'
+                outFileName = stubName + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                 
                 cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
-                
-                p = Popen(cmd, stdout=PIPE,shell=True)
+               
+                subprocess.run('./runfg_marg ' + graphFileName + ' ' + outFileName + ' 0',shell=True)
+ 
+                #p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
                     outString=myfile.readlines()
@@ -1113,6 +1112,7 @@ class AssemblyPathSVA():
                 self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                 os.remove(graphFileName)
+                os.remove(outFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
