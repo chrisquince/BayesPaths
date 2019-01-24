@@ -55,7 +55,8 @@ class fgThread (threading.Thread):
         self.outFileName = outFileName 
     
     def run(self):
-        cmd = './runfg_marg_old ' + self.graphFileName + ' 0 >' +  self.outFileName 
+        #cmd = './runfg_marg_old ' + self.graphFileName + ' 0 >' +  self.outFileName 
+        cmd = './runfg_marg ' + self.graphFileName + ' ' + self.outFileName + ' 0'
         print(cmd)       
         subprocess.run(cmd,shell=True)
                 
@@ -918,7 +919,7 @@ class AssemblyPathSVA():
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
                     os.remove(outFile)
-        #            os.remove(fgFileStubs[gene]  + '.fg')
+                    os.remove(fgFileStubs[gene]  + '.fg')
                     
                 self.addGamma(g)
             
@@ -1102,8 +1103,10 @@ class AssemblyPathSVA():
                 
                 cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
                
-                subprocess.run('./runfg_marg ' + graphFileName + ' ' + outFileName + ' 0',shell=True)
+                #subprocess.run('./runfg_marg_old ' + graphFileName + ' 0 > ' + outFileName, shell=True,check=True)
  
+                subprocess.run(cmd, shell=True,check=True)
+
                 #p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
