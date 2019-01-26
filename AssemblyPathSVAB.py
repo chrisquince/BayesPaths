@@ -60,8 +60,15 @@ class fgThread (threading.Thread):
         print(cmd)       
         subprocess.run(cmd,shell=True)
                 
-        
-      
+import multiprocessing
+
+def mp_worker((graphFileName, outFileName)):
+
+    cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
+    
+    subprocess.run(cmd,shell=True)
+    
+  
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
@@ -874,6 +881,7 @@ class AssemblyPathSVA():
                 fgFileStubs = {}
                 threads = []
                 gidx = 0
+                
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                    
@@ -893,18 +901,13 @@ class AssemblyPathSVA():
                         print(graphString, file=text_file)
                     
                     fgFileStubs[gene] = graphFileStub
-                
-                    threadg = fgThread(gidx, "Thread-" + str(gidx), gidx, graphFileName, graphFileStub + '.out')
                     
-                    threads.append(threadg)
-                
                     gidx += 1
                 
-                for thread in threads:
-                    thread.start()
-                    
-                    thread.join()
-                    
+                p = multiprocessing.Pool(len(self.genes))
+                for gene, graphFileStub in fgFileStubs.items()
+                    p.map(mp_worker, (graphFileStub + '.fg', graphFileStub + '.out'))
+                      
                 for gene, factorGraph in self.factorGraphs.items():
                 
                     outFile = fgFileStubs[gene] + '.out'
