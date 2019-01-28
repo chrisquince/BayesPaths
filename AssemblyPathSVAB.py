@@ -39,36 +39,20 @@ from Utils.UnitigGraph import UnitigGraph
 from NMFM import NMF
 
 from mask import compute_folds
-
-import threading
-import time
-
-exitFlag = 0
-
-class fgThread (threading.Thread):
-    def __init__(self, threadID, name, counter, graphFileName, outFileName):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        self.counter = counter
-        self.graphFileName = graphFileName
-        self.outFileName = outFileName 
-    
-    def run(self):
-        #cmd = './runfg_marg_old ' + self.graphFileName + ' 0 >' +  self.outFileName 
-        cmd = './runfg_marg ' + self.graphFileName + ' ' + self.outFileName + ' 0'
-        print(cmd)       
-        subprocess.run(cmd,shell=True)
-                
+ 
 import multiprocessing
+import subprocess
+import shlex
 
-def mp_worker((graphFileName, outFileName)):
+from multiprocessing.pool import ThreadPool
 
-    cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
-    
-    subprocess.run(cmd,shell=True)
-    
-  
+def call_proc(cmd):
+    """ This runs in a separate thread. """
+    #subprocess.call(shlex.split(cmd))  # This will block until cmd finishes
+    p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    return (out, err)
+
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
@@ -903,10 +887,18 @@ class AssemblyPathSVA():
                     fgFileStubs[gene] = graphFileStub
                     
                     gidx += 1
-                
-                p = multiprocessing.Pool(len(self.genes))
-                for gene, graphFileStub in fgFileStubs.items()
-                    p.map(mp_worker, (graphFileStub + '.fg', graphFileStub + '.out'))
+                pool = ThreadPool(len(self.genes))
+                results = []
+                for gene, graphFileStub in fgFileStubs.items():
+                    graphFileName = graphFileStub + '.fg'
+                    outFileName = graphFileStub + '.out'
+                    cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
+                    results.append(pool.apply_async(call_proc, (cmd,)))
+                pool.close()
+                pool.join()
+                for result in results:
+                    out, err = result.get()
+                    print("out: {} err: {}".format(out, err))
                       
                 for gene, factorGraph in self.factorGraphs.items():
                 
