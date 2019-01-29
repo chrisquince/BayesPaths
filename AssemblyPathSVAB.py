@@ -125,6 +125,7 @@ class AssemblyPathSVA():
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigsDash):
                 self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
                 assert self.adjLengths[unitigNew] > 0
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
@@ -1166,6 +1167,19 @@ class AssemblyPathSVA():
         
         return np.sum(eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2), axis = 1)
 
+    def exp_square_diff_matrix(self): 
+        ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
+        #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
+        #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
+        
+        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
+        diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        L2 = self.lengths*self.lengths
+        diff2 = L2[:,np.newaxis]*diff
+        
+        return R*R + diff2
+
     def exp_square_diff(self): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
@@ -1618,7 +1632,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+#    import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
@@ -1695,7 +1709,16 @@ def main(argv):
    
         assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
+        errMatrix = assGraph.exp_square_diff_matrix()
 
+        for v in range(assGraph.V):
+            for s in range(assGraph.S):
+                if errMatrix[v,s] > 0:
+                    test = 1.0/errMatrix[v,s]
+                    print(str(v) + "," + str(s) + "," + str(assGraph.X[v,s]) + "," + str(test))
+
+ #       print("Debug")
 if __name__ == "__main__":
     main(sys.argv[1:])
+
 
