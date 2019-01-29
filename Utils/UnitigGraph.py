@@ -58,11 +58,9 @@ class UnitigGraph():
         self.undirectedUnitigGraph = nx.Graph() # undirected graph representation
         self.unitigs = [] #list of untig names
         self.N = 0 # number of unitigs
-        self.forward = {} 
-        self.start = {}
         self.NC = 0 #number of components
-        self.covMap = {}
-        self.KC = {}
+        self.covMap = {} # coverages across samples may be null
+        self.KC = {} # kmer support
         
     @classmethod
     def loadGraph(cls,unitigFile, kmerLength, overlapLength = None, covFile = None):
@@ -154,6 +152,67 @@ class UnitigGraph():
             unitigGraph.covMap = None
         unitigGraph.createDirectedBiGraph()
         return unitigGraph
+    
+    @classmethod
+    def combineGraphs(cls,unitigGraphList, sourcesLists, sinksLists):
+    
+        assert(len(unitigGraphList) > 0)
+        newKmerLength = unitigGraphList[0].kmerLength
+        newOverLength = unitigGraphList[0].overlapLength
+        
+        combinedGraph = cls(kmerLength, overlapLength)
+
+    
+        for unitigGraph in unitigGraphList:
+            assert (unitigGraph.kmerLength == newKmerLength)
+            
+            combinedGraph.sequences.update(unitigGraph.sequences)
+            combinedGraph.lengths.update(unitigGraph.lengths)
+            combinedGraph.overlaps.update(unitigGraph.overlaps)
+            
+            combinedGraph.undirectedUnitigGraph = nx.compose(combinedGraph.undirectedUnitigGraph,unitigGraph.undirectedUnitigGraph) 
+            combinedGraph.unitigs = combinedGraph.unitigs + unitigGraph.unitigs
+            combinedGraph.N += unitigGraph.N
+            combinedGraph.NC += unitigGraph.NC
+            combinedGraph.covMap.update(unitigGraph.covMap)
+            combinedGraph.KC.update(unitigGraph.KC)
+        
+        if combinedGraph.covMap is not None:
+            S = combinedGraph.covMap[combinedGraph.unitigs[0]].shape[0]
+        
+        #Now add connections
+        
+        c = 0
+        for sinkList, nextSourceList in zip(sinkLists, sourceLists[1:]):    
+            connect = 'connect_0' + str(c)
+            
+            combindGraph.unitigs.append(connect)
+            combindGraph.sequences[connect] = None
+            combindGraph.lengths[connect] = combinedGraph.overlapLength
+            combindGraph.N += 1
+            
+            if combinedGraph.KC is not None:
+                combinedGraph.KC[connect] = 0
+            if combinedGraph.covMap is not None:
+                combinedGraph.covMap[connect] = np.zeros(S)
+            
+            for (sinkUnitig, sinkDirn) in sinkList:
+                combinedGraph.undirectedUnitigGraph.add_edge(sink,connect)
+                
+                combinedGraph.overlaps[sink][connect].append((sinkDirn,True))
+                combinedGraph.overlaps[connect][sink].append((False, not sinkDirn))
+                
+            for (sourceUnitig, sourceDirn) in nextSourceList:
+                combinedGraph.undirectedUnitigGraph.add_edge(connect, source)
+            
+                combinedGraph.overlaps[connect][source].append((True, sourceDirn))
+                combinedGraph.overlaps[source][connect].append((not sourceDirn, False))
+            
+            c = c + 1
+            
+        return combinedGraph
+    
+
     
     @classmethod
     def getReachableSubset(cls,forwardGraph,coreNodes):
@@ -340,27 +399,10 @@ class UnitigGraph():
         
         newGraph.N = nx.number_of_nodes(newGraph.undirectedUnitigGraph)
         newGraph.unitigs = list(newGraph.undirectedUnitigGraph.nodes())
-        newGraph.forward = {}
-        newGraph.start = {}
         newGraph.NC = nx.number_connected_components(newGraph.undirectedUnitigGraph)
         newGraph.createDirectedBiGraph()
         return newGraph
     
-    def setDirectionOrder(self, unitig_order):
-        
-        self.end = {}
-        
-        for unitig, order in unitig_order.items():
-            (hitStart,hitEnd,dirn) = order
-            
-            if hitStart is not None:
-                self.start[unitig] = hitStart
-            
-            if hitEnd is not None:
-                self.end[unitig] = hitEnd
-            
-            if dirn is not None:
-                self.forward[unitig] = dirn
 
     def isSourceSink(self, unitig):
       
@@ -377,21 +419,6 @@ class UnitigGraph():
         else:
             return None
             
-    def getSourceSinks(self):
-    
-        sources = []
-        sinks = []
-        
-        for unitig in self.undirectedUnitigGraph.nodes():
-            sourceSink = self.isSourceSink(unitig)
-            if sourceSink is not None and unitig in self.forward:
-                nodeName = convertNodeToName((unitig,self.forward[unitig]))
-                if sourceSink == self.forward[unitig]:
-                    sources.append(nodeName)
-                else:
-                    sinks.append(nodeName)
-                    
-        return (sources,sinks)
     
     def getUnreachableBiGraph(self,source_names,sink_names):
     
