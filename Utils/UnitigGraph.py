@@ -154,18 +154,21 @@ class UnitigGraph():
         return unitigGraph
     
     @classmethod
-    def combineGraphs(cls,unitigGraphList, sourcesLists, sinksLists):
+    def combineGraphs(cls,geneOrder, unitigGraphList, sourcesLists, sinksLists):
     
         assert(len(unitigGraphList) > 0)
-        newKmerLength = unitigGraphList[0].kmerLength
-        newOverLength = unitigGraphList[0].overlapLength
-        
-        combinedGraph = cls(kmerLength, overlapLength)
 
-    
-        for unitigGraph in unitigGraphList:
-            assert (unitigGraph.kmerLength == newKmerLength)
+
+        newKmerLength = next(iter(unitigGraphList.values())).kmerLength
+        newOverLength = next(iter(unitigGraphList.values())).overlapLength
+        
+        combinedGraph = cls(newKmerLength, newOverLength)
+
+          
+        for gene in geneOrder:
             
+            unitigGraph = unitigGraphList[gene]
+            assert (unitigGraph.kmerLength == newKmerLength)
             combinedGraph.sequences.update(unitigGraph.sequences)
             combinedGraph.lengths.update(unitigGraph.lengths)
             combinedGraph.overlaps.update(unitigGraph.overlaps)
@@ -183,13 +186,16 @@ class UnitigGraph():
         #Now add connections
         
         c = 0
-        for sinkList, nextSourceList in zip(sinkLists, sourceLists[1:]):    
+        for gene, nextGene in zip(geneOrder,geneOrder[1:]): 
+            sinkList = sinksLists[gene]
+            nextSourceList = sourcesLists[gene]
+            
             connect = 'connect_0' + str(c)
             
-            combindGraph.unitigs.append(connect)
-            combindGraph.sequences[connect] = None
-            combindGraph.lengths[connect] = combinedGraph.overlapLength
-            combindGraph.N += 1
+            combinedGraph.unitigs.append(connect)
+            combinedGraph.sequences[connect] = None
+            combinedGraph.lengths[connect] = combinedGraph.overlapLength
+            combinedGraph.N += 1
             
             if combinedGraph.KC is not None:
                 combinedGraph.KC[connect] = 0
@@ -197,16 +203,16 @@ class UnitigGraph():
                 combinedGraph.covMap[connect] = np.zeros(S)
             
             for (sinkUnitig, sinkDirn) in sinkList:
-                combinedGraph.undirectedUnitigGraph.add_edge(sink,connect)
+                combinedGraph.undirectedUnitigGraph.add_edge(sinkUnitig,connect)
                 
-                combinedGraph.overlaps[sink][connect].append((sinkDirn,True))
-                combinedGraph.overlaps[connect][sink].append((False, not sinkDirn))
+                combinedGraph.overlaps[sinkUnitig][connect].append((sinkDirn,True))
+                combinedGraph.overlaps[connect][sinkUnitig].append((False, not sinkDirn))
                 
             for (sourceUnitig, sourceDirn) in nextSourceList:
-                combinedGraph.undirectedUnitigGraph.add_edge(connect, source)
+                combinedGraph.undirectedUnitigGraph.add_edge(connect, sourceUnitig)
             
-                combinedGraph.overlaps[connect][source].append((True, sourceDirn))
-                combinedGraph.overlaps[source][connect].append((not sourceDirn, False))
+                combinedGraph.overlaps[connect][sourceUnitig].append((True, sourceDirn))
+                combinedGraph.overlaps[sourceUnitig][connect].append((not sourceDirn, False))
             
             c = c + 1
             
