@@ -46,6 +46,7 @@ def main(argv):
     sink_maps = {} # sinks (in future these defined outside)
     source_maps = {} #sources
     cov_maps = {} #coverages
+    geneOrder = []
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
 
@@ -57,7 +58,7 @@ def main(argv):
             raise ValueError
 
         gene = m.group()
-        
+        geneOrder.append(gene)
         covFile = gfaFile[:-3] + "csv"
         
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
@@ -71,9 +72,12 @@ def main(argv):
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
     
-    combinedGraph = UnitigGraph.combineGraphs(assemblyGraphs, source_maps, sink_maps)
-    
-    assGraph = AssemblyPathSVA(prng, [combinedGraph],[source_maps[0]], [sink_maps[-1]], G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True)
+    combinedGraph = UnitigGraph.combineGraphs(geneOrder, assemblyGraphs, source_maps, sink_maps)
+    newGraphs = {'combined':combinedGraph}
+    newSourceMaps = {'combined':source_maps[geneOrder[0]]}
+    newSinkMaps = {'combined':sink_maps[geneOrder[-1]]}    
+
+    assGraph = AssemblyPathSVA(prng,newGraphs,newSourceMaps, newSinkMaps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True)
     
     assGraph.initNMF()
 
