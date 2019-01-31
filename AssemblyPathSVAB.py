@@ -916,9 +916,9 @@ class AssemblyPathSVA():
                
                     margP = self.parseMargString(factorGraph,str(outString))
                     if len(margP) > 0:
-                        self.margG[gene][g] = self.parseMargString(factorGraph,str(outString)) 
+                        self.margG[gene][g] = margP 
        
-                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+                    self.updateExpPhi(self.assemblyGraphs[gene].unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
        
                     os.remove(outFile)
                     os.remove(fgFileStubs[gene]  + '.fg')
