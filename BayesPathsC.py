@@ -73,6 +73,8 @@ def main(argv):
         assemblyGraphs[gene] = unitigGraph
     
     combinedGraph = UnitigGraph.combineGraphs(geneOrder, assemblyGraphs, source_maps, sink_maps)
+    combinedGraph.writeToGFA("Combined.gfa")
+    
     newGraphs = {'combined':combinedGraph}
     newSourceMaps = {'combined':source_maps[geneOrder[0]]}
     newSinkMaps = {'combined':sink_maps[geneOrder[-1]]}    

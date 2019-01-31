@@ -112,7 +112,7 @@ class AssemblyPathSVA():
             (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
-            unitigsDash.sort(key=int) 
+            unitigsDash.sort() 
             self.factorGraphs[gene] = factorGraph
 
             self.factorDiGraphs[gene] = factorDiGraph 
@@ -124,9 +124,13 @@ class AssemblyPathSVA():
             unitigAdj = [gene + "_" + s for s in unitigsDash]
             self.unitigs.extend(unitigAdj)
             for (unitigNew, unitig) in zip(unitigAdj,unitigsDash):
-                self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                if unitig.startswith('connect'):
+                    self.adjLengths[unitigNew] = 0.0
+                else:
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
                 #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
-                assert self.adjLengths[unitigNew] > 0
+                    assert self.adjLengths[unitigNew] > 0
+                
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
                 self.covMapAdj[unitigNew] = (assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew]))/self.readLength
@@ -157,7 +161,9 @@ class AssemblyPathSVA():
                 
             self.lengths[idx] = self.adjLengths[v]
             self.X[idx,:] = covName
-            self.XN[idx,:] = covName/self.lengths[idx] 
+            if self.lengths[idx] > 0.:
+                self.XN[idx,:] = covName/self.lengths[idx] 
+            
             idx=idx+1
        
         self.XD = np.floor(self.X).astype(int)

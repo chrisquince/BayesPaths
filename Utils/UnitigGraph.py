@@ -188,12 +188,13 @@ class UnitigGraph():
         c = 0
         for gene, nextGene in zip(geneOrder,geneOrder[1:]): 
             sinkList = sinksLists[gene]
-            nextSourceList = sourcesLists[gene]
+            nextSourceList = sourcesLists[nextGene]
             
             connect = 'connect_0' + str(c)
             
             combinedGraph.unitigs.append(connect)
-            combinedGraph.sequences[connect] = None
+            combinedGraph.sequences[connect] = 'N'*combinedGraph.overlapLength
+        
             combinedGraph.lengths[connect] = combinedGraph.overlapLength
             combinedGraph.N += 1
             
