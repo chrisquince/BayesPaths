@@ -128,7 +128,7 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
+                    #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength #+ self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -910,19 +910,31 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                 
                     outFile = fgFileStubs[gene] + '.out'
-                
-                    with open (outFile, "r") as infile:
-                        outString = infile.readlines()
-               
-                    margP = self.parseMargString(factorGraph,str(outString))
-                    if len(margP) > 0:
-                        self.margG[gene][g] = margP 
-       
-                    self.updateExpPhi(self.assemblyGraphs[gene].unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-       
-                    os.remove(outFile)
-                    os.remove(fgFileStubs[gene]  + '.fg')
+        
+                    try:
+                        inHandle = open(outFile, 'r')
                     
+                        outString = inHandle.readlines()
+
+                        inHandle.close()
+
+                        margP = self.parseMargString(factorGraph,str(outString))
+                        if len(margP) > 0:
+                            self.margG[gene][g] = margP
+
+                        self.updateExpPhi(self.assemblyGraphs[gene].unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+        
+                        if os.path.exists(outFile):
+                            os.remove(outFile)
+
+                        if os.path.exists(fgFileStubs[gene]  + '.fg'):
+                            os.remove(fgFileStubs[gene]  + '.fg')
+
+
+                    except FileNotFoundError:
+                        print("Wrong file or file path")
+       
+                           
                 self.addGamma(g)
             
             if self.ARD:
@@ -1638,7 +1650,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-#    import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
