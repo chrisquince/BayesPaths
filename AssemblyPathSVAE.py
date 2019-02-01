@@ -796,8 +796,8 @@ class AssemblyPathSVA():
         if self.BIAS:
             denom *= self.expTheta2
                 
-        denom = denom[:,np.newaxis]*self.M_train
-        dSum = np.sum(denom,0)
+        #denom = denom[:,np.newaxis]*self.M_train
+        dSum = np.sum(denom)
         nSum = np.sum(numer,0)
         
         lamb = 1.0/self.epsilon
@@ -807,7 +807,7 @@ class AssemblyPathSVA():
         nSum -= lamb/self.expTau
 
         muGammaG = nSum/dSum  
-        tauGammaG = self.expTau*dSum
+        tauGammaG = np.full(self.S,self.expTau*dSum)
 
         expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
