@@ -784,9 +784,9 @@ class AssemblyPathSVA():
         temp2 = np.delete(self.expPhi,g_idx,1)
        
         if not self.BIAS:       
-            numer = self.M_train*(self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
+            numer = (self.X - np.dot(temp2,temp)*self.lengths[:,np.newaxis])
         else:
-            numer = self.M_train*(self.X*self.expTheta[:,np.newaxis] - np.dot(temp2,temp)*self.lengths[:,np.newaxis]*self.expTheta2[:,np.newaxis])   
+            numer = (self.X*self.expTheta[:,np.newaxis] - np.dot(temp2,temp)*self.lengths[:,np.newaxis]*self.expTheta2[:,np.newaxis])   
         
         gphi = self.expPhi[:,g_idx]*self.lengths
         
