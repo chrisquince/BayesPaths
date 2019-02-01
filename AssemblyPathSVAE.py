@@ -337,13 +337,9 @@ class AssemblyPathSVA():
         self.XD = np.floor(self.X).astype(int)
         
         #create mask matrices
-        (self.M_trains, self.M_tests) = compute_folds(self.V,self.S,self.no_folds)
-        self.M_train = self.M_trains[0]
         self.M_train = np.ones((self.V,self.S))
-        self.M_test = self.M_tests[0]
-        self.m = 0
 
-        self.Omega = self.M_train.sum()      
+        self.Omega = self.V*self.S   
  
         #list of mean assignments of strains to graph
         self.expPhi = np.zeros((self.V,self.G))
@@ -667,9 +663,9 @@ class AssemblyPathSVA():
                 dFac = -0.5*tau*lengthNode
                 
                 if not self.BIAS:
-                    T1 = self.M_train[v_idx,:]*mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
+                    T1 = mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
                 else:
-                    T1 = self.M_train[v_idx,:]*mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
+                    T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
                 
                 dVal1 = 2.0*np.sum(T1)
                 dVal2 = lengthNode*dSum2
