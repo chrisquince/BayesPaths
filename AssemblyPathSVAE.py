@@ -219,7 +219,7 @@ class AssemblyPathSVA():
         
         self.nQuant = 10
         self.dQuant = 1.0/self.nQuant
-        self.countQ = np.quantile(self.X,numpy.arange(self.dQuant,1.0 - self.dQuant,self.dQuant))
+        self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0,self.dQuant))
         
         self.expTau = 1.0
         self.alphaTau = 1.0
