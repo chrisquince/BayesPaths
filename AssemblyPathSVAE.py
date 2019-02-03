@@ -1031,12 +1031,12 @@ class AssemblyPathSVA():
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
-        return (np.multiply(self.XN*self.M_train, np.log(elop(self.XN, Va, truediv))) + self.M_train*(Va - self.XN)).sum()
+        return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN)).sum()
 
     def divF(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         R = self.M_train*(self.eLambda - self.XN)
-        return np.multiply(R, R).sum()/np.sum(self.M_train)
+        return np.multiply(R, R).sum()/self.Omega
 
     def convertMAPToPath(self,mapPath,factorGraph):
     
