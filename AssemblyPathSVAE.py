@@ -226,7 +226,7 @@ class AssemblyPathSVA():
             for s in range(self.S):
                 start = 0
                 while self.X[v,s] > self.countQ[start]:
-                    start++
+                    start+=1
                 self.tauMap[v,s] = start
                 
                 
