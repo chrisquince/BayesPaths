@@ -220,7 +220,8 @@ class AssemblyPathSVA():
         self.nQuant = 10
         self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-
+    
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
         self.tauMap = np.zeros((self.V,self.S))
         for v in range(self.V):
             for s in range(self.S):
@@ -228,149 +229,17 @@ class AssemblyPathSVA():
                 while self.X[v,s] > self.countQ[start]:
                     start+=1
                 self.tauMap[v,s] = start
+                self.tauMap[start] += 1
                 
-                
-        self.expTau = 1.0
-        self.alphaTau = 1.0
-        self.betaTau = 1.0
-    
-    @classmethod
-    def copyGamma(cls,assGraphG, assGraphH):
-    
-        copyGraphG = copy(assGraphG)
-    
-        copyGraphG.G = assGraphH.G
- 
-        #list of mean assignments of strains to graph
-        copyGraphG.expPhi = np.zeros((copyGraphG.V,copyGraphG.G))
-        copyGraphG.expPhi2 = np.zeros((copyGraphG.V,copyGraphG.G))
-        copyGraphG.HPhi = np.zeros((copyGraphG.V,copyGraphG.G))
-
-        copyGraphG.epsilon = assGraphH.epsilon #parameter for gamma exponential prior
+        self.expTau = np.full((self.V,self.S),0.01)
+        self.expLogtau = np.full((self.V,self.S),-4.60517)
         
-        copyGraphG.expGamma = np.copy(assGraphH.expGamma)
-    
-        copyGraphG.expGamma2 = np.copy(assGraphH.expGamma2)
+        self.expTauCat = np.full(self.nQuant,0.01)
+        self.expLogTauCat = np.full(self.nQuant,-4.60517)
+         
+        self.alphaTauCat = self.alpha + 0.5*self.tauFreq
+        self.betaTauCat = np.full(self.nQuant,self.beta)
         
-        copyGraphG.muGamma = np.copy(assGraphH.muGamma)
-        copyGraphG.tauGamma = np.copy(assGraphH.tauGamma)
-        copyGraphG.varGamma = np.copy(assGraphH.varGamma)
-        #current excitations on the graph
-        copyGraphG.eLambda = np.zeros((copyGraphG.V,copyGraphG.S))
-        
-        copyGraphG.margG = dict()
-        for gene in copyGraphG.genes:
-            copyGraphG.margG[gene] = [dict() for x in range(copyGraphG.G)]
-
-        if copyGraphG.ARD:
-            copyGraphG.alphak_s = np.copy(assGraphH.alphak_s)
-            copyGraphG.betak_s = np.copy(assGraphH.betak_s)
-            copyGraphG.exp_lambdak =  np.copy(assGraphH.exp_lambdak)
-            copyGraphG.exp_loglambdak = np.copy(assGraphH.exp_loglambdak)
-        
-        if copyGraphG.BIAS:
-            copyGraphG.expTheta   = np.copy(assGraphH.expTheta)
-            copyGraphG.expTheta2  = np.copy(assGraphH.expTheta2)
-            copyGraphG.muTheta    = np.copy(assGraphH.muTheta)
-            copyGraphG.tauTheta   = np.copy(assGraphH.tauTheta)
-            copyGraphG.varTheta   = np.copy(assGraphH.varTheta)
-        
-        copyGraphG.elbo = 0.
-        copyGraphG.expTau = assGraphH.expTau
-        copyGraphG.alphaTau = assGraphH.alphaTau
-        copyGraphG.betaTau = assGraphH.betaTau
-        
-        return copyGraphG
-    
-    def addGenes(self,assemblyToAdd):
-    
-        self.assemblyGraphs.update(assemblyToAdd.assemblyGraphs)
-        
-        self.source_maps.update(assemblyToAdd.source_maps)
-        
-        self.sink_maps.update(assemblyToAdd.sink_maps)
- 
-        self.factorGraphs.update(assemblyToAdd.factorGraphs) 
-
-        self.factorDiGraphs.update(assemblyToAdd.factorDiGraphs)
-
-        self.unitigFactorNodes.update(assemblyToAdd.unitigFactorNodes)
-
-        self.V += assemblyToAdd.V
-                
-        self.mapUnitigs.update(assemblyToAdd.mapUnitigs)  
-        self.adjLengths.update(assemblyToAdd.adjLengths) 
-        self.covMapAdj.update(assemblyToAdd.covMapAdj)
-        
-        self.unitigs = []
-        self.genes = []
-        self.mapIdx = {}
-        self.mapGeneIdx = collections.defaultdict(dict)
-        
-        bFirst = True
-        
-        self.V = 0
-        for gene, assemblyGraph in self.assemblyGraphs.items():
-            self.genes.append(gene)
-            unitigFactorNode = self.unitigFactorNodes[gene]
-    
-            unitigsDash = list(unitigFactorNode.keys())
-            unitigsDash.sort(key=int) 
-    
-            unitigAdj = [gene + "_" + s for s in unitigsDash]
-            self.unitigs.extend(unitigAdj)
-            
-            for (unitigNew, unitig) in zip(unitigAdj,unitigsDash):
-            
-                self.mapIdx[unitigNew] = self.V
-                self.mapGeneIdx[gene][unitig] = self.V 
-                
-                self.V += 1
-                
-        self.X = np.zeros((self.V,self.S))
-        self.XN = np.zeros((self.V,self.S))
-        self.lengths = np.zeros(self.V)
-        
-        #note really need to remove unreachable nodes from calculations
-        self.logPhiPrior = np.zeros(self.V)
-        for gene, unitigFactorNode in self.unitigFactorNodes.items(): 
-            self.setPhiConstant(self.mapUnitigs[gene], self.mapGeneIdx[gene], unitigFactorNode)
-
-        idx = 0
-        for v in self.unitigs:
-            covName = None
-            if v in self.covMapAdj:
-                covName = self.covMapAdj[v]
-            else:
-                print("Serious problem")
-                
-            self.lengths[idx] = self.adjLengths[v]
-            self.X[idx,:] = covName
-            self.XN[idx,:] = covName/self.lengths[idx] 
-            idx=idx+1
-       
-        self.XD = np.floor(self.X).astype(int)
-        
-        #create mask matrices
-        self.M_train = np.ones((self.V,self.S))
-
-        self.Omega = self.V*self.S   
- 
-        #list of mean assignments of strains to graph
-        self.expPhi = np.zeros((self.V,self.G))
-        self.expPhi2 = np.zeros((self.V,self.G))
-        self.HPhi = np.zeros((self.V,self.G))
-
-        #current excitations on the graph
-        self.eLambda = np.zeros((self.V,self.S))
-        
-        self.margG = dict()
-        for gene in self.genes:
-            self.margG[gene] = [dict() for x in range(self.G)]
-        
-        self.elbo = 0.
-    
-    
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
@@ -656,11 +525,11 @@ class AssemblyPathSVA():
             bFirst = False 
         return mapVar
     
-    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, tau):
+    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx):
         
         mapGammaG = self.expGamma[gidx,:]
         mapGammaG2 = self.expGamma2[gidx,:]
-        dSum2 = np.sum(mapGammaG2)
+        #dSum2 = np.sum(mapGammaG2)
         
         for unitig in unitigs:
             if unitig in unitigFacNodes:
@@ -675,21 +544,21 @@ class AssemblyPathSVA():
             
                 nMax = unitigFacNode.P.shape[0]
                 
-                dFac = -0.5*tau*lengthNode
+                dFac = -0.5*self.expTau[v_idx,:]*lengthNode #now S dim
                 
                 if not self.BIAS:
                     T1 = mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
                 else:
                     T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
                 
-                dVal1 = 2.0*np.sum(T1)
-                dVal2 = lengthNode*dSum2
+                dVal1 = 2.0*T1
+                dVal2 = lengthNode*mapGammaG2
                 if self.BIAS:
                     dVal2 *= self.expTheta2[v_idx]
                     
                     
                 for d in range(nMax):
-                    tempMatrix[d] = dFac*(dVal1*float(d) + dVal2*float(d*d))    
+                    tempMatrix[d] = np.sum(dFac*(dVal1*float(d) + dVal2*float(d*d)))    
 
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
@@ -781,9 +650,9 @@ class AssemblyPathSVA():
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.tauTheta = self.expTau*self.exp_square_lambda()*self.lengths*self.lengths + self.tauTheta0 
+        self.tauTheta = np.sum(self.expTau*self.exp_square_lambda_matrix(),axis=1)*self.lengths*self.lengths + self.tauTheta0 
         
-        numer =  self.expTau*self.lengths*np.sum(self.X*self.eLambda,axis=1) + self.muTheta0*self.tauTheta0 
+        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau,axis=1) + self.muTheta0*self.tauTheta0 
         
         self.muTheta = numer/self.tauTheta
     
@@ -807,22 +676,22 @@ class AssemblyPathSVA():
         
         numer = gphi[:,np.newaxis]*numer
 
-        denom = self.lengths*self.lengths*self.expPhi2[:,g_idx]
+        denom = self.lengths*self.lengths*self.expPhi2[:,g_idx]#dimensions of V
         if self.BIAS:
             denom *= self.expTheta2
                 
-        #denom = denom[:,np.newaxis]*self.M_train
-        dSum = np.sum(denom)
+        denom = denom[:,np.newaxis]*self.expTau
+        dSum = np.sum(denom,0)
         nSum = np.sum(numer,0)
         
         lamb = 1.0/self.epsilon
         if self.ARD:
             lamb = self.exp_lambdak[g_idx] 
             
-        nSum -= lamb/self.expTau
+        nSum -= lamb/np.sum(self.expTau,0)
 
         muGammaG = nSum/dSum  
-        tauGammaG = np.full(self.S,self.expTau*dSum)
+        #tauGammaG = np.full(self.S,self.expTau*dSum)
 
         expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
@@ -838,14 +707,22 @@ class AssemblyPathSVA():
         
     def updateTau(self):
         
-        alphaD = self.alpha + 0.5*self.Omega
-        betaD = self.beta + self.exp_square_diff()  
+        self.betaTauCat = np.full(self.nQuant,self.beta)
         
-        self.alphaTau = alphaD
-        self.betaTau = betaD
+        square_diff_matrix = self.exp_square_diff_matrix()  
         
-        self.expTau = alphaD/betaD
-        self.expLogtau = digamma(alphaD) - math.log(betaD)
+        for v in range(self.V):
+            for s in range(self.S):
+                self.betaTauCat[self.tauMap[v,s]] += square_diff_matrix[v,s]
+        
+        self.expTauCat = self.alphaTauCat/self.betaTauCat
+        self.expLogTauCat = digamma(alphaD) - math.log(betaD)
+        
+        for v in range(self.V):
+            for s in range(self.S):
+                mapT = self.tauMap[v,s]
+                self.expTau[v,s] = self.expTauCat[mapT]
+                self.expLogTau[v,s] = self.expLogTauCat[mapT]
 
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
     
@@ -864,7 +741,6 @@ class AssemblyPathSVA():
 
         iter = 0
    
-        self.expTau = 0.001 
         while iter < maxIter:
             #update phi marginals
             if removeRedundant:
@@ -881,7 +757,7 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     unitigs = self.assemblyGraphs[gene].unitigs
                    
-                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
+                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)
                     
                     factorGraph.reset()
         
@@ -970,14 +846,9 @@ class AssemblyPathSVA():
                     logF.write(str(iter)+","+ str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
     
-    def updateGammaFixed(self, maxIter, tau = None):
+    def updateGammaFixed(self, maxIter):
     
         iter = 0
-   
-        if tau is not None:
-            self.expTau = tau
-        else:
-            self.expTau = 0.001
          
         while iter < maxIter:
             #update phi marginals
@@ -1018,9 +889,8 @@ class AssemblyPathSVA():
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                     os.remove(graphFileName) 
                 self.addGamma(g)
-            
-            if tau is not None:            
-                self.updateTau()
+                      
+            self.updateTau()
             
             total_elbo = self.calc_elbo()    
             print(str(iter)+","+ str(self.divF()) +"," + str(total_elbo))  
@@ -1190,6 +1060,16 @@ class AssemblyPathSVA():
         
         return np.sum(eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2), axis = 1)
 
+    def exp_square_lambda_matrix(self):
+        ''' Compute: sum_s E_q(phi,gamma) [ sum ( Phi_v Gamma_s )^2 ]. '''
+        
+        eLambda2Sum = self.eLambda*self.eLambda
+        
+        diagonal = np.dot(self.expPhi*self.expPhi,self.expGamma*self.expGamma)
+        
+        return eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2)
+
+
     def exp_square_diff_matrix(self): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
@@ -1221,8 +1101,8 @@ class AssemblyPathSVA():
         total_elbo = 0.
         
         # Log likelihood               
-        total_elbo += 0.5*self.Omega*(self.expLogtau - math.log(2*math.pi) ) 
-        total_elbo -= 0.5*self.expTau*self.exp_square_diff()
+        total_elbo += 0.5*self.Omega*(self.expLogtau - math.log(2*math.pi)) 
+        total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
 
         # Prior lambdak, if using ARD, and prior U, V
         if self.ARD:
@@ -1239,8 +1119,12 @@ class AssemblyPathSVA():
         total_elbo += self.G*np.sum(self.logPhiPrior)
         
         #add tau prior
-        total_elbo += self.alpha * math.log(self.beta) - sps.gammaln(self.alpha) 
-        total_elbo += (self.alpha - 1.)*self.expLogtau - self.beta*self.expTau
+
+        self.expTauCat = np.full(self.nQuant,0.01)
+        self.expLogTauCat = np.full(self.nQuant,-4.60517)
+       
+        total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
 
         # q for lambdak, if using ARD
         if self.ARD:
@@ -1254,8 +1138,8 @@ class AssemblyPathSVA():
 
         total_elbo += qGamma
         # q for tau
-        total_elbo += - self.alphaTau * math.log(self.betaTau) + sps.gammaln(self.alphaTau) 
-        total_elbo += - (self.alphaTau - 1.)*self.expLogtau + self.betaTau * self.expTau
+        total_elbo += - np.sum(self.alphaTauCat * math.log(self.betaTauCat) + sps.gammaln(self.alphaTauCat)) 
+        total_elbo += - np.sum((self.alphaTauCat - 1.)*self.expLogTauCat + self.betaTauCat * self.expTauCat)
         # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo
