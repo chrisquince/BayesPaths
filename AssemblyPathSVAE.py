@@ -229,7 +229,7 @@ class AssemblyPathSVA():
                 while self.X[v,s] > self.countQ[start]:
                     start+=1
                 self.tauMap[v,s] = start
-                self.tauMap[start] += 1
+                self.tauFreq[start] += 1
                 
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogtau = np.full((self.V,self.S),-4.60517)
