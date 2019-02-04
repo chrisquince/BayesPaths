@@ -222,7 +222,7 @@ class AssemblyPathSVA():
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
         self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-        self.tauMap = np.zeros((self.V,self.S))
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
         for v in range(self.V):
             for s in range(self.S):
                 start = 0
@@ -232,7 +232,7 @@ class AssemblyPathSVA():
                 self.tauFreq[start] += 1
                 
         self.expTau = np.full((self.V,self.S),0.01)
-        self.expLogtau = np.full((self.V,self.S),-4.60517)
+        self.expLogTau = np.full((self.V,self.S),-4.60517)
         
         self.expTauCat = np.full(self.nQuant,0.01)
         self.expLogTauCat = np.full(self.nQuant,-4.60517)
@@ -716,7 +716,8 @@ class AssemblyPathSVA():
                 self.betaTauCat[self.tauMap[v,s]] += square_diff_matrix[v,s]
         
         self.expTauCat = self.alphaTauCat/self.betaTauCat
-        self.expLogTauCat = digamma(alphaD) - math.log(betaD)
+        for d in range(self.nQuant):
+            self.expLogTauCat[d] = digamma(self.alphaTauCat[d]) - math.log(self.betaTauCat[d])
         
         for v in range(self.V):
             for s in range(self.S):
@@ -1101,7 +1102,7 @@ class AssemblyPathSVA():
         total_elbo = 0.
         
         # Log likelihood               
-        total_elbo += 0.5*self.Omega*(self.expLogtau - math.log(2*math.pi)) 
+        total_elbo += 0.5*self.Omega*(self.expLogTau - math.log(2*math.pi)) 
         total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
 
         # Prior lambdak, if using ARD, and prior U, V
@@ -1138,8 +1139,15 @@ class AssemblyPathSVA():
 
         total_elbo += qGamma
         # q for tau
-        total_elbo += - np.sum(self.alphaTauCat * math.log(self.betaTauCat) + sps.gammaln(self.alphaTauCat)) 
-        total_elbo += - np.sum((self.alphaTauCat - 1.)*self.expLogTauCat + self.betaTauCat * self.expTauCat)
+        dTemp1 = np.zeros(self.nQuant)
+        dTemp2 = np.zeros(self.nQuant)
+
+        for d in range(self.nQuant):
+            dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
+            dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+
+        total_elbo += - np.sum(dTemp1) 
+        total_elbo += - np.sum(dTemp2)
         # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo
