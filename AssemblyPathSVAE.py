@@ -691,7 +691,7 @@ class AssemblyPathSVA():
         nSum -= lamb/np.sum(self.expTau,0)
 
         muGammaG = nSum/dSum  
-        #tauGammaG = np.full(self.S,self.expTau*dSum)
+        tauGammaG = dSum
 
         expGammaG = np.asarray(TN_vector_expectation(muGammaG,tauGammaG))
         
