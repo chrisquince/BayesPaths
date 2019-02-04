@@ -680,15 +680,16 @@ class AssemblyPathSVA():
         if self.BIAS:
             denom *= self.expTheta2
                 
-        denom = denom[:,np.newaxis]*self.expTau
-        dSum = np.sum(denom,0)
+        dSum = np.dot(self.expTau.transpose(),denom)
+        
+        numer=numer*self.expTau
         nSum = np.sum(numer,0)
         
         lamb = 1.0/self.epsilon
         if self.ARD:
             lamb = self.exp_lambdak[g_idx] 
             
-        nSum -= lamb/np.sum(self.expTau,0)
+        nSum -= lamb
 
         muGammaG = nSum/dSum  
         tauGammaG = dSum
