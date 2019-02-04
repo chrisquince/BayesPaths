@@ -125,8 +125,8 @@ class AssemblyPathSVA():
                 if unitig.startswith('connect'):
                     self.adjLengths[unitigNew] = 0.0
                 else:
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength #+ self.readLength
+                    #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength #+ self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -1103,7 +1103,7 @@ class AssemblyPathSVA():
         total_elbo = 0.
         
         # Log likelihood               
-        total_elbo += 0.5*self.Omega*(self.expLogTau - math.log(2*math.pi)) 
+        total_elbo += 0.5*(np.sum(self.expLogTau) - self.Omega*math.log(2*math.pi)) 
         total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
 
         # Prior lambdak, if using ARD, and prior U, V
@@ -1122,9 +1122,6 @@ class AssemblyPathSVA():
         
         #add tau prior
 
-        self.expTauCat = np.full(self.nQuant,0.01)
-        self.expLogTauCat = np.full(self.nQuant,-4.60517)
-       
         total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
         total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
 
