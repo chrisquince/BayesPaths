@@ -742,7 +742,7 @@ class AssemblyPathSVA():
     def update(self, maxIter, removeRedundant,logFile=None):
 
         iter = 0
-   
+        self.updateTau() 
         while iter < maxIter:
             #update phi marginals
             if removeRedundant:
