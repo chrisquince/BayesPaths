@@ -12,6 +12,7 @@ import scipy.misc as spm
 import scipy.special as sps
 from scipy.special import psi as digamma
 from scipy.stats import truncnorm
+from scipy.special import erfc
 
 from copy import deepcopy
 from copy import copy
@@ -1125,13 +1126,13 @@ class AssemblyPathSVA():
         
         if self.BIAS:
             
-            thetaConst = 0.5*np.log(self.tauTheta0/2.0*np.pi) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
+            thetaConst = 0.5*np.log(self.tauTheta0/(2.0*np.pi)) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
             lnThetaPrior = self.V*thetaConst
             
-            thetaMoment1 = TN_vector_expectation(self.expTheta,self.tauTheta)
-            thetaVar =  TN_vector_variance(self.expTheta,self.tauTheta)
+            thetaMoment1 = np.array(TN_vector_expectation(self.expTheta,self.tauTheta))
+            thetaVar =  np.array(TN_vector_variance(self.expTheta,self.tauTheta))
             thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
-            lnThetaPrior = np.sum(-0.5*self.tauTheta0*thetaMoment2 - 2.0*thetaMoment1*self.muTheta0)
+            lnThetaPrior += np.sum(-0.5*self.tauTheta0*thetaMoment2 - 2.0*thetaMoment1*self.muTheta0)
             total_ebo += lnThetaPrior 
         
         #add phio prior assuming uniform 
