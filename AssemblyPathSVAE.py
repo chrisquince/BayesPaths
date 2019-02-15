@@ -1128,12 +1128,10 @@ class AssemblyPathSVA():
             thetaConst = 0.5*np.log(self.tauTheta0/2.0*np.pi) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
             lnThetaPrior = self.V*thetaConst
             
-            for v in range(self.V):
-                scaleTheta=np.sqrt(self.varTheta[v])
-                moment1 = truncnorm.moment(1, a=0., b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
-                moment2 = truncnorm.moment(2, a=0., b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
-                
-                lnThetaPrior += -0.5*self.tauTheta0*(moment2 - 2.0*moment1*self.muTheta0)
+            thetaMoment1 = TN_vector_expectation(self.expTheta,self.tauTheta)
+            thetaVar =  TN_vector_variance(self.expTheta,self.tauTheta)
+            thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
+            lnThetaPrior = np.sum(-0.5*self.tauTheta0*thetaMoment2 - 2.0*thetaMoment1*self.muTheta0)
             total_ebo += lnThetaPrior 
         
         #add phio prior assuming uniform 
