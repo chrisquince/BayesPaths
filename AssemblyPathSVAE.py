@@ -222,7 +222,7 @@ class AssemblyPathSVA():
         else:
             self.nQuant = 10
         
-	    self.dQuant = 1.0/self.nQuant
+        self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
         self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
@@ -1159,7 +1159,7 @@ class AssemblyPathSVA():
         if self.BIAS:
             for v in range(self.V):
                 scaleTheta=np.sqrt(self.varTheta[v])
-                total_elbo += truncnorm.entropy(a=0, b.np.inf, loc=self.expTheta[v], scale=scaleTheta)
+                total_elbo += truncnorm.entropy(a=0, b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
         
         # q for tau
         dTemp1 = np.zeros(self.nQuant)
