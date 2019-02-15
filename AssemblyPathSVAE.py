@@ -216,8 +216,10 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
-        
-        self.nQuant = 10
+        if self.Omega < 100:
+            self.nQuant = 1
+        else:
+            self.nQuant = 10
         self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
@@ -788,7 +790,7 @@ class AssemblyPathSVA():
                 pool.join()
                 for result in results:
                     out, err = result.get()
-                    print("out: {} err: {}".format(out, err))
+        #            print("out: {} err: {}".format(out, err))
                       
                 for gene, factorGraph in self.factorGraphs.items():
                 
@@ -1581,7 +1583,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=True)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=True,BIAS=True)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
@@ -1612,7 +1614,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(100, True)
+        assGraph.update(200, True)
         
         assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    

@@ -28,13 +28,15 @@ from collections import Counter
 from numpy.random import RandomState
 
 from graph import Graph
-from Utils import convertNodeToName
-from Utils import elop
-from Utils import expNormLogProb
-from Utils import TN_vector_expectation
-from Utils import TN_vector_variance
-from Utils import readRefAssign
-from UnitigGraph import UnitigGraph
+from Utils.UtilsFunctions import convertNodeToName
+from Utils.UtilsFunctions import elop
+from Utils.UtilsFunctions import expNormLogProb
+from Utils.UtilsFunctions import TN_vector_expectation
+from Utils.UtilsFunctions import TN_vector_variance
+from Utils.UtilsFunctions import readRefAssign
+from Utils.UnitigGraph import UnitigGraph
+
+
 from NMFM import NMF
 
 from mask import compute_folds
@@ -1518,7 +1520,7 @@ def main(argv):
             unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
             assemblyGraphs[str(c)] = unitigSubGraph
             
-            (source_list, sink_list) = unitigSubGraph.selectSourceSinks2(args.frac)
+            (source_list, sink_list) = unitigSubGraph.selectSourceSinks(args.frac)
             
             #(source_list, sink_list) = unitigSubGraph.selectAllSourceSinks()
 

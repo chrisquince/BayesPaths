@@ -859,7 +859,8 @@ class AssemblyPathSVA():
 
         iter = 0
    
-        self.expTau = 0.001 
+        #self.expTau = 0.001 
+        self.updateTau()
         while iter < maxIter:
             #update phi marginals
             if removeRedundant:
