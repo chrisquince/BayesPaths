@@ -216,8 +216,11 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
+        if self.V < 100:
+            self.nQuant = 1
+        else:
+            self.nQuant = 10
         
-        self.nQuant = 10
         self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
@@ -1096,15 +1099,15 @@ class AssemblyPathSVA():
         L2 = self.lengths*self.lengths
         diff2 = L2[:,np.newaxis]*diff
         
-        return np.sum(self.M_train*(R*R + diff2))
+        return np.sum(R*R + diff2)
 
     def calc_elbo(self):
         ''' Compute the ELBO. '''
         total_elbo = 0.
         
         # Log likelihood               
-        total_elbo += 0.5*(np.sum(self.expLogTau) - self.Omega*math.log(2*math.pi)) 
-        total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
+        total_elbo += 0.5*(np.sum(self.expLogTau) - self.Omega*math.log(2*math.pi)) #first part likelihood
+        total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
         # Prior lambdak, if using ARD, and prior U, V
         if self.ARD:
