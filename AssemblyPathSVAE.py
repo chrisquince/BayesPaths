@@ -11,6 +11,7 @@ import scipy as sp
 import scipy.misc as spm
 import scipy.special as sps
 from scipy.special import psi as digamma
+from scipy.stats import truncnorm
 
 from copy import deepcopy
 from copy import copy
@@ -221,7 +222,7 @@ class AssemblyPathSVA():
         else:
             self.nQuant = 10
         
-	self.dQuant = 1.0/self.nQuant
+	    self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
         self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
@@ -1119,7 +1120,22 @@ class AssemblyPathSVA():
             
         else:
             total_elbo += np.sum(-math.log(self.epsilon) - self.expGamma/self.epsilon)
+        
+        #Prior theta if using bias
+        
+        if self.BIAS:
             
+            thetaConst = 0.5*np.log(self.tauTheta0/2.0*np.pi) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
+            lnThetaPrior = self.V*thetaConst
+            
+            for v in range(self.V):
+                scaleTheta=np.sqrt(self.varTheta[v])
+                moment1 = truncnorm.moment(1, a=0., b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
+                moment2 = truncnorm.moment(2, a=0., b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
+                
+                lnThetaPrior += -0.5*self.tauTheta0*(moment2 - 2.0*moment1*self.muTheta0)
+            total_ebo += lnThetaPrior 
+        
         #add phio prior assuming uniform 
         total_elbo += self.G*np.sum(self.logPhiPrior)
         
@@ -1139,6 +1155,12 @@ class AssemblyPathSVA():
         qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
 
         total_elbo += qGamma
+        
+        if self.BIAS:
+            for v in range(self.V):
+                scaleTheta=np.sqrt(self.varTheta[v])
+                total_elbo += truncnorm.entropy(a=0, b.np.inf, loc=self.expTheta[v], scale=scaleTheta)
+        
         # q for tau
         dTemp1 = np.zeros(self.nQuant)
         dTemp2 = np.zeros(self.nQuant)
