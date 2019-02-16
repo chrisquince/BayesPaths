@@ -1083,10 +1083,25 @@ class AssemblyPathSVA():
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
         #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
         
-        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        if self.BIAS:
+            R = self.X - self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        else:
+            R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+            
         t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
+        
+        if self.BIAS:
+            eT2 = self.expTheta*self.expTheta
+            t1 = eT2[:,np.newaxis]*t1
+        
         diff = np.dot(self.expPhi2,self.expGamma2) - t1
         L2 = self.lengths*self.lengths
+
+        if self.BIAS:
+            diff = np.dot(self.expPhi2,self.expGamma2)*self.expTheta2[:,np.newaxis] - t1
+        else:
+            diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        
         diff2 = L2[:,np.newaxis]*diff
         
         return R*R + diff2
@@ -1096,10 +1111,24 @@ class AssemblyPathSVA():
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
         #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
         
-        R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        if self.BIAS:
+            R = self.X - self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        else:
+            R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        
         t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
-        diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        
+        if self.BIAS:
+            eT2 = self.expTheta*self.expTheta
+            t1 = eT2[:,np.newaxis]*t1
+            
+        if self.BIAS:
+            diff = np.dot(self.expPhi2,self.expGamma2)*self.expTheta2[:,np.newaxis] - t1
+        else:
+            diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        
         L2 = self.lengths*self.lengths
+            
         diff2 = L2[:,np.newaxis]*diff
         
         return np.sum(R*R + diff2)
