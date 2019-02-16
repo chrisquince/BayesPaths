@@ -1127,8 +1127,7 @@ class AssemblyPathSVA():
         
         if self.BIAS:
             dS = np.sqrt(self.tauTheta0/2.0)*self.muTheta0
-            thetaConst = 0.5*np.log(self.tauTheta0/(2.0*np.pi)) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
-                        - np.log(0.5*(1 + erf(dS)))
+            thetaConst = 0.5*np.log(self.tauTheta0/(2.0*np.pi)) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0 - np.log(0.5*(1 + erf(dS)))
 
             lnThetaPrior = self.V*thetaConst
             
@@ -1136,7 +1135,7 @@ class AssemblyPathSVA():
             thetaVar =  np.array(TN_vector_variance(self.expTheta,self.tauTheta))
             thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
             lnThetaPrior += np.sum(-0.5*self.tauTheta0*(thetaMoment2 - 2.0*thetaMoment1*self.muTheta0))
-            total_ebo += lnThetaPrior 
+            total_elbo += lnThetaPrior 
         
         #add phio prior assuming uniform 
         total_elbo += self.G*np.sum(self.logPhiPrior)
@@ -1572,6 +1571,10 @@ def main(argv):
     parser.add_argument('-f','--frac',nargs='?', default=0.75, type=float, 
         help=("fraction for path source sink"))
 
+    parser.add_argument('--no_ARD', dest='ARD', default=True, action='store_false')
+
+    parser.add_argument('--no_BIAS', dest='BIAS', default=True, action='store_false')
+
     args = parser.parse_args()
 
     import ipdb; ipdb.set_trace()
@@ -1610,7 +1613,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=True,BIAS=True)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
