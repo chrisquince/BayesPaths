@@ -13,6 +13,7 @@ import scipy.special as sps
 from scipy.special import psi as digamma
 from scipy.stats import truncnorm
 from scipy.special import erfc
+from scipy.special import erf
 
 from copy import deepcopy
 from copy import copy
@@ -1125,14 +1126,16 @@ class AssemblyPathSVA():
         #Prior theta if using bias
         
         if self.BIAS:
-            
+            dS = np.sqrt(self.tauTheta0/2.0)*self.muTheta0
             thetaConst = 0.5*np.log(self.tauTheta0/(2.0*np.pi)) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0
+                        - np.log(0.5*(1 + erf(dS)))
+
             lnThetaPrior = self.V*thetaConst
             
             thetaMoment1 = np.array(TN_vector_expectation(self.expTheta,self.tauTheta))
             thetaVar =  np.array(TN_vector_variance(self.expTheta,self.tauTheta))
             thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
-            lnThetaPrior += np.sum(-0.5*self.tauTheta0*thetaMoment2 - 2.0*thetaMoment1*self.muTheta0)
+            lnThetaPrior += np.sum(-0.5*self.tauTheta0*(thetaMoment2 - 2.0*thetaMoment1*self.muTheta0))
             total_ebo += lnThetaPrior 
         
         #add phio prior assuming uniform 
@@ -1156,10 +1159,12 @@ class AssemblyPathSVA():
         total_elbo += qGamma
         
         if self.BIAS:
-            for v in range(self.V):
-                scaleTheta=np.sqrt(self.varTheta[v])
-                total_elbo += truncnorm.entropy(a=0, b=np.inf, loc=self.expTheta[v], scale=scaleTheta)
+            
+            qTheta = -0.5*np.log(self.tauTheta).sum() + 0.5*self.V*math.log(2.*math.pi)
+            qTheta += np.log(0.5*sps.erfc(-self.muTheta*np.sqrt(self.tauTheta)/math.sqrt(2.))).sum()
+            qTheta += (0.5*self.tauTheta * ( self.varTheta + (self.expTheta - self.muTheta)**2 ) ).sum()
         
+            total_elbo += qTheta
         # q for tau
         dTemp1 = np.zeros(self.nQuant)
         dTemp2 = np.zeros(self.nQuant)
