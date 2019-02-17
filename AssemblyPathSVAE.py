@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 10.0):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -129,7 +129,7 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength #+ self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength # + self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -753,7 +753,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(0.005, 10)
+                    self.removeRedundant(0.01, 10)
             
             for g in range(self.G):
                 
