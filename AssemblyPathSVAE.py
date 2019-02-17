@@ -928,7 +928,11 @@ class AssemblyPathSVA():
 
     def divF(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
-        R = self.M_train*(self.eLambda - self.XN)
+        
+        if self.BIAS:
+            R = self.M_train*(self.expTheta[:,np.newaxis]*self.eLambda - self.XN)
+        else:
+            R = self.M_train*(self.eLambda - self.XN)
         return np.multiply(R, R).sum()/self.Omega
 
     def convertMAPToPath(self,mapPath,factorGraph):
@@ -1077,6 +1081,28 @@ class AssemblyPathSVA():
         
         return eLambda2Sum - diagonal + np.dot(self.expPhi2,self.expGamma2)
 
+
+    def gene_mean_diff(self):
+    
+        diff_matrix = exp_square_diff_matrix(self)
+        gene_vals = defaultdict(list)
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            for unitigs in unitig:
+                v_idx = self.mapGeneIdx[gene][unitig]
+                
+                gene_vals[gene].append(np.mean(diff_matrix[v_idx,:])
+            
+        gene_means = {}
+        
+        for gene in self.genes:
+            gene_means = np.mean(array(gene_vals[gene]))
+                
+        return gene_means
+        
+        
 
     def exp_square_diff_matrix(self): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
@@ -1673,7 +1699,9 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(200, True)
+        assGraph.update(100, True)
+        
+        gene_mean_error = assGraph.gene_mean_diff()
         
         assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
