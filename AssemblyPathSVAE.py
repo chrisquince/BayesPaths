@@ -1084,16 +1084,16 @@ class AssemblyPathSVA():
 
     def gene_mean_diff(self):
     
-        diff_matrix = exp_square_diff_matrix(self)
+        diff_matrix = self.exp_square_diff_matrix()
         gene_vals = defaultdict(list)
         
         for gene in self.genes:
             unitigs = self.mapUnitigs[gene]
             
-            for unitigs in unitig:
+            for unitig in unitigs:
                 v_idx = self.mapGeneIdx[gene][unitig]
                 
-                gene_vals[gene].append(np.mean(diff_matrix[v_idx,:])
+                gene_vals[gene].append(np.mean(diff_matrix[v_idx,:]))
             
         gene_means = {}
         
