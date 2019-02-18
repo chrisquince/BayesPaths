@@ -129,7 +129,7 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength # + self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength  + self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -939,6 +939,17 @@ class AssemblyPathSVA():
             
         return np.multiply(R, R).sum()/self.Omega
 
+    def divF_matrix(self):
+        """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
+
+        if self.BIAS:
+            R = self.expTheta[:,np.newaxis]*self.eLambda - self.XN
+        else:
+            R = self.eLambda - self.XN
+
+        return np.multiply(R, R)
+
+
     def convertMAPToPath(self,mapPath,factorGraph):
     
         path = []
@@ -1088,7 +1099,7 @@ class AssemblyPathSVA():
 
     def gene_mean_diff(self):
     
-        diff_matrix = self.exp_square_diff_matrix()
+        diff_matrix = self.divF_matrix()
         gene_vals = defaultdict(list)
         
         for gene in self.genes:
@@ -1102,7 +1113,7 @@ class AssemblyPathSVA():
         gene_means = {}
         
         for gene in self.genes:
-            gene_means = np.mean(array(gene_vals[gene]))
+            gene_means[gene] = np.mean(np.array(gene_vals[gene]))
                 
         return gene_means
         
