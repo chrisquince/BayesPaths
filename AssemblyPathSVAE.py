@@ -170,7 +170,7 @@ class AssemblyPathSVA():
         self.XD = np.floor(self.X).astype(int)
         
         #create mask matrices
-        self.M_train = np.ones((self.V,self.S))
+        self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
         self.G = G
         self.Omega = self.V*self.S      
@@ -924,15 +924,19 @@ class AssemblyPathSVA():
     def div(self):
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
+        if self.BIAS:
+            Va = self.expTheta[:,np.newaxis]*Va
+            
         return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN)).sum()
 
     def divF(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         
         if self.BIAS:
-            R = self.M_train*(self.expTheta[:,np.newaxis]*self.eLambda - self.XN)
+            R = self.expTheta[:,np.newaxis]*self.eLambda - self.XN
         else:
-            R = self.M_train*(self.eLambda - self.XN)
+            R = self.eLambda - self.XN
+            
         return np.multiply(R, R).sum()/self.Omega
 
     def convertMAPToPath(self,mapPath,factorGraph):
@@ -972,7 +976,7 @@ class AssemblyPathSVA():
 
     def initNMF(self):
         
-        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10, prng = self.prng)
+        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
     
         covNMF.factorize()
         covNMF.factorizeH()
@@ -1022,7 +1026,7 @@ class AssemblyPathSVA():
 
     def initNMFGamma(self,gamma):
         
-        covNMF =  NMF(self.XN,self.M_train,self.G,n_run = 10, prng = self.prng)
+        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
         covNMF.random_initialize() 
         covNMF.H = np.copy(gamma)
         covNMF.factorizeW()
@@ -1427,25 +1431,6 @@ class AssemblyPathSVA():
                     self.expGamma2[h,:] = 0.
                     self.muGamma[h,:] = 0.
                     collapsed[h] = True
-        
-        
-
-    def average_MSE_CV(self):
-
-        dSumE = 0
-        for n in range(self.no_folds):
-            self.M_train = self.M_trains[n]
-            self.M_test = self.M_tests[n]
-        
-            self.initNMF()
-            
-            self.update(50)
-            
-            dErr = self.predict(self.M_test)
-
-            dSumE += dErr
-        dMeanE = dSumE/float(self.no_folds)
-        print(str(self.G) + ",MeanE=" + str(dMeanE))
 
     def writeMarginals(self,fileName):
 
