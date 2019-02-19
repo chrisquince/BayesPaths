@@ -854,6 +854,9 @@ class AssemblyPathSVA():
                     logF.write(str(iter)+","+ str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
     
+    
+    
+    
     def updateGammaFixed(self, maxIter):
     
         iter = 0
@@ -1206,10 +1209,23 @@ class AssemblyPathSVA():
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
+        current_gene_elbos = {}
         for gene in self.genes:
             current_gene_elbo = self.calc_unitig_elbo(gene, self.mapUnitigs[gene])
-            
+            current_gene_elbos[gene] = current_gene_elbo             
             print(gene + "," + str(current_gene_elbo) + "," + str(current_gene_elbo/float(len(self.mapUnitigs[gene]))))
+
+        
+        for g in range(self.G):
+            self.removeGamma(g)
+            
+            for gene in self.genes:
+                new_gene_elbo = self.calc_unitig_elbo(gene, self.mapUnitigs[gene])
+                           
+                print(gene + "," + str(g) + "," + str(new_gene_elbo - current_gene_elbos[gene]))
+
+            self.addGamma(g)
+
 
     def calc_unitig_elbo(self, gene, unitigs):
         ''' Compute the ELBO of a subset of unitigs. '''
