@@ -1237,8 +1237,8 @@ class AssemblyPathSVA():
         total_elbo += self.G*np.sum(self.logPhiPrior[unitig_idxs])
         
         #add tau prior
-        #total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        #total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
+        total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
 
         
         if self.BIAS:            
@@ -1248,12 +1248,12 @@ class AssemblyPathSVA():
         
             total_elbo += qTheta
         # q for tau
-        #dTemp1 = np.zeros(self.nQuant)
-        #dTemp2 = np.zeros(self.nQuant)
+        dTemp1 = np.zeros(self.nQuant)
+        dTemp2 = np.zeros(self.nQuant)
 
-        #for d in range(self.nQuant):
-         #   dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
-          #  dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+        for d in range(self.nQuant):
+            dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
+            dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
 
         total_elbo += - np.sum(dTemp1) 
         total_elbo += - np.sum(dTemp2)
