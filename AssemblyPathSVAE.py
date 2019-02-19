@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -84,6 +84,9 @@ class AssemblyPathSVA():
         self.sourceNode = 'source+'
         
         self.no_folds = no_folds
+        
+        if self.minIntensity = None:
+            self.minIntensity = 2.0/self.readLength
         
         #prior parameters for Gamma tau
         self.alpha = alpha
@@ -811,7 +814,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(0.01, 10)
+                    self.removeRedundant(self.minIntenisty, 10)
             
             for g in range(self.G):
                 
@@ -1627,7 +1630,7 @@ class AssemblyPathSVA():
         self.MAPs = defaultdict(list)
         haplotypes = defaultdict(list)
 
-        output = np.sum(self.expGamma,axis=1) > 0.01
+        output = np.sum(self.expGamma,axis=1) > self.minIntensity
 
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():

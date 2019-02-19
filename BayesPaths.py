@@ -91,7 +91,7 @@ def main(argv):
                 
      
             
-    assGraph.update(100, True,logFile=args.outFileStub + "_log.txt",drop_strain=strain_drop_elbo)
+    assGraph.update(100,False,logFile=args.outFileStub + "_log.txt",drop_strain=strain_drop_elbo)
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
