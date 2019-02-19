@@ -1580,16 +1580,14 @@ class AssemblyPathSVA():
 
         with open(fileName, "w") as margFile:
             for gene, factorGraph in self.factorGraphs.items():
-                unitigs = self.assemblyGraphs[gene].unitigs
+                unitigs = self.mapUnitigs[gene]
 
                 for unitig in unitigs:
-                    if unitig in self.margG[gene][0]:
-                        vals = []
-                        for g in range(self.G):
-                            vals.append(str(self.margG[gene][g][unitig][1]))
-                        vString = ",".join(vals)
+                    v_idx = unitig_drops = self.mapGeneIdx[gene][unitig]
+                    vals = [str(x) for x in self.expPhi[v_idx,:].tolist()]
+                    vString = ",".join(vals)
                     
-                        margFile.write(gene + "_" + unitig + "," + vString + "\n")
+                    margFile.write(gene + "_" + unitig + "," + vString + "\n")
 
     def writeTheta(self,fileName):
 
