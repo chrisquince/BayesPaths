@@ -746,10 +746,10 @@ class AssemblyPathSVA():
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
     def writeFactorGraphs(self, g, drop_strain):
-    
+        fgFileStubs = {}
         for gene, factorGraph in self.factorGraphs.items():
             
-            if not drop_strain[gene][g] 
+            if not drop_strain[gene][g]: 
             
                 unitigs = self.assemblyGraphs[gene].unitigs
                    
@@ -772,7 +772,7 @@ class AssemblyPathSVA():
         
         return fgFileStubs
                     
-    def readMarginals(self, g, drop_strain):
+    def readMarginals(self, fgFileStubs, g, drop_strain):
     
         for gene, factorGraph in self.factorGraphs.items():
             if not drop_strain[gene][g]: 
@@ -834,7 +834,7 @@ class AssemblyPathSVA():
                     out, err = result.get()
         #            print("out: {} err: {}".format(out, err))
                 
-                self.readMarginals(g,drop_strain)
+                self.readMarginals(fgFileStubs, g, drop_strain)
                            
                 self.addGamma(g)
             
@@ -1249,8 +1249,8 @@ class AssemblyPathSVA():
         
         unitig_drops = [self.mapGeneIdx[gene][x] for x in self.mapUnitigs[gene]]
         
-        self.expPhi[unitig_drops][g] = 0.
-        self.expPhi2[unitig_drops][g] = 0.
+        self.expPhi[unitig_drops,g] = 0.
+        self.expPhi2[unitig_drops,g] = 0.
                 
 
     def calc_unitig_elbo(self, gene, unitigs):
