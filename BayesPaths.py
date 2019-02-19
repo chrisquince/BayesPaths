@@ -7,7 +7,7 @@ import re
 
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPathSVAB import AssemblyPathSVA
+from AssemblyPathSVAE import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
@@ -77,7 +77,11 @@ def main(argv):
     assGraph.initNMF()
 
     assGraph.update(100, True)
-        
+ 
+    gene_mean_error = assGraph.gene_mean_diff()
+
+    assGraph.calc_strain_drop_elbo()
+
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
     assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa")
