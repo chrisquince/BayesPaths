@@ -107,13 +107,13 @@ class AssemblyPathSVA():
         self.genes = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
-        for gene, assemblyGraph in assemblyGraphs.items():
+        for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
-            
+            assemblyGraph = assemblyGraphs[gene]
             (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
-            unitigsDash.sort() 
+            unitigsDash.sort(key=int) 
             self.factorGraphs[gene] = factorGraph
 
             self.factorDiGraphs[gene] = factorDiGraph 
@@ -987,7 +987,7 @@ class AssemblyPathSVA():
 
     def initNMF(self):
         
-        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
+        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 20, prng = self.prng)
     
         covNMF.factorize()
         covNMF.factorizeH()
