@@ -1117,6 +1117,34 @@ class AssemblyPathSVA():
                 
         return gene_means
         
+    def exp_square_diff_matrix_unitigs(self,unitig_idxs): 
+        ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
+        #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
+        #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
+        
+        if self.BIAS:
+            R = self.X[unitig_idxs,:] - self.lengths[unitig_idxs,np.newaxis]*self.expTheta[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
+        else:
+            R = self.X - self.lengths[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
+            
+        t1 = np.dot(self.expPhi[unitig_idxs,:]*self.expPhi[unitig_idxs,:], self.expGamma*self.expGamma)
+        
+        if self.BIAS:
+            eT2 = self.expTheta[unitig_idxs,:]*self.expTheta[unitig_idxs,:]
+            t1 = eT2[:,np.newaxis]*t1
+        
+        diff = np.dot(self.expPhi2[unitig_idxs,:],self.expGamma2) - t1
+        L2 = self.lengths[unitig_idxs]*self.lengths[unitig_idxs]
+
+        if self.BIAS:
+            diff = np.dot(self.expPhi2[unitig_idxs,:],self.expGamma2)*self.expTheta2[unitig_idxs,np.newaxis] - t1
+        else:
+            diff = np.dot(self.expPhi2[unitig_idxs,:],self.expGamma2) - t1
+        
+        diff2 = L2[:,np.newaxis]*diff
+        
+        return R*R + diff2
+
         
 
     def exp_square_diff_matrix(self): 
@@ -1174,6 +1202,66 @@ class AssemblyPathSVA():
         
         return np.sum(R*R + diff2)
 
+    def calc_strain_drop_elbo(self):
+        
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        
+        for gene in self.genes:
+            current_gene_elbo = self.calc_unitig_elbo(gene, self.mapUnitigs[gene])
+            
+            print(gene + "," + str(current_gene_elbo) + "," + str(current_gene_elbo/float(len(self.mapUnitigs[gene]))))
+
+    def calc_unitig_elbo(self, gene, unitigs):
+        ''' Compute the ELBO of a subset of unitigs. '''
+        unitig_idxs = [self.mapGeneIdx[gene][x] for x in unitigs]
+        nU = len(unitig_idxs)
+        unitig_elbo = 0.0
+        # Log likelihood               
+        total_elbo += 0.5*(np.sum(self.expLogTau[unitig_idxs,:]) - nU*self.S*math.log(2*math.pi)) #first part likelihood
+        total_elbo -= 0.5*np.sum(self.expTau[unitig_idxs,:]*self.exp_square_diff_matrix_unitigs(unitig_idxs)) #second part likelihood
+        
+        #Prior theta if using bias
+        
+        if self.BIAS:
+            dS = np.sqrt(self.tauTheta0/2.0)*self.muTheta0
+            
+            thetaConst = 0.5*np.log(self.tauTheta0/(2.0*np.pi)) -0.5*self.tauTheta0*self.muTheta0*self.muTheta0 - np.log(0.5*(1 + erf(dS)))
+
+            lnThetaPrior = nU*thetaConst
+            
+            lnThetaPrior += np.sum(-0.5*self.tauTheta0*(self.expTheta2[unitig_idxs] - 2.0*self.expTheta[unitig_idxs]*self.muTheta0))          
+            
+            total_elbo += lnThetaPrior 
+        
+        #add phio prior assuming uniform 
+        total_elbo += self.G*np.sum(self.logPhiPrior[unitig_idxs])
+        
+        #add tau prior
+        total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
+
+        
+        if self.BIAS:            
+            qTheta = -0.5*np.log(self.tauTheta[unitig_idxs]).sum() + 0.5*nU*math.log(2.*math.pi)
+            qTheta += np.log(0.5*sps.erfc(-self.muTheta[unitig_idxs]*np.sqrt(self.tauTheta[unitig_idxs])/math.sqrt(2.))).sum()
+            qTheta += (0.5*self.tauTheta[unitig_idxs] * (self.varTheta[unitig_idxs] + (self.expTheta[unitig_idxs] - self.muTheta[unitig_idxs])**2 ) ).sum()
+        
+            total_elbo += qTheta
+        # q for tau
+        dTemp1 = np.zeros(self.nQuant)
+        dTemp2 = np.zeros(self.nQuant)
+
+        for d in range(self.nQuant):
+            dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
+            dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+
+        total_elbo += - np.sum(dTemp1) 
+        total_elbo += - np.sum(dTemp2)
+        # q for phi
+        total_elbo += np.sum(self.HPhi[unitig_idxs])
+        return total_elbo
+
+
     def calc_elbo(self):
         ''' Compute the ELBO. '''
         total_elbo = 0.
@@ -1201,10 +1289,10 @@ class AssemblyPathSVA():
 
             lnThetaPrior = self.V*thetaConst
             
-            thetaMoment1 = np.array(TN_vector_expectation(self.expTheta,self.tauTheta))
-            thetaVar =  np.array(TN_vector_variance(self.expTheta,self.tauTheta))
-            thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
-            lnThetaPrior += np.sum(-0.5*self.tauTheta0*(thetaMoment2 - 2.0*thetaMoment1*self.muTheta0))
+            #thetaMoment1 = np.array(TN_vector_expectation(self.expTheta,self.tauTheta))
+            #thetaVar =  np.array(TN_vector_variance(self.expTheta,self.tauTheta))
+            #thetaMoment2 = thetaVar + 2.0*self.expTheta*thetaMoment1 - self.expTheta*self.expTheta
+            lnThetaPrior += np.sum(-0.5*self.tauTheta0*(self.expTheta2 - 2.0*self.expTheta*self.muTheta0))
             total_elbo += lnThetaPrior 
         
         #add phio prior assuming uniform 
