@@ -46,7 +46,7 @@ def main(argv):
     sink_maps = {} # sinks (in future these defined outside)
     source_maps = {} #sources
     cov_maps = {} #coverages
-    for gfaFile in gfaFiles:
+    for gfaFile in gfaFiles.sort():
         fileName = os.path.basename(gfaFile)
 
         p = re.compile('COG[0-9]+')
