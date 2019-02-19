@@ -77,15 +77,25 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(100, True)
+    assGraph.update(100, True,logFile=args.outFileStub + "_log.txt")
  
     gene_mean_error = assGraph.gene_mean_diff()
 
-    assGraph.calc_strain_drop_elbo()
+    strain_drop_elbo = assGraph.calc_strain_drop_elbo()
+            
+    for (gene,drops) in strain_drop_elbo.items():
+    
+        for (g, drop) in enumerate(drops):
+            if drop:
+                assGraph.drop_gene_strains(gene, g)
+                
+     
+            
+    assGraph.update(100, True,logFile=args.outFileStub + "_log.txt",drop_strain=strain_drop_elbo)
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa")
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa", strain_drop_elbo)
  
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv")
    

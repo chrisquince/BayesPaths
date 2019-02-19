@@ -745,9 +745,67 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def update(self, maxIter, removeRedundant,logFile=None):
+    def writeFactorGraphs(self, g, drop_strain):
+    
+        for gene, factorGraph in self.factorGraphs.items():
+            
+            if not drop_strain[gene][g] 
+            
+                unitigs = self.assemblyGraphs[gene].unitigs
+                   
+                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)
+                    
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
 
+                factorGraph.var['sink+infty+'].condition(1)
+                    
+                graphString = str(factorGraph)
+                graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
+                graphFileName = graphFileStub + '.fg'
+                    
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+                    
+                fgFileStubs[gene] = graphFileStub
+        
+        return fgFileStubs
+                    
+    def readMarginals(self, g, drop_strain):
+    
+        for gene, factorGraph in self.factorGraphs.items():
+            if not drop_strain[gene][g]: 
+                outFile = fgFileStubs[gene] + '.out'
+        
+                try:
+                    inHandle = open(outFile, 'r')
+                    
+                    outString = inHandle.readlines()
+
+                    inHandle.close()
+
+                    margP = self.parseMargString(factorGraph,str(outString))
+                    if len(margP) > 0:
+                        self.margG[gene][g] = margP
+
+                    self.updateExpPhi(self.assemblyGraphs[gene].unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+        
+                    if os.path.exists(outFile):
+                        os.remove(outFile)
+
+                    if os.path.exists(fgFileStubs[gene]  + '.fg'):
+                        os.remove(fgFileStubs[gene]  + '.fg')
+                except FileNotFoundError:
+                    print("Wrong file or file path")
+
+    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None):
+
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
+            
         iter = 0
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
         self.updateTau() 
         while iter < maxIter:
             #update phi marginals
@@ -760,29 +818,9 @@ class AssemblyPathSVA():
                 self.removeGamma(g)
                 fgFileStubs = {}
                 threads = []
-                gidx = 0
                 
-                for gene, factorGraph in self.factorGraphs.items():
-                    unitigs = self.assemblyGraphs[gene].unitigs
-                   
-                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)
-                    
-                    factorGraph.reset()
-        
-                    factorGraph.var['zero+source+'].condition(1)
-
-                    factorGraph.var['sink+infty+'].condition(1)
-                    
-                    graphString = str(factorGraph)
-                    graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
-                    graphFileName = graphFileStub + '.fg'
-                    
-                    with open(graphFileName, "w") as text_file:
-                        print(graphString, file=text_file)
-                    
-                    fgFileStubs[gene] = graphFileStub
-                    
-                    gidx += 1
+                fgFileStubs = self.writeFactorGraphs(g, drop_strain)
+                
                 pool = ThreadPool(len(self.genes))
                 results = []
                 for gene, graphFileStub in fgFileStubs.items():
@@ -795,34 +833,8 @@ class AssemblyPathSVA():
                 for result in results:
                     out, err = result.get()
         #            print("out: {} err: {}".format(out, err))
-                      
-                for gene, factorGraph in self.factorGraphs.items():
                 
-                    outFile = fgFileStubs[gene] + '.out'
-        
-                    try:
-                        inHandle = open(outFile, 'r')
-                    
-                        outString = inHandle.readlines()
-
-                        inHandle.close()
-
-                        margP = self.parseMargString(factorGraph,str(outString))
-                        if len(margP) > 0:
-                            self.margG[gene][g] = margP
-
-                        self.updateExpPhi(self.assemblyGraphs[gene].unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-        
-                        if os.path.exists(outFile):
-                            os.remove(outFile)
-
-                        if os.path.exists(fgFileStubs[gene]  + '.fg'):
-                            os.remove(fgFileStubs[gene]  + '.fg')
-
-
-                    except FileNotFoundError:
-                        print("Wrong file or file path")
-       
+                self.readMarginals(g,drop_strain)
                            
                 self.addGamma(g)
             
@@ -830,7 +842,6 @@ class AssemblyPathSVA():
                 for g in range(self.G):
                     self.update_lambdak(g)
                     self.update_exp_lambdak(g)
-            
             
             for g in range(self.G):
                 self.updateGamma(g)
@@ -1215,17 +1226,32 @@ class AssemblyPathSVA():
             current_gene_elbos[gene] = current_gene_elbo             
             print(gene + "," + str(current_gene_elbo) + "," + str(current_gene_elbo/float(len(self.mapUnitigs[gene]))))
 
-        
+        diff_elbo = defaultdict(list)
         for g in range(self.G):
             self.removeGamma(g)
             
             for gene in self.genes:
                 new_gene_elbo = self.calc_unitig_elbo(gene, self.mapUnitigs[gene])
-                           
-                print(gene + "," + str(g) + "," + str(new_gene_elbo - current_gene_elbos[gene]))
+                diff_elbof = (new_gene_elbo - current_gene_elbos[gene])/float(len(self.mapUnitigs[gene]))
+                
+                if diff_elbof < 0:
+                    diff_elbo[gene].append(False)
+                else:
+                    diff_elbo[gene].append(True)
+                    
+                print(gene + "," + str(g) + "," + str(diff_elbof))
 
             self.addGamma(g)
+            
+        return diff_elbo
 
+    def drop_gene_strains(self, gene, g):
+        
+        unitig_drops = [self.mapGeneIdx[gene][x] for x in self.mapUnitigs[gene]]
+        
+        self.expPhi[unitig_drops][g] = 0.
+        self.expPhi2[unitig_drops][g] = 0.
+                
 
     def calc_unitig_elbo(self, gene, unitigs):
         ''' Compute the ELBO of a subset of unitigs. '''
@@ -1593,7 +1619,10 @@ class AssemblyPathSVA():
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
 
 
-    def getMaximalUnitigs(self,fileName):
+    def getMaximalUnitigs(self,fileName,drop_strain=None):
+
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
 
         self.MAPs = defaultdict(list)
         haplotypes = defaultdict(list)
@@ -1602,41 +1631,48 @@ class AssemblyPathSVA():
 
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
-                unitigs = self.assemblyGraphs[gene].unitigs
+                if not drop_strain[gene][g]:
+        
+                    unitigs = self.assemblyGraphs[gene].unitigs
 
-                self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])        
-                factorGraph.reset()
+                    self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])        
+                    factorGraph.reset()
 
-                factorGraph.var['zero+source+'].condition(1)
+                    factorGraph.var['zero+source+'].condition(1)
 
-                factorGraph.var['sink+infty+'].condition(1)
+                    factorGraph.var['sink+infty+'].condition(1)
 
-                graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
+                    graphString = str(factorGraph)
+                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
-                with open(graphFileName, "w") as text_file:
-                    print(graphString, file=text_file)
+                    with open(graphFileName, "w") as text_file:
+                        print(graphString, file=text_file)
 
-                cmd = './runfg ' + graphFileName + ' 0'
+                    cmd = './runfg ' + graphFileName + ' 0'
 
-                p = Popen(cmd, stdout=PIPE,shell=True)
+                    p = Popen(cmd, stdout=PIPE,shell=True)
 
-                outString = p.stdout.read()
+                    outString = p.stdout.read()
 
-                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
-                biGraph = self.factorDiGraphs[gene]
+                    self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
+                    biGraph = self.factorDiGraphs[gene]
                 
-                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
-                pathG.pop(0)
-                unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                haplotypes[gene].append(unitig)
-                os.remove(graphFileName)
+                    pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                    pathG.pop(0)
+                    unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                    haplotypes[gene].append(unitig)
+                    os.remove(graphFileName)
+                else:
+                    haplotypes[gene].append("")
+                    
+                    
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
                 if output[g]:
                     for gene, factorGraph in self.factorGraphs.items():
-                        fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                        fastaFile.write(haplotypes[gene][g]+"\n")
+                        if not drop_strain[gene][g]:
+                            fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                            fastaFile.write(haplotypes[gene][g]+"\n")
 
     def outputOptimalRefPaths(self, ref_hit_file):
         
