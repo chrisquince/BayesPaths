@@ -85,9 +85,11 @@ class AssemblyPathSVA():
         
         self.no_folds = no_folds
         
-        if self.minIntensity = None:
+        if minIntensity == None:
             self.minIntensity = 2.0/self.readLength
-        
+        else:
+            self.minIntensity = minIntensity
+
         #prior parameters for Gamma tau
         self.alpha = alpha
         self.beta  = beta
@@ -814,7 +816,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(self.minIntenisty, 10)
+                    self.removeRedundant(self.minIntensity, 10)
             
             for g in range(self.G):
                 
@@ -1603,7 +1605,10 @@ class AssemblyPathSVA():
                         thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
 
 
-    def writeMaximals(self,fileName):
+    def writeMaximals(self,fileName,drop_strain=None):
+
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
 
         with open(fileName, "w") as margFile:
             for gene, factorGraph in self.factorGraphs.items():
@@ -1613,8 +1618,9 @@ class AssemblyPathSVA():
                     if unitig in self.margG[gene][0]:
                         vals = []
                         for g in range(self.G):
-                            if self.MAPs[gene][g][unitig] == 1:
-                                vals.append(g)                  
+                            if not drop_strain[gene][g]:
+                                if self.MAPs[gene][g][unitig] == 1:
+                                    vals.append(g)                  
                         vString = "\t".join([str(x) for x in vals])
 
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
@@ -1665,7 +1671,7 @@ class AssemblyPathSVA():
                     os.remove(graphFileName)
                 else:
                     haplotypes[gene].append("")
-                    
+                    self.MAPs[gene].append(None)            
                     
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
