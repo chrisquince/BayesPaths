@@ -750,7 +750,7 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def writeFactorGraphs(self, g, drop_strain):
+    def writeFactorGraphs(self, g, drop_strain, relax_path):
         fgFileStubs = {}
         for gene, factorGraph in self.factorGraphs.items():
             
@@ -762,9 +762,14 @@ class AssemblyPathSVA():
                     
                 factorGraph.reset()
         
-                factorGraph.var['zero+source+'].condition(1)
+                if relax_path:
+                    factorGraph.var['zero+source+'].clear_condition()
 
-                factorGraph.var['sink+infty+'].condition(1)
+                    factorGraph.var['sink+infty+'].clear_condition()
+                else:
+                    factorGraph.var['zero+source+'].condition(1)
+
+                    factorGraph.var['sink+infty+'].condition(1)
                     
                 graphString = str(factorGraph)
                 graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
@@ -804,7 +809,7 @@ class AssemblyPathSVA():
                 except FileNotFoundError:
                     print("Wrong file or file path")
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None):
+    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -816,7 +821,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(self.minIntensity, 10)
+                    self.removeRedundant(self.minIntensity, 10,relax_path)
             
             for g in range(self.G):
                 
@@ -824,7 +829,7 @@ class AssemblyPathSVA():
                 fgFileStubs = {}
                 threads = []
                 
-                fgFileStubs = self.writeFactorGraphs(g, drop_strain)
+                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
                 
                 pool = ThreadPool(len(self.genes))
                 results = []
@@ -983,11 +988,12 @@ class AssemblyPathSVA():
                 if mapPath[outPath] == 1 and outPath not in visited:
                     visited.add(outPath)
                     break
-            
             path.append(current)
+            if mapPath[outPath] == 1: 
+                current = list(factorGraph.successors(outPath))[0]
+            else:
+                break
             
-            current = list(factorGraph.successors(outPath))[0]
-
         return path
 
 
@@ -1397,7 +1403,7 @@ class AssemblyPathSVA():
         return (M * (R-R_pred)**2).sum() / float(M.sum())
 
 
-    def calcPathDist(self):
+    def calcPathDist(self, relax_path):
         
         dist = np.zeros((self.G,self.G))
         
@@ -1412,10 +1418,15 @@ class AssemblyPathSVA():
 
                 factorGraph.reset()
 
-                factorGraph.var['zero+source+'].condition(1)
+                if not relax_path: 
+                    factorGraph.var['zero+source+'].condition(1)
 
-                factorGraph.var['sink+infty+'].condition(1)
+                    factorGraph.var['sink+infty+'].condition(1)
+                else:
+                    factorGraph.var['zero+source+'].clear_condition()
 
+                    factorGraph.var['sink+infty+'].clear_condition()
+                
                 graphString = str(factorGraph)
                 graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
@@ -1445,14 +1456,14 @@ class AssemblyPathSVA():
         return dist
         
     ''' Removes strain below a given total intensity and degenerate'''
-    def removeRedundant(self, minIntensity, gammaIter):
+    def removeRedundant(self, minIntensity, gammaIter, relax_path):
     
         #calculate number of good strains
         nNewG = 0
         
         sumIntensity = np.max(self.expGamma,axis=1)
         
-        dist = self.calcPathDist()
+        dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
         removed = sumIntensity < minIntensity
         
@@ -1626,7 +1637,7 @@ class AssemblyPathSVA():
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
 
 
-    def getMaximalUnitigs(self,fileName,drop_strain=None):
+    def getMaximalUnitigs(self,fileName,drop_strain=None,relax_path=False):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -1645,10 +1656,15 @@ class AssemblyPathSVA():
                     self.updateUnitigFactorsMarg(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], self.margG[gene][g])        
                     factorGraph.reset()
 
-                    factorGraph.var['zero+source+'].condition(1)
+                    if not relax_path:
+                        factorGraph.var['zero+source+'].condition(1)
 
-                    factorGraph.var['sink+infty+'].condition(1)
+                        factorGraph.var['sink+infty+'].condition(1)
+                    else:
+                        factorGraph.var['zero+source+'].clear_condition()
 
+                        factorGraph.var['sink+infty+'].clear_condition()
+                    
                     graphString = str(factorGraph)
                     graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
 
@@ -1666,8 +1682,12 @@ class AssemblyPathSVA():
                 
                     pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                     pathG.pop(0)
-                    unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                    haplotypes[gene].append(unitig)
+                    if len(pathG) > 0:
+                        unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                        haplotypes[gene].append(unitig)
+                    else:
+                        haplotypes[gene].append("")
+                        
                     os.remove(graphFileName)
                 else:
                     haplotypes[gene].append("")
@@ -1677,7 +1697,7 @@ class AssemblyPathSVA():
             for g in range(self.G):
                 if output[g]:
                     for gene, factorGraph in self.factorGraphs.items():
-                        if not drop_strain[gene][g]:
+                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
                             fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
                             fastaFile.write(haplotypes[gene][g]+"\n")
 
