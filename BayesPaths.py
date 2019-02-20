@@ -95,9 +95,9 @@ def main(argv):
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa", strain_drop_elbo, relax_path=True)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa",drop_strain=None, relax_path=True)
  
-    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",strain_drop_elbo)
+    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
     assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
