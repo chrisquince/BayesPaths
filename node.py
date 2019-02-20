@@ -102,6 +102,13 @@ class VarNode(Node):
             self.outgoing[i][self.observed] = 1.
         self.nextStep() # copy into oldoutgoing
 
+    def clear_condition(self):
+        """ Set as unobserved
+        """
+        self.observed = -1
+        
+        self.reset()
+
     def prepMessages(self):
         """ Multiplies together incoming messages to make new outgoing
         """
