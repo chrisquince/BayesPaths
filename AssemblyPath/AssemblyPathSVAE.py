@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None, fgExePath="../runfg_source/"):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -71,6 +71,8 @@ class AssemblyPathSVA():
         
         self.sink_maps = sink_maps
  
+        self.fgExePath = fgExePath
+
         self.factorGraphs = {} # dict of factorGraphs as pyfac Graphs
 
         self.factorDiGraphs = {} # dict of factorGraphs as networkx diGraphs
@@ -836,7 +838,7 @@ class AssemblyPathSVA():
                 for gene, graphFileStub in fgFileStubs.items():
                     graphFileName = graphFileStub + '.fg'
                     outFileName = graphFileStub + '.out'
-                    cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
+                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0'
                     results.append(pool.apply_async(call_proc, (cmd,)))
                 pool.close()
                 pool.join()
