@@ -31,7 +31,7 @@ from collections import defaultdict
 from collections import Counter
 from numpy.random import RandomState
 
-from graph import Graph
+from AssemblyPath.graph import Graph
 from Utils.UtilsFunctions import convertNodeToName
 from Utils.UtilsFunctions import elop
 from Utils.UtilsFunctions import expNormLogProb
@@ -39,7 +39,7 @@ from Utils.UtilsFunctions import TN_vector_expectation
 from Utils.UtilsFunctions import TN_vector_variance
 from Utils.UtilsFunctions import readRefAssign
 from Utils.UnitigGraph import UnitigGraph
-from NMFM import NMF
+from AssemblyPath.NMFM import NMF
  
 import multiprocessing
 import subprocess
@@ -1846,7 +1846,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(100, True)
+        assGraph.update(200, True, logFile=None,drop_strain=None,relax_path=True)
         
         gene_mean_error = assGraph.gene_mean_diff()
         

@@ -3,7 +3,7 @@ from __future__ import print_function
 from builtins import range
 from future.utils import iteritems
 import numpy as np
-from node import FacNode, VarNode
+from AssemblyPath.node import FacNode, VarNode
 import pdb
 
 """ Factor Graph classes forming structure for PGMs

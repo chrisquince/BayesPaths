@@ -7,7 +7,7 @@ import re
 
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPathSVAE import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAE import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
@@ -75,11 +75,11 @@ def main(argv):
         
         stops = []
         
-        with open(deadEndFile) as f:
+        with open(stopFile) as f:
             for line in f:
-                line.strip()
+                line = line.strip()
                 toks = line.split("\t")
-                deadEnds.append((toks[0],toks[1]))
+                stops.append((toks[0],toks[1]))
         
         (source_list, sink_list) = unitigGraph.selectSourceSinks(args.frac)
 
