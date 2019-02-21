@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None, fgExePath="../runfg_source/"):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None, fgExePath="./runfg_source/"):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -523,9 +523,10 @@ class AssemblyPathSVA():
                             mapMarg[varName] = np.asarray(floatVals)
         return mapMarg
     
-    def parseFGString(self, factorGraph, outputString):
+    def parseFGString(self, factorGraph, lines):
         mapVar = {}
-        lines = outputString.split('\\n')
+        lines = [x.strip() for x in lines] 
+        #lines = outputString.split('\\n')
         bFirst = True
         for line in lines:
             if not bFirst:
@@ -1085,8 +1086,9 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
                     
                 graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
-                outFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.out'
+                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+                graphFileName = outFileStub + '.fg'                
+                outFileName = outFileStub + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                       
@@ -1100,6 +1102,7 @@ class AssemblyPathSVA():
              
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                 os.remove(graphFileName) 
+                os.remove(outFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -1429,8 +1432,9 @@ class AssemblyPathSVA():
                     factorGraph.var['sink+infty+'].clear_condition()
                 
                 graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
-
+                graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
+                graphFileName = graphFileStub + '.fg'                
+                outFileName = graphFileStub + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
 
@@ -1439,15 +1443,16 @@ class AssemblyPathSVA():
                 p = Popen(cmd, stdout=PIPE,shell=True)
 
                 with open (outFileName, "r") as myfile:
-                    outString=myfile.readlines()
+                    outLines=myfile.readlines()
 
-                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
+                self.MAPs[gene].append(self.parseFGString(factorGraph,outLines))
                 biGraph = self.factorDiGraphs[gene]
 
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
                 os.remove(graphFileName)
+                os.remove(outFileName)
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1554,8 +1559,11 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
+                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
 
+                graphFileName = outFileStub + '.fg'                
+                outFileName = outFileStub + '.out'
+ 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
 
@@ -1574,6 +1582,7 @@ class AssemblyPathSVA():
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
                 os.remove(graphFileName)
+                os.remove(outFileName)
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1670,7 +1679,10 @@ class AssemblyPathSVA():
                         factorGraph.var['sink+infty+'].clear_condition()
                     
                     graphString = str(factorGraph)
-                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
+                    
+                    outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+                    graphFileName = outFileStub + '.fg'                
+                    outFileName = outFileStub + ".out"
 
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
@@ -1696,6 +1708,7 @@ class AssemblyPathSVA():
                         haplotypes[gene].append("")
                         
                     os.remove(graphFileName)
+                    os.remove(outFileName)
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
@@ -1730,7 +1743,9 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 graphString = str(factorGraph)
-                graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                
+                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+                graphFileName = outFileStub + '.fg'                
+                outFileName = outFileStub + '.out'                 
 
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -1756,6 +1771,7 @@ class AssemblyPathSVA():
                     
                 refs.append(unitig)    
                 os.remove(graphFileName)
+                os.remove(outFileName)
             r = r + 1
         r = 0
         with open("Ref.fa", "w") as fastaFile:
