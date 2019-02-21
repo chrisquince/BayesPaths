@@ -838,7 +838,7 @@ class AssemblyPathSVA():
                 for gene, graphFileStub in fgFileStubs.items():
                     graphFileName = graphFileStub + '.fg'
                     outFileName = graphFileStub + '.out'
-                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0'
+                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
                     results.append(pool.apply_async(call_proc, (cmd,)))
                 pool.close()
                 pool.join()
@@ -1044,7 +1044,7 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                 
-                cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
                
                 #subprocess.run('./runfg_marg_old ' + graphFileName + ' 0 > ' + outFileName, shell=True,check=True)
  
@@ -1090,8 +1090,7 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                       
-                cmd = './runfg_marg ' + graphFileName + ' ' + outFileName + ' 0'
-                
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'                
                 p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
@@ -1435,11 +1434,12 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
 
-                cmd = './runfg ' + graphFileName + ' 0'
-
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1'  
+                
                 p = Popen(cmd, stdout=PIPE,shell=True)
 
-                outString = p.stdout.read()
+                with open (outFileName, "r") as myfile:
+                    outString=myfile.readlines()
 
                 self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                 biGraph = self.factorDiGraphs[gene]
@@ -1559,11 +1559,13 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
 
-                cmd = './runfg ' + graphFileName + ' 0'
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
 
                 p = Popen(cmd, stdout=PIPE,shell=True)
 
-                outString = p.stdout.read()
+                with open (outFileName, "r") as myfile:
+                    outString=myfile.readlines()
+                
 
                 self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                 biGraph = self.factorDiGraphs[gene]
@@ -1673,11 +1675,14 @@ class AssemblyPathSVA():
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
 
-                    cmd = './runfg ' + graphFileName + ' 0'
+
+                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
 
                     p = Popen(cmd, stdout=PIPE,shell=True)
 
-                    outString = p.stdout.read()
+                    with open (outFileName, "r") as myfile:
+                        outString=myfile.readlines()
+                    
 
                     self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                     biGraph = self.factorDiGraphs[gene]
@@ -1730,11 +1735,14 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
 
-                cmd = './runfg ' + graphFileName + ' 0'
+                
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
 
                 p = Popen(cmd, stdout=PIPE,shell=True)
 
-                outString = p.stdout.read()
+                with open (outFileName, "r") as myfile:
+                    outString=myfile.readlines()
+                        
 
                 refMAPs[r] = self.parseFGString(factorGraph, str(outString))
             
