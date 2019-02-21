@@ -1431,21 +1431,9 @@ class AssemblyPathSVA():
 
                     factorGraph.var['sink+infty+'].clear_condition()
                 
-                graphString = str(factorGraph)
-                graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
-                graphFileName = graphFileStub + '.fg'                
-                outFileName = graphFileStub + '.out'
-                with open(graphFileName, "w") as text_file:
-                    print(graphString, file=text_file)
-
-                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1'  
+                maximals = self.runFGMaximal(factorGraph, g)
                 
-                p = Popen(cmd, stdout=PIPE,shell=True)
-
-                with open (outFileName, "r") as myfile:
-                    outLines=myfile.readlines()
-
-                self.MAPs[gene].append(self.parseFGString(factorGraph,outLines))
+                self.MAPs[gene].append(maximals)
                 biGraph = self.factorDiGraphs[gene]
 
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
@@ -1558,25 +1546,9 @@ class AssemblyPathSVA():
 
                 factorGraph.var['sink+infty+'].condition(1)
 
-                graphString = str(factorGraph)
-                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+                maximals = self.runFGMaximal(factorGraph, g)
 
-                graphFileName = outFileStub + '.fg'                
-                outFileName = outFileStub + '.out'
- 
-                with open(graphFileName, "w") as text_file:
-                    print(graphString, file=text_file)
-
-                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
-
-                p = Popen(cmd, stdout=PIPE,shell=True)
-
-                with open (outFileName, "r") as myfile:
-                    outString=myfile.readlines()
-                
-
-                self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
-                biGraph = self.factorDiGraphs[gene]
+                self.MAPs[gene].append(maximals)
 
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
@@ -1649,6 +1621,32 @@ class AssemblyPathSVA():
 
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
 
+    def runFGMaximal(self, factorGraph, g):
+        graphString = str(factorGraph)
+                    
+        outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+        graphFileName = outFileStub + '.fg'                
+        outFileName = outFileStub + ".out"
+
+        with open(graphFileName, "w") as text_file:
+            print(graphString, file=text_file)
+
+
+        cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
+
+        p = Popen(cmd, stdout=PIPE,shell=True)
+             
+        p.wait()
+
+        with open (outFileName, "r") as myfile:
+            outString=myfile.readlines()
+       
+        os.remove(graphFileName)
+        os.remove(outFileName)
+        
+        return self.parseFGString(factorGraph, outString)
+                    
+
 
     def getMaximalUnitigs(self,fileName,drop_strain=None,relax_path=False):
 
@@ -1678,25 +1676,10 @@ class AssemblyPathSVA():
 
                         factorGraph.var['sink+infty+'].clear_condition()
                     
-                    graphString = str(factorGraph)
+                    maximals = self.runFGMaximal(factorGraph, g)
                     
-                    outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
-                    graphFileName = outFileStub + '.fg'                
-                    outFileName = outFileStub + ".out"
-
-                    with open(graphFileName, "w") as text_file:
-                        print(graphString, file=text_file)
-
-
-                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
-
-                    p = Popen(cmd, stdout=PIPE,shell=True)
-
-                    with open (outFileName, "r") as myfile:
-                        outString=myfile.readlines()
+                    self.MAPs[gene].append(maximals) 
                     
-
-                    self.MAPs[gene].append(self.parseFGString(factorGraph,str(outString)))
                     biGraph = self.factorDiGraphs[gene]
                 
                     pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
@@ -1707,8 +1690,6 @@ class AssemblyPathSVA():
                     else:
                         haplotypes[gene].append("")
                         
-                    os.remove(graphFileName)
-                    os.remove(outFileName)
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
@@ -1742,24 +1723,9 @@ class AssemblyPathSVA():
 
                 factorGraph.var['sink+infty+'].condition(1)
 
-                graphString = str(factorGraph)
-                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
-                graphFileName = outFileStub + '.fg'                
-                outFileName = outFileStub + '.out'                 
-
-                with open(graphFileName, "w") as text_file:
-                    print(graphString, file=text_file)
-
-                
-                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
-
-                p = Popen(cmd, stdout=PIPE,shell=True)
-
-                with open (outFileName, "r") as myfile:
-                    outString=myfile.readlines()
-                        
-
-                refMAPs[r] = self.parseFGString(factorGraph, str(outString))
+                maximals = self.runFGMaximal(factorGraph, r)
+                    
+                refMAPs[r] = maximals
             
                 self.margG[gene][ref] = self.convertMAPMarg(refMAPs[r],factorGraph.mapNodes)
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][ref],r)
