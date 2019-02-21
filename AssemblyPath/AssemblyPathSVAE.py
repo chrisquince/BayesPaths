@@ -1439,8 +1439,7 @@ class AssemblyPathSVA():
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
-                os.remove(graphFileName)
-                os.remove(outFileName)
+        
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1553,8 +1552,6 @@ class AssemblyPathSVA():
                 pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                 pathG.pop(0)
                 pathsg[g][gene] = pathG
-                os.remove(graphFileName)
-                os.remove(outFileName)
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
@@ -1736,8 +1733,6 @@ class AssemblyPathSVA():
                 unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                     
                 refs.append(unitig)    
-                os.remove(graphFileName)
-                os.remove(outFileName)
             r = r + 1
         r = 0
         with open("Ref.fa", "w") as fastaFile:
