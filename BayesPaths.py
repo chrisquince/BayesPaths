@@ -81,7 +81,8 @@ def main(argv):
                 toks = line.split("\t")
                 stops.append((toks[0],toks[1]))
         
-        (source_list, sink_list) = unitigGraph.selectSourceSinks(args.frac)
+        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadends)
+        
 
         source_names = [convertNodeToName(source) for source in source_list] 
         sink_names = [convertNodeToName(sink) for sink in sink_list]

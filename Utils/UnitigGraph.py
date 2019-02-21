@@ -595,6 +595,110 @@ class UnitigGraph():
             sink_list = []
         
         return (source_list,sink_list)
+
+    def isReachable(target, sources, pathDict):
+        hit = None
+        for source in sources:
+            targetPlus = target + "+"
+            
+            if targetPlus in pathDict[source]:
+                hit = targetPlus
+                break
+        
+            targetMinus = target + "-"
+            
+            if targetMinus in pathDict[source]:
+                hit = targetMinus
+                break
+        
+        return hit
+    
+    def isReachableReverse(target,sinks, pathDict):
+        
+        hit = None
+        for sink in sinks:
+            targetPlus = target + "+"
+            
+            if sink in pathDict[targetPlus]:
+                hit = targetPlus
+                break
+        
+            targetMinus = target + "-"
+            
+            if sink in pathDict[targetMinus]:
+                hit = targetMinus
+                break
+        
+        return hit
+        
+            
+    def selectSourceSinksStops(self, stops, deadends):
+    
+        sources = []
+        sinks = []
+
+        deadEndSet = set(deadends)        
+        sourceSinks = []
+        for unitig in self.undirectedUnitigGraph.nodes():
+            sourceSink = self.isSourceSink(unitig)
+            
+            if sourceSink is not None and sourceSink not in deadEndSet:
+                sourceSinks.append(unitig)
+            
+        #get all path lengths
+        self.createDirectedBiGraph()
+        #define sinks as stop tips and tips reachable from from stops on forward graph
+        
+        stopMap = {}
+        for stop in stops:
+            stopMap[stop[0]] = stop
+                        
+        allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
+        allSSDict = defaultdict(dict)       
+
+        for sourcePaths in allPaths:
+            source = sourcePaths[0]
+            unitig = source[:-1]
+            if unitig in sourceSinks:
+
+                for sink, length in sourcePaths[1].items(): 
+                    sinkUnitig = sink[:-1]
+                    if sinkUnitig in sourceSinks:
+                        allSSDict[source][sink] = length
+
+        sinks = []
+        sinkUnitigs = set()
+        stopNames = [convertNodeToName(x) for x in stops] 
+        for sourceSink in sourceSinks:
+            if sourceSink in stopMap:
+                sinks.append(stopMap[sourceSink])
+                sinkUnitigs.add(convertNodeToName(sourceSink))
+            else:
+                hit = self.isReachable(sourceSink,stopNames,allSSDict)
+                if hit is not None:
+                    sinks.append(hit)
+                    sinkUnitigs.add(sourceSink)
+        
+        sources = []
+        for sourceSink in sourceSinks:
+            if sourceSink not in sinkUnitigs:
+                hit = self.isReachableReverse(sourceSink,sinks,allSSDict)
+     
+                if hit is not None:
+                    sources.append(hit)
+                
+        #now add remainder if reachable in reverse
+        if len(sources) > 0:
+            source_list = list(map(convertNameToNode2, sources))
+        else:
+            source_list = []
+        if len(sinks) > 0:
+            sink_list = list(map(convertNameToNode2, sinks))
+        else:
+            sink_list = []
+        
+        return (source_list,sink_list)
+        
     
     def selectSourceSinks(self, dFrac):
     
