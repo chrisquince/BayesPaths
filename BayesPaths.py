@@ -63,6 +63,24 @@ def main(argv):
         
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
             
+        deadEndFile = gfaFile[:-3] + "deadends"
+        
+        stopFile = gfaFile[:-3] + "stops"
+        
+        deadEnds = []
+        with open(deadEndFile) as f:
+            for line in f:
+                line.strip()
+                deadEnds.append(line)
+        
+        stops = []
+        
+        with open(deadEndFile) as f:
+            for line in f:
+                line.strip()
+                toks = line.split("\t")
+                deadEnds.append((toks[0],toks[1]))
+        
         (source_list, sink_list) = unitigGraph.selectSourceSinks(args.frac)
 
         source_names = [convertNodeToName(source) for source in source_list] 
