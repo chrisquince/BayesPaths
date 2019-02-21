@@ -134,8 +134,8 @@ int main( int argc, char *argv[] )
         
             outfile.open(argv[2]);
             outfile << "Approximate (loopy belief propagation) factor marginals:" << endl;
-            for( size_t I = 0; I < fg.nrFactors(); I++ ){ // iterate over all factors in fg
-                outfile << bp.belief(fg.factor(I).vars()) << endl; // display the belief of bp for the variables in that factor
+            for( size_t i = 0; i < bp.nrVars(); i++ ){ // iterate over all variables in fg
+                outfile << bp.belief(bp.var(i)) << endl; // display the "belief" of jt for that variable
             }
             outfile.close();
         }
