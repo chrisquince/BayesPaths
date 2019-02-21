@@ -60,7 +60,8 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0, minIntensity = None, fgExePath="./runfg_source/"):
+                no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0,
+                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -226,11 +227,8 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
-        if self.Omega < 100:
-            self.nQuant = 1
-        else:
-            self.nQuant = 10
-        self.nQuant = 4 
+        self.nQuant = nTauCats
+
         self.dQuant = 1.0/self.nQuant
         self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
     
@@ -494,10 +492,9 @@ class AssemblyPathSVA():
             
             tempGraph.add_edge(self.sourceNode,edgeName)
    
-    def parseMargString(self, factorGraph, outputString):
+    def parseMargString(self, factorGraph, lines):
         mapMarg = {}
-        lines = outputString.split('\\n')
-        #({x410}, (0.625, 0.375, 0))
+        lines = [x.strip() for x in lines] 
          
         for line in lines:
             matchP = re.search(r'\((.*)\)',line)
@@ -794,11 +791,11 @@ class AssemblyPathSVA():
                 try:
                     inHandle = open(outFile, 'r')
                     
-                    outString = inHandle.readlines()
+                    outLines = inHandle.readlines()
 
                     inHandle.close()
 
-                    margP = self.parseMargString(factorGraph,str(outString))
+                    margP = self.parseMargString(factorGraph, outLines)
                     if len(margP) > 0:
                         self.margG[gene][g] = margP
 
@@ -915,11 +912,11 @@ class AssemblyPathSVA():
                 
                     p = Popen(cmd, stdout=PIPE,shell=True)
         
-                    outString = p.stdout.read()
+                    outLines = p.stdout.read()
                
-                    margP = self.parseMargString(factorGraph,str(outString))
+                    margP = self.parseMargString(factorGraph, outLines)
                     if len(margP) > 0:
-                        self.margG[gene][g] = self.parseMargString(factorGraph,str(outString)) 
+                        self.margG[gene][g] = margP
        
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                     os.remove(graphFileName) 
@@ -1054,9 +1051,9 @@ class AssemblyPathSVA():
                 #p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
-                    outString=myfile.readlines()
+                    outLines=myfile.readlines()
                 
-                self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
+                self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                 os.remove(graphFileName)
                 os.remove(outFileName)
@@ -1096,9 +1093,9 @@ class AssemblyPathSVA():
                 p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
-                    outString=myfile.readlines()
+                    outLines=myfile.readlines()
                 
-                self.margG[gene][g] = self.parseMargString(factorGraph,str(outString))
+                self.margG[gene][g] = self.parseMargString(factorGraph, outLines)
              
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                 os.remove(graphFileName) 
