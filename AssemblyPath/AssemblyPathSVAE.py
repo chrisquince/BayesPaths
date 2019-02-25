@@ -1018,22 +1018,22 @@ class AssemblyPathSVA():
             outPaths = list(biGraph.successors(current))
             
             destinations = [list(biGraph.successors(x))[0] for x in outPaths]
-            
-            NDest = len(destinations)
-            
-            n = 0
-            divN = np.zeros(NDest)
-            for dest in destinations:
-                unitig = dest[:-1]
-                
-                if unitig in self.unitigFactorNodes[gene]:
-                    unitigFacNode = self.unitigFactorNodes[gene][unitig]
-                    divN[n] = unitigFacNode.P[1]
-
-                n = n+1 
-            outPath = outPaths[np.argmax(divN)]
-            
             path.append(current)
+            NDest = len(destinations)
+            if NDest > 0:
+                n = 0
+                divN = np.zeros(NDest)
+                for dest in destinations:
+                    unitig = dest[:-1]
+                
+                    if unitig in self.unitigFactorNodes[gene]:
+                        unitigFacNode = self.unitigFactorNodes[gene][unitig]
+                        divN[n] = unitigFacNode.P[1]
+
+                    n = n+1 
+                outPath = outPaths[np.argmax(divN)]
+            else:
+                break
             
             current = list(biGraph.successors(outPath))[0]
             #print(str(current))

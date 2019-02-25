@@ -671,6 +671,7 @@ class UnitigGraph():
 
         sinks = []
         sinkUnitigs = set()
+        sourceUnitigs = set()
         stopNames = [convertNodeToName(x) for x in stops] 
         
         for sourceSink in sourceSinks:
@@ -690,8 +691,17 @@ class UnitigGraph():
      
                 if hit is not None:
                     sources.append(hit)
+                    sourceUnitigs.add(sourceSink)
                 
         #now add remainder if reachable in reverse
+        for sourceSink in sourceSinks:
+            if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
+                hit = self.isReachable(sourceSink,sources,allSSDict)
+
+                if hit is not None:
+                    sinks.append(hit)
+                    sinkUnitigs.add(sourceSink)
+
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
         else:
