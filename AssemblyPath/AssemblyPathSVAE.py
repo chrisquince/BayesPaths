@@ -810,9 +810,29 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
                 except FileNotFoundError:
-                    greedyPath = self.sampleGreedyPath(gene, g)
                 
-                    print("Wrong file or file path")
+                    if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
+                        print("Attempt greedy path")
+                        greedyPath = self.sampleGreedyPath(gene, g)
+                    
+                        for unitig in self.assemblyGraphs[gene].unitigs:
+                            v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                            self.expPhi[v_idx,g] = 0.
+                            self.expPhi2[v_idx,g] = 0.  
+                        
+                        for unitig in greedyPath:
+                            if unitig in self.mapGeneIdx[gene]:
+                                v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                                self.expPhi[v_idx,g] = 1.
+                                self.expPhi2[v_idx,g] = 1.  
+                    else:
+                        print("Cannot attempt greedy path")
+                        
+                    fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
+                    if os.path.exists(fgFile):
+                        os.remove(fgFile)
 
     def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False):
 
@@ -991,6 +1011,8 @@ class AssemblyPathSVA():
     
         biGraph = self.factorDiGraphs[gene]
     
+        assert nx.is_directed_acyclic_graph(biGraph)
+        
         while current != self.sinkNode:
             
             outPaths = list(biGraph.successors(current))
@@ -1003,12 +1025,10 @@ class AssemblyPathSVA():
             divN = np.zeros(NDest)
             for dest in destinations:
                 unitig = dest[:-1]
-                if unitig in self.mapGeneIdx[gene]:
-                    v_idx = self.mapIdx[unitig]
-                    
-                    if unitig in self.unitigFactorNodes[gene]:
-                        unitigFacNode = self.unitigFactorNodes[gene][unitig]
-                        divN[n] = unitigFacNode.P[1]
+                
+                if unitig in self.unitigFactorNodes[gene]:
+                    unitigFacNode = self.unitigFactorNodes[gene][unitig]
+                    divN[n] = unitigFacNode.P[1]
 
                 n = n+1 
             outPath = outPaths[np.argmax(divN)]
