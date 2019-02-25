@@ -810,6 +810,8 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
                 except FileNotFoundError:
+                    greedyPath = self.sampleGreedyPath(gene, factorGraph, g)
+                
                     print("Wrong file or file path")
 
     def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False):
@@ -975,6 +977,45 @@ class AssemblyPathSVA():
             R = self.eLambda - self.XN
 
         return np.multiply(R, R)
+
+    def divergenceN(self, XN, Va):
+    
+        return (np.multiply(XN, np.log(elop(XN, Va, truediv))) - XN + Va).sum()
+
+
+    def sampleGreedyPath(self, gene, factorGraph, g):
+    
+        path = []
+    
+        current = self.sourceNode
+    
+        while current != self.sinkNode:
+            
+            outPaths = list(factorGraph.successors(current))
+            
+            destinations = [list(factorGraph.successors(x))[0] for x in outPaths]
+            
+            NDest = len(destinations)
+            
+            
+            n = 0
+            divN = np.zeros(NDest)
+            for dest in destinations:
+                unitig = dest[:-1]
+                if unitig in self.mapGeneIdx[gene]:
+                    v_idx = self.mapIdx[unitig]
+                    
+                    if unitig in unitigFactorNodes[gene]:
+                        divN[n] = unitigFactorNodes.P[1]
+
+                n = n+1 
+            outPath = outPaths[np.argmax(divN)]
+            
+            path.append(current)
+            
+            current = list(factorGraph.successors(outPath))[0]
+            #print(str(current))
+        return path
 
 
     def convertMAPToPath(self,mapPath,factorGraph):
