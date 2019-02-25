@@ -61,7 +61,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1):
+                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1, working_dir="/tmp"):
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -81,6 +81,8 @@ class AssemblyPathSVA():
         self.unitigFactorNodes = {}
         self.maxFlux = 2
         
+        self.working_dir = working_dir
+
         #define dummy source and sink node names
         self.sinkNode = 'sink+'
         
@@ -773,7 +775,7 @@ class AssemblyPathSVA():
                     
                 graphString = str(factorGraph)
                 graphFileStub = str(uuid.uuid4()) + 'graph_'+ str(g) 
-                graphFileName = graphFileStub + '.fg'
+                graphFileName = self.working_dir + "/" + graphFileStub + '.fg'
                     
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
@@ -786,7 +788,7 @@ class AssemblyPathSVA():
     
         for gene, factorGraph in self.factorGraphs.items():
             if not drop_strain[gene][g]: 
-                outFile = fgFileStubs[gene] + '.out'
+                outFile = self.working_dir + "/" + fgFileStubs[gene] + '.out'
         
                 try:
                     inHandle = open(outFile, 'r')
@@ -804,8 +806,9 @@ class AssemblyPathSVA():
                     if os.path.exists(outFile):
                         os.remove(outFile)
 
-                    if os.path.exists(fgFileStubs[gene]  + '.fg'):
-                        os.remove(fgFileStubs[gene]  + '.fg')
+                    fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
+                    if os.path.exists(fgFile):
+                        os.remove(fgFile)
                 except FileNotFoundError:
                     print("Wrong file or file path")
 
