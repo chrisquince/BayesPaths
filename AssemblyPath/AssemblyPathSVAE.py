@@ -997,7 +997,6 @@ class AssemblyPathSVA():
             
             NDest = len(destinations)
             
-            
             n = 0
             divN = np.zeros(NDest)
             for dest in destinations:
@@ -1005,8 +1004,9 @@ class AssemblyPathSVA():
                 if unitig in self.mapGeneIdx[gene]:
                     v_idx = self.mapIdx[unitig]
                     
-                    if unitig in unitigFactorNodes[gene]:
-                        divN[n] = unitigFactorNodes.P[1]
+                    if unitig in self.unitigFactorNodes[gene]:
+                        unitigFacNode = self.unitigFactorNodes[gene][unitig]
+                        divN[n] = unitigFacNode.P[1]
 
                 n = n+1 
             outPath = outPaths[np.argmax(divN)]
