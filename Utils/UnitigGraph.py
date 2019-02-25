@@ -596,7 +596,7 @@ class UnitigGraph():
         
         return (source_list,sink_list)
 
-    def isReachable(target, sources, pathDict):
+    def isReachable(self, target, sources, pathDict):
         hit = None
         for source in sources:
             targetPlus = target + "+"
@@ -613,7 +613,7 @@ class UnitigGraph():
         
         return hit
     
-    def isReachableReverse(target,sinks, pathDict):
+    def isReachableReverse(self, target,sinks, pathDict):
         
         hit = None
         for sink in sinks:
@@ -656,23 +656,27 @@ class UnitigGraph():
         allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
         allSSDict = defaultdict(dict)       
 
+        stopsSet = set(stopMap.keys())
+        sourceSinksStops = list(set(sourceSinks).union(stopsSet))
+
         for sourcePaths in allPaths:
             source = sourcePaths[0]
             unitig = source[:-1]
-            if unitig in sourceSinks:
+            if unitig in sourceSinksStops:
 
                 for sink, length in sourcePaths[1].items(): 
                     sinkUnitig = sink[:-1]
-                    if sinkUnitig in sourceSinks:
+                    if sinkUnitig in sourceSinksStops:
                         allSSDict[source][sink] = length
 
         sinks = []
         sinkUnitigs = set()
         stopNames = [convertNodeToName(x) for x in stops] 
+        
         for sourceSink in sourceSinks:
             if sourceSink in stopMap:
-                sinks.append(stopMap[sourceSink])
-                sinkUnitigs.add(convertNodeToName(sourceSink))
+                sinks.append(convertNodeToName(stopMap[sourceSink]))
+                sinkUnitigs.add(sourceSink)
             else:
                 hit = self.isReachable(sourceSink,stopNames,allSSDict)
                 if hit is not None:

@@ -23,8 +23,8 @@ def main(argv):
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
 
-    parser.add_argument('-f','--frac',nargs='?', default=0.75, type=float, 
-        help=("fraction for path source sink"))
+    parser.add_argument('-n','--ncat',nargs='?', default=1, type=int, 
+        help=("number of noise categories"))
 
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
@@ -32,10 +32,12 @@ def main(argv):
     parser.add_argument('-s', '--random_seed', default=23724839, type=int,
         help="specifies seed for numpy random number generator defaults to 23724839 applied after random filtering")
 
+    parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
+        help=("path to factor graph executable"))
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -79,9 +81,12 @@ def main(argv):
             for line in f:
                 line = line.strip()
                 toks = line.split("\t")
-                stops.append((toks[0],toks[1]))
+                dirn = True
+                if toks[1] == '-':
+                    dirn = False
+                stops.append((toks[0],dirn))
         
-        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadends)
+        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
         
 
         source_names = [convertNodeToName(source) for source in source_list] 
@@ -92,7 +97,7 @@ def main(argv):
         assemblyGraphs[gene] = unitigGraph
         
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat)
     
     assGraph.initNMF()
 
