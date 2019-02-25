@@ -810,7 +810,7 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
                 except FileNotFoundError:
-                    greedyPath = self.sampleGreedyPath(gene, factorGraph, g)
+                    greedyPath = self.sampleGreedyPath(gene, g)
                 
                     print("Wrong file or file path")
 
@@ -983,17 +983,19 @@ class AssemblyPathSVA():
         return (np.multiply(XN, np.log(elop(XN, Va, truediv))) - XN + Va).sum()
 
 
-    def sampleGreedyPath(self, gene, factorGraph, g):
+    def sampleGreedyPath(self, gene, g):
     
         path = []
     
         current = self.sourceNode
     
+        biGraph = self.factorDiGraphs[gene]
+    
         while current != self.sinkNode:
             
-            outPaths = list(factorGraph.successors(current))
+            outPaths = list(biGraph.successors(current))
             
-            destinations = [list(factorGraph.successors(x))[0] for x in outPaths]
+            destinations = [list(biGraph.successors(x))[0] for x in outPaths]
             
             NDest = len(destinations)
             
@@ -1013,7 +1015,7 @@ class AssemblyPathSVA():
             
             path.append(current)
             
-            current = list(factorGraph.successors(outPath))[0]
+            current = list(biGraph.successors(outPath))[0]
             #print(str(current))
         return path
 
