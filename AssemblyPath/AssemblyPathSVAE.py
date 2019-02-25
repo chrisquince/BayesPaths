@@ -1096,7 +1096,7 @@ class AssemblyPathSVA():
                 self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
                   
                 factorGraph.reset()
-        
+                print(gene) 
                 factorGraph.var['zero+source+'].condition(1)
 
                 factorGraph.var['sink+infty+'].condition(1)

@@ -634,6 +634,9 @@ class UnitigGraph():
             
     def selectSourceSinksStops(self, stops, deadends):
     
+        if self.N == len(stops):
+            return (stops,stops)
+
         sources = []
         sinks = []
 
