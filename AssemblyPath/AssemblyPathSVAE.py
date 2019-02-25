@@ -837,8 +837,8 @@ class AssemblyPathSVA():
                 pool = ThreadPool(len(self.genes))
                 results = []
                 for gene, graphFileStub in fgFileStubs.items():
-                    graphFileName = graphFileStub + '.fg'
-                    outFileName = graphFileStub + '.out'
+                    graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
+                    outFileName = self.working_dir + '/' + graphFileStub + '.out'
                     cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
                     results.append(pool.apply_async(call_proc, (cmd,)))
                 pool.close()
@@ -906,7 +906,7 @@ class AssemblyPathSVA():
                     factorGraph.var['sink+infty+'].condition(1)
                     
                     graphString = str(factorGraph)
-                    graphFileName = str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                    
+                    graphFileName = self.working_dir + '/' + str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                    
                 
                     with open(graphFileName, "w") as text_file:
                         print(graphString, file=text_file)
@@ -1040,8 +1040,8 @@ class AssemblyPathSVA():
                     
                 graphString = str(factorGraph)
                 stubName = str(uuid.uuid4()) + 'graph_'+ str(g)
-                graphFileName = stubName + '.fg'
-                outFileName = stubName + '.out'
+                graphFileName = self.working_dir + '/' + stubName + '.fg'
+                outFileName = self.working_dir + '/' + stubName + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                 
@@ -1087,8 +1087,8 @@ class AssemblyPathSVA():
                     
                 graphString = str(factorGraph)
                 outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
-                graphFileName = outFileStub + '.fg'                
-                outFileName = outFileStub + '.out'
+                graphFileName = self.working_dir + '/' + outFileStub + '.fg'                
+                outFileName = self.working_dir + '/' + outFileStub + '.out'
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                       
@@ -1622,8 +1622,8 @@ class AssemblyPathSVA():
         graphString = str(factorGraph)
                     
         outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
-        graphFileName = outFileStub + '.fg'                
-        outFileName = outFileStub + ".out"
+        graphFileName = self.working_dir + '/' + outFileStub + '.fg'                
+        outFileName = self.working_dir + '/' + outFileStub + ".out"
 
         with open(graphFileName, "w") as text_file:
             print(graphString, file=text_file)
