@@ -79,6 +79,9 @@ class AssemblyPathSVA():
         self.factorDiGraphs = {} # dict of factorGraphs as networkx diGraphs
 
         self.unitigFactorNodes = {}
+        
+        self.unitigFluxNodes = {}
+        
         self.maxFlux = 2
         
         self.working_dir = working_dir
@@ -120,7 +123,7 @@ class AssemblyPathSVA():
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
-            (factorGraph, unitigFactorNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, gene, source_maps[gene], sink_maps[gene], minSumCov)
+            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, gene, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
             unitigsDash.sort(key=int) 
@@ -129,8 +132,9 @@ class AssemblyPathSVA():
             self.factorDiGraphs[gene] = factorDiGraph 
 
             self.unitigFactorNodes[gene] = unitigFactorNode
-            #unitigList = list(assemblyGraph.unitigs)
-            #unitigList.sort(key=int)
+            
+            self.unitigFluxNodes[gene] = unitigFluxNode
+
             self.mapUnitigs[gene] = unitigsDash
             unitigAdj = [gene + "_" + s for s in unitigsDash]
             self.unitigs.extend(unitigAdj)
@@ -178,6 +182,9 @@ class AssemblyPathSVA():
             idx=idx+1
        
         self.XD = np.floor(self.X).astype(int)
+        
+        for gene, unitigFluxNode in self.unitigFluxNodes.items():
+            self.removeNoise(unitigFluxNode, self.mapUnitigs, gene, minSumCov)
         
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -271,7 +278,7 @@ class AssemblyPathSVA():
         
         nx.write_graphml(copyGraph,fileName)
         
-    def createFactorGraph(self, assemblyGraph, gene, sources, sinks, minSumCov):
+    def createFactorGraph(self, assemblyGraph, sources, sinks):
     
         tempGraph = self.createTempGraph(assemblyGraph, assemblyGraph.unitigs)
     
@@ -291,13 +298,13 @@ class AssemblyPathSVA():
         
         self.writeNetworkGraph(tempGraph,"temp.graphml")
     
-        (factorGraph, unitigFactorNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs, gene, minSumCov)
+        (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
-        return (factorGraph, unitigFactorNodes, tempGraph)
+        return (factorGraph, unitigFactorNodes, unitigFluxNodes, tempGraph)
     
-    def generateFactorGraph(self, factorGraph, unitigs, gene, minSumCov):
+    def generateFactorGraph(self, factorGraph, unitigs):
         probGraph = Graph()
-        unitigFactorNodes = {}
+
         
         for node in factorGraph:            
             if 'factor' not in factorGraph.node[node]:
@@ -337,7 +344,8 @@ class AssemblyPathSVA():
                 probGraph.addFacNode(factorMatrix, *mapNodeList)
     
         unitigFacNodes = {}
-        
+        unitigFluxNodes = {}
+                
         for unitig in unitigs:
             
             plusNode = unitig + "+"
@@ -355,16 +363,11 @@ class AssemblyPathSVA():
             nInMinus = len(inNodesMinus)
             
             Ntotal = nInPlus + nInMinus
-            
- 
                 
             if Ntotal > 0:
                 mapNodesF = [probGraph.mapNodes[x] for x in inNodesPlus + inNodesMinus]
                 nMax = Ntotal*(self.maxFlux - 1) + 1
                 probGraph.addVarNode(unitig,nMax)
-           
-                v_idx = self.mapGeneIdx[gene][unitig]
-                sumCov = np.sum(self.X[v_idx,:])
             
                 
                 dimF = [nMax] + [self.maxFlux]*Ntotal
@@ -372,21 +375,29 @@ class AssemblyPathSVA():
                 fluxMatrix = np.zeros(dimF)
                 dummyMatrix = np.zeros([self.maxFlux]*Ntotal)
       
-                if sumCov > minSumCov:
-                    for indices, value in np.ndenumerate(dummyMatrix):
+
+                for indices, value in np.ndenumerate(dummyMatrix):
             
-                        tIn = sum(indices)
+                    tIn = sum(indices)
                 
-                        fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
+                    fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
                 
-                probGraph.addFacNode(fluxMatrix, *([probGraph.mapNodes[unitig]] + mapNodesF))
+                unitigFluxNodes[unitig] = probGraph.addFacNode(fluxMatrix, *([probGraph.mapNodes[unitig]] + mapNodesF))
             
                 discreteMatrix = np.zeros((nMax,1))
             
                 unitigFacNodes[unitig] = probGraph.addFacNode(discreteMatrix, probGraph.mapNodes[unitig])
         
-        return (probGraph,unitigFacNodes)
-    
+        return (probGraph,unitigFacNodes, unitigFluxNodes)
+        
+    def removeNoise(self, unitigFluxNodes, unitigs, gene, minSumCov):
+        
+        for unitig in unitigs:
+            v_idx = self.mapGeneIdx[gene][unitig]
+            sumCov = np.sum(self.X[v_idx,:])
+            
+            if sumCov < minSumCov:
+                unitigFluxNodes[unitig].P = np.zeros_like(unitigFluxNodes[unitig].P)
     
     def createTempGraph(self, assemblyGraph, unitigs):
         
