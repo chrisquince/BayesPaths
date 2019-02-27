@@ -7,7 +7,7 @@ import re
 
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAE import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAF import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 

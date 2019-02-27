@@ -123,7 +123,7 @@ class AssemblyPathSVA():
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
-            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, gene, source_maps[gene], sink_maps[gene])
+            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
             unitigsDash.sort(key=int) 
@@ -184,7 +184,7 @@ class AssemblyPathSVA():
         self.XD = np.floor(self.X).astype(int)
         
         for gene, unitigFluxNode in self.unitigFluxNodes.items():
-            self.removeNoise(unitigFluxNode, self.mapUnitigs, gene, minSumCov)
+            self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, minSumCov)
         
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -398,7 +398,9 @@ class AssemblyPathSVA():
             
             if sumCov < minSumCov:
                 unitigFluxNodes[unitig].P = np.zeros_like(unitigFluxNodes[unitig].P)
-    
+                zeroth = next(np.ndindex(unitigFluxNodes[unitig].P.shape))
+                unitigFluxNodes[unitig].P[zeroth] = 1.   
+ 
     def createTempGraph(self, assemblyGraph, unitigs):
         
         factorGraph = nx.DiGraph()
