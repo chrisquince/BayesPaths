@@ -187,18 +187,18 @@ class AssemblyPathSVA():
         sumSourceCovs = Counter()
         sumSinkCovs   = Counter()
     
-        for gene, sources in source_maps.items()
+        for gene, sources in source_maps.items():
             for source in sources:
                 sunitig = source[0]
                 sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
         
-        for gene, sinks in sink_maps.items()
+        for gene, sinks in sink_maps.items():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
-    
-        self.minSumCov = 0.03*np.mean(np.asarray(sumSourceCovs.values() + sumSinkCovs.values()))
-        
+   
+        self.minSumCov = 0.03*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+        print("Minimum coverage: " + str(minSumCov)) 
         for gene, unitigFluxNode in self.unitigFluxNodes.items():
             self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
