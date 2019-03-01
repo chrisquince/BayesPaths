@@ -95,7 +95,7 @@ def main(argv):
         sink_maps[gene] = sink_list
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
-        
+    
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat)
     

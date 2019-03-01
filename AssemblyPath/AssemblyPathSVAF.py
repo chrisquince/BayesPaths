@@ -93,6 +93,8 @@ class AssemblyPathSVA():
         
         self.no_folds = no_folds
         
+        self.minSumCov = minSumCov
+        
         if minIntensity == None:
             self.minIntensity = 2.0/self.readLength
         else:
@@ -164,7 +166,6 @@ class AssemblyPathSVA():
         self.logPhiPrior = np.zeros(self.V)
         for gene, unitigFactorNode in self.unitigFactorNodes.items(): 
             self.setPhiConstant(self.mapUnitigs[gene], self.mapGeneIdx[gene], unitigFactorNode)
-
  
         idx = 0
         for v in self.unitigs:
@@ -183,8 +184,23 @@ class AssemblyPathSVA():
        
         self.XD = np.floor(self.X).astype(int)
         
+        sumSourceCovs = Counter()
+        sumSinkCovs   = Counter()
+    
+        for gene, sources in source_maps.items()
+            for source in sources:
+                sunitig = source[0]
+                sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
+        
+        for gene, sinks in sink_maps.items()
+            for sink in sinks:
+                sunitig = sink[0]
+                sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
+    
+        self.minSumCov = 0.03*np.mean(np.asarray(sumSourceCovs.values() + sumSinkCovs.values()))
+        
         for gene, unitigFluxNode in self.unitigFluxNodes.items():
-            self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, minSumCov)
+            self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -401,6 +417,7 @@ class AssemblyPathSVA():
                 zeroth = next(np.ndindex(unitigFluxNodes[unitig].P.shape))
                 unitigFluxNodes[unitig].P[zeroth] = 1.   
  
+
     def createTempGraph(self, assemblyGraph, unitigs):
         
         factorGraph = nx.DiGraph()
@@ -1525,9 +1542,12 @@ class AssemblyPathSVA():
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
+                comp = 0
                 for gene in self.genes:
-                    diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
-                dist[g,h] = diff     
+                    if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
+                        comp += 1 
+                        diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
+                dist[g,h] = diff    
 
         return dist
         
