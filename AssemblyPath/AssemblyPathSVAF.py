@@ -1747,14 +1747,14 @@ class AssemblyPathSVA():
                     
 
 
-    def getMaximalUnitigs(self,fileName,drop_strain=None,relax_path=False):
+    def getMaximalUnitigs(self, fileStub, drop_strain=None,relax_path=False):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
 
         self.MAPs = defaultdict(list)
         haplotypes = defaultdict(list)
-
+        self.paths = defaultdict(list)
         output = np.sum(self.expGamma,axis=1) > self.minIntensity
 
         for g in range(self.G):
@@ -1783,6 +1783,7 @@ class AssemblyPathSVA():
                 
                     pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
                     pathG.pop(0)
+                    self.paths[gene].append(pathG)
                     if len(pathG) > 0:
                         unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
                         haplotypes[gene].append(unitig)
@@ -1792,7 +1793,8 @@ class AssemblyPathSVA():
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
-                    
+        
+        fileName = fileStub + ".fa"
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
                 if output[g]:
@@ -1800,6 +1802,17 @@ class AssemblyPathSVA():
                         if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
                             fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
                             fastaFile.write(haplotypes[gene][g]+"\n")
+
+        fileName = fileStub + "_path.txt"
+        with open(fileName, "w") as pathFile:
+            for g in range(self.G):
+                if output[g]:
+                    for gene, factorGraph in self.factorGraphs.items():
+                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
+                            pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                            pathString = ",".join(self.paths[gene][g])
+                            pathFile.write(pathString+"\n")
+
 
     def outputOptimalRefPaths(self, ref_hit_file):
         
@@ -1952,7 +1965,7 @@ def main(argv):
         assGraph.initNMF()
 
         assGraph.update(200, True, logFile=None,drop_strain=None,relax_path=True)
-        
+           
         gene_mean_error = assGraph.gene_mean_diff()
         
         assGraph.writeMarginals(args.outFileStub + "margFile.csv")

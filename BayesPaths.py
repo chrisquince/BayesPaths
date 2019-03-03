@@ -37,7 +37,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -103,23 +103,23 @@ def main(argv):
 
     assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
  
+    #assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
+
     #gene_mean_error = assGraph.gene_mean_diff()
 
     #strain_drop_elbo = assGraph.calc_strain_drop_elbo()
             
     #for (gene,drops) in strain_drop_elbo.items():
-    
      #   for (g, drop) in enumerate(drops):
       #      if drop:
        #         assGraph.drop_gene_strains(gene, g)
-                
-     
+        
             
     #assGraph.update(100,False,logFile=args.outFileStub + "_log.txt",drop_strain=strain_drop_elbo)
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G) + ".fa",drop_strain=None, relax_path=True)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=True)
  
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
