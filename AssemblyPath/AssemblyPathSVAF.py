@@ -350,9 +350,18 @@ class AssemblyPathSVA():
                 
                     fIn = sum(indices[0:nIn])
                     fOut = sum(indices[nIn:])
-                    
-                    if fIn == fOut:
-                        factorMatrix[indices] = 1.0
+                
+                    if node == self.sourceNode: 
+                        if fIn == fOut:
+                            if fIn == 0:
+                                factorMatrix[indices] = 1.0e-4
+                            else:
+                                factorMatrix[indices] = 1.0
+                        
+                    else:
+                        if fIn == fOut:
+                            factorMatrix[indices] = 1.0
+    
                         
                 mapNodeList = [probGraph.mapNodes[x] for x in inNodes + outNodes]
                         
@@ -395,11 +404,7 @@ class AssemblyPathSVA():
                 for indices, value in np.ndenumerate(dummyMatrix):
                     tIn = sum(indices)
                     
-                    if unitig != self.sourceNode
-                        fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
-                    else:
-                        if tIn == 0:
-                            fluxMatrix[tuple([tIn]+ list(indices))] = 1.0e-3
+                    fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
                     
                 unitigFluxNodes[unitig] = probGraph.addFacNode(fluxMatrix, *([probGraph.mapNodes[unitig]] + mapNodesF))
             
