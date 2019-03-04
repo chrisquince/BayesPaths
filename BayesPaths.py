@@ -37,7 +37,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -101,7 +101,7 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
+    assGraph.update(1000, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
  
     #assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
 

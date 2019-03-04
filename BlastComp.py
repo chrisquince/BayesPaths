@@ -70,6 +70,7 @@ def main(argv):
 
     for haplo, matches in haplo_matches.items():
         bestMatch = max(matches.items(), key=operator.itemgetter(1))[0]
+        nHits = len(haplo_match_id[haplo][bestMatch])
         meanPid = np.mean(np.asarray(haplo_match_id[haplo][bestMatch]))
         pid = haplo_matches[haplo][bestMatch]/haplo_match_length[haplo][bestMatch]    
         diff = haplo_match_length[haplo][bestMatch] - haplo_matches[haplo][bestMatch]
@@ -78,7 +79,7 @@ def main(argv):
             mean_gene_unc[gene] = np.mean(np.asarray(haplo_gene_unc[gene][haplo]))
         mean_unc = np.mean(np.asarray(list(mean_gene_unc.values())))
         
-        print(haplo + "\t" + bestMatch + "\t" + "{:10.4f}".format(pid) + "\t" + "{:10.4e}".format(mean_unc) + "\t" + str(diff) +  "\t" + str(haplo_match_length[haplo][bestMatch]))    
+        print(haplo + "\t" + bestMatch + "\t" + str(nHits) + "\t" + "{:10.4f}".format(pid) + "\t" + "{:10.4e}".format(mean_unc) + "\t" + str(diff) +  "\t" + str(haplo_match_length[haplo][bestMatch]))    
         #print(haplo + "\t" + bestMatch + "\t" + str(haplo_matches[haplo][bestMatch]) + "\t" + str(meanPid) + "\t" + str(diff) + "\t" + str(haplo_match_length[haplo][bestMatch]) + "\t" + str(pid) + "\t" + str(mean_unc))
 
 if __name__ == "__main__":
