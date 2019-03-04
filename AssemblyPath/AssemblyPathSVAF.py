@@ -393,11 +393,14 @@ class AssemblyPathSVA():
       
 
                 for indices, value in np.ndenumerate(dummyMatrix):
-            
                     tIn = sum(indices)
-                
-                    fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
-                
+                    
+                    if unitig != self.sourceNode
+                        fluxMatrix[tuple([tIn]+ list(indices))] = 1.0
+                    else:
+                        if tIn == 0:
+                            fluxMatrix[tuple([tIn]+ list(indices))] = 1.0e-3
+                    
                 unitigFluxNodes[unitig] = probGraph.addFacNode(fluxMatrix, *([probGraph.mapNodes[unitig]] + mapNodesF))
             
                 discreteMatrix = np.zeros((nMax,1))
@@ -737,7 +740,8 @@ class AssemblyPathSVA():
         lamb = 1.0/self.epsilon
         if self.ARD:
             lamb = self.exp_lambdak[g_idx] 
-            
+        
+        
         nSum -= lamb
 
         muGammaG = nSum/dSum  
