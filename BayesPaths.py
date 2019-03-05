@@ -101,8 +101,12 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(1000, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
+    assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
  
+    gene_mean_error = assGraph.gene_mean_diff()
+
+    assGraph.update(100, False,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
+
     #assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
 
     #gene_mean_error = assGraph.gene_mean_diff()

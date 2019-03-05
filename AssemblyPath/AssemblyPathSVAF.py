@@ -354,7 +354,7 @@ class AssemblyPathSVA():
                     if node == self.sourceNode: 
                         if fIn == fOut:
                             if fIn == 0:
-                                factorMatrix[indices] = 1.0e-4
+                                factorMatrix[indices] = 1.0
                             else:
                                 factorMatrix[indices] = 1.0
                         
