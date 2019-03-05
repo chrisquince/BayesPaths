@@ -350,8 +350,8 @@ class AssemblyPathSVA():
                 
                     fIn = sum(indices[0:nIn])
                     fOut = sum(indices[nIn:])
-                
-                    if node == self.sourceNode: 
+                    
+		    if node == self.sourceNode: 
                         if fIn == fOut:
                             if fIn == 0:
                                 factorMatrix[indices] = 1.0
@@ -361,7 +361,6 @@ class AssemblyPathSVA():
                     else:
                         if fIn == fOut:
                             factorMatrix[indices] = 1.0
-    
                         
                 mapNodeList = [probGraph.mapNodes[x] for x in inNodes + outNodes]
                         
