@@ -698,8 +698,10 @@ class AssemblyPathSVA():
         temp_p1[:,0] = self.expLogDelta
         
         temp_p1[:,1:self.G + 1] = np.transpose(self.expLogGamma)
+        temp_v = np.zeros((self.V,self.G + 1))
+        temp_v[:,1:self.G + 1] = self.expLogPhi
         
-        temp_p = temp_p1[np.newaxis,:,:] + self.expLogPhi[:,np.newaxis,:]
+        temp_p = temp_p1[np.newaxis,:,:] + temp_v[:,np.newaxis,:]
         
         for v in range(self.V):
             for s in range(self.S):
