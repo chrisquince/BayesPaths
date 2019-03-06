@@ -726,9 +726,6 @@ class AssemblyPathSVA():
         if self.ARD:
             lamb = self.exp_lambdak 
 
-        aTemp[0,:] += self.alphaDelta0
-        bTemp[0] += self.betaDelta0 
-
         aTemp[1:self.G + 1,:] += 1.
         bTemp[1:self.G + 1] += lamb
 
@@ -741,11 +738,16 @@ class AssemblyPathSVA():
         
         self.expLogGamma = digamma(self.aGamma) - np.log(self.bGamma)[:,np.newaxis]
         
-        self.expDelta = aTemp[0]/bTemp[0]
-        self.expLogDelta = digamma(aTemp[0]) - np.log(bTemp[0])
-        
-        self.aDelta = aTemp[0]
+        self.aDelta = np.sum(aTemp[0,:]
         self.bDelta = bTemp[0]
+        
+        self.aDelta += self.alphaDelta0
+        self.bDelta += self.betaDelta0 
+        
+        self.expDelta = self.aDelta/self.bDelta
+        self.expLogDelta = digamma(self.aDelta) - np.log(self.bDelta)
+        
+        
 
 
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
