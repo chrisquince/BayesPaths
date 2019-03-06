@@ -588,7 +588,7 @@ class AssemblyPathSVA():
                     
                     temp_s = np.dot(norm_p,tempLogGamma*temp_log_phi[:,np.newaxis])
                     
-                    tempMatrix[d] = np.sum(-d*self.expTheta*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s)
+                    tempMatrix[d] = np.sum(-d*self.expTheta*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s))
 
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
@@ -754,7 +754,7 @@ class AssemblyPathSVA():
                 self.expPhi2[v_idx,g_idx] = np.sum(marg[unitig]*d2)
                 
                 pseudoD = np.arange(ND,dtype=np.float)
-                pseudoD = np.log(pseudoD)
+                pseudoD[1:] = np.log(pseudoD[1:])
                 pseudoD[0] = self.logTau
                 self.expLogPhi[v_idx,g_idx] = np.sum(marg[unitig]*pseudoD)
                 
@@ -851,7 +851,7 @@ class AssemblyPathSVA():
             
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
-        self.updateTau() 
+        
         while iter < maxIter:
             #update phi marginals
             if removeRedundant:
@@ -1229,7 +1229,7 @@ class AssemblyPathSVA():
         
         self.updateP() #also perhaps not necessary
         
-        gammaDash = np.zeros((self.G + 1,self.S)))
+        gammaDash = np.zeros((self.G + 1,self.S))
         
         gammaDash[0,:] = self.expLogDelta
         
@@ -1238,9 +1238,9 @@ class AssemblyPathSVA():
         logPhiDash = np.zeros((self.V,self.G +1))
         phiDash[:,1:] = self.expPhi
         
-        logLike = += np.einsum('vs,vsg,gs,vg',self.X,self.norm_p,gammaDash,phiDash)
+        logLike += np.einsum('vs,vsg,gs,vg',self.X,self.norm_p,gammaDash,phiDash)
         
-        logLike -= np.sum(sp.special.gammaln(self.X + 1)
+        logLike -= np.sum(sp.special.gammaln(self.X + 1))
         
         exp_prior = 0.0
         # Prior lambdak, if using ARD, and prior U, V
@@ -1343,7 +1343,7 @@ class AssemblyPathSVA():
                 diff = 0
                 comp = 0
                 for gene in self.genes:
-                    if len(set(pathsg[g][gene]) > 0 and len(set(pathsg[h][gene]) > 0:
+                    if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
                         comp += 1 
                         diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
                 dist[g,h] = diff     
@@ -1461,7 +1461,7 @@ class AssemblyPathSVA():
             for h in range(g+1,self.G):
                 diff = 0
                 for gene in self.genes:
-                    if len(set(pathsg[g][gene]) > 0 and len(set(pathsg[h][gene])) > 0:
+                    if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
                         diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
                 dist[g,h] = diff 
         
