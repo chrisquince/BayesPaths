@@ -738,7 +738,7 @@ class AssemblyPathSVA():
         
         self.expLogGamma = digamma(self.aGamma) - np.log(self.bGamma)[:,np.newaxis]
         
-        self.aDelta = np.sum(aTemp[0,:]
+        self.aDelta = np.sum(aTemp[0,:])
         self.bDelta = bTemp[0]
         
         self.aDelta += self.alphaDelta0
