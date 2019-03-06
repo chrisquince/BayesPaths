@@ -1090,6 +1090,7 @@ class AssemblyPathSVA():
 
         self.expGamma = np.copy(covNMF.H)
         self.expGamma2 = self.expGamma*self.expGamma
+        self.expLogGamma = np.log(self.expGamma)
         covNMF.factorizeW()
         
         initEta = covNMF.W
