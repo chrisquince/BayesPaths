@@ -726,22 +726,23 @@ class AssemblyPathSVA():
         if self.ARD:
             lamb = self.exp_lambdak 
 
-        aTemp[0] += self.alphaDelta0
+        aTemp[0,:] += self.alphaDelta0
         bTemp[0] += self.betaDelta0 
 
-        aTemp[1:self.G + 1] += 1.
+        aTemp[1:self.G + 1,:] += 1.
         bTemp[1:self.G + 1] += lamb
 
-        self.aGamma = aTemp[1:self.G + 1]
+        self.aGamma = aTemp[1:self.G + 1,:]
         self.bGamma = bTemp[1:self.G + 1]
 
-        self.expGamma  = self.aGamma/self.bGamma
-        self.varGamma  = self.aGamma/(self.bGamma*self.bGamma)
+        self.expGamma  = self.aGamma/self.bGamma[:,np.newaxis]
+        b2Gamma = self.bGamma*self.bGamma
+        self.varGamma  = self.aGamma/(b2Gamma[:,np.newaxis])
         
-        self.expLogGamma = digamma(self.aGamma) - np.log(self.bGamma)
+        self.expLogGamma = digamma(self.aGamma) - np.log(self.bGamma)[:,np.newaxis]
         
         self.expDelta = aTemp[0]/bTemp[0]
-        self.expLogDelta = digamma(aTemp[0]) - np.log(self.bGamma)
+        self.expLogDelta = digamma(aTemp[0]) - np.log(bTemp[0])
         
         self.aDelta = aTemp[0]
         self.bDelta = bTemp[0]
