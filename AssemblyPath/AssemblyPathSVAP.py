@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, alpha0=1.0e-9,beta0=1.0e-9, 
-                ARD = False, BIAS = True, alphaTheta0 = 10.0, betaTheta0 = 10.0, alphaDelta0 = 1.0, betaDelta0 = 1.0,
+                ARD = False, BIAS = True, alphaTheta0 = 10.0, betaTheta0 = 10.0, alphaDelta0 = 1.0e-4, betaDelta0 = 1.0,
                 minIntensity = None, fgExePath="./runfg_source/", working_dir="/tmp", minSumCov = 0.):
         self.prng = prng #random state to store
 
@@ -240,7 +240,7 @@ class AssemblyPathSVA():
             self.bTheta = np.ones(self.V)
             self.bTheta.fill(self.betaTheta0)
 
-            self.expLogDelta = digamma(self.alphaTheta0) - math.log(self.betaTheta0)
+            self.expLogTheta = digamma(self.alphaTheta0) - math.log(self.betaTheta0)
             self.varTheta = self.alphaTheta0/(self.betaTheta0*self.betaTheta0)
             
         self.elbo = 0.
