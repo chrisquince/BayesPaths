@@ -559,6 +559,7 @@ class AssemblyPathSVA():
                 unitigFacNode = unitigFacNodes[unitig]
                 v_idx = unitigMap[unitig]
                 P = unitigFacNode.P
+                nMax = unitigFacNode.P.shape[0]
                 tempMatrix = np.zeros_like(P)
             
                 #first comute fractions
