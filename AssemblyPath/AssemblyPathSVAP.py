@@ -711,14 +711,16 @@ class AssemblyPathSVA():
     def updateGammaDelta(self):
         
         self.updateP()
-
-        aTemp = np.zeros(self.G + 1)
            
         bTemp = np.zeros(self.G + 1)
 
-        aTemp = np.einsum('vsg,vs->g',self.norm_p, self.X)
-        bTemp[0] = np.sum(self.expTheta)
-        bTemp[1:self.G + 1] = np.sum(self.expTheta[:,np.newaxis]*self.expPhi,axis=0)
+        aTempT = np.einsum('vsg,vs->sg',self.norm_p, self.X)
+        aTemp = aTempT.transpose()
+        
+        tTheta = self.expTheta*self.lengths
+        bTemp[0] = np.sum(tTheta)
+
+        bTemp[1:self.G + 1] = np.sum(tTheta[:,np.newaxis]*self.expPhi,axis=0)
 
         lamb = 1.0/self.epsilon
         if self.ARD:
