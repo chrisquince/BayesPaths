@@ -590,7 +590,7 @@ class AssemblyPathSVA():
                     
                     temp_s = np.sum(norm_p*(tempLogGamma.transpose() + temp_log_phi[np.newaxis,:]),axis=1)
                     
-                    tempMatrix[d] = np.sum(-d*self.expTheta*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s))
+                    tempMatrix[d] = np.sum(-d*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s))
 
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
@@ -1131,7 +1131,10 @@ class AssemblyPathSVA():
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
                 os.remove(graphFileName)
                 os.remove(outFileName)
-            self.addGamma(g)    
+            self.addGamma(g)   
+ 
+        self.updateGammaDelta()
+
         print("-1,"+ str(self.div())) 
 
     def initNMFGamma(self,gamma):
@@ -1176,7 +1179,7 @@ class AssemblyPathSVA():
                 os.remove(outFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
-
+        self.updateGammaDelta()
 
     def exp_square_lambda(self):
         ''' Compute: sum_s E_q(phi,gamma) [ sum ( Phi_v Gamma_s )^2 ]. '''
