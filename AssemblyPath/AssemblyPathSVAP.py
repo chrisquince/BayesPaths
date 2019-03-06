@@ -588,7 +588,7 @@ class AssemblyPathSVA():
                     for s in range(self.S):
                         norm_p[s,:] = expNormLogProb(temp_p[s,:])
                     
-                    temp_s = np.dot(norm_p,tempLogGamma*temp_log_phi[:,np.newaxis])
+                    temp_s = np.sum(norm_p*(tempLogGamma.transpose() + temp_log_phi[np.newaxis,:]),axis=1)
                     
                     tempMatrix[d] = np.sum(-d*self.expTheta*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s))
 
