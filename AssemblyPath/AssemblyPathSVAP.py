@@ -571,7 +571,8 @@ class AssemblyPathSVA():
                 temp_v = self.expLogPhi[v_idx,:]
                 temp_v[gidx] = 0.
                 
-                temp_p[:,1:(self.G + 1)] = np.transpose(self.expLogGamma) + temp_v[:,np.newaxis] 
+                temp_p[:,1:(self.G + 1)] = np.transpose(self.expLogGamma) + temp_v[np.newaxis,:]
+                
                 temp_log_phi = np.ones(self.G + 1)
                 temp_log_phi[1:] = np.copy(self.expLogPhi[v_idx,:])
                 
