@@ -60,7 +60,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, alpha0=1.0e-9,beta0=1.0e-9, 
-                ARD = False, BIAS = True, alphaTheta0 = 10.0, betaTheta0 = 10.0, alphaDelta0 = 1.0e-2, betaDelta0 = 1.0,
+                ARD = False, BIAS = True, alphaTheta0 = 10.0, betaTheta0 = 10.0, alphaDelta0 = 0.1, betaDelta0 = 1.0,
                 minIntensity = None, fgExePath="./runfg_source/", working_dir="/tmp", minSumCov = 0.):
         self.prng = prng #random state to store
 
