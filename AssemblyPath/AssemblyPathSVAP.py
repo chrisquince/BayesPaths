@@ -547,12 +547,6 @@ class AssemblyPathSVA():
     def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx):
         
         mapGammaG = self.expGamma[gidx,:]
-        mapLogGammaG = self.expLogGamma[gidx,:]
-        #dSum2 = np.sum(mapGammaG2)
-        tempLogGamma = np.zeros((self.G + 1, self.S))
-        
-        tempLogGamma[0,:]  = self.expLogDelta
-        tempLogGamma[1:,:] = self.expLogGamma
         
         for unitig in unitigs:
             if unitig in unitigFacNodes:
@@ -568,7 +562,7 @@ class AssemblyPathSVA():
                     if d > 0:
                         temp_log_phi = math.log(d)
             
-                    tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + /
+                    tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + \
                                       self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
             
                 unitigFacNode.P = expNormLogProb(tempMatrix)
@@ -662,7 +656,7 @@ class AssemblyPathSVA():
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
         self.aTheta = self.alphaTheta0 + np.sum(self.X,axis=1)
-        self.bTheta = self.alphaTheta0 + np.sum(self.eLambda,axis=1)
+        self.bTheta = self.alphaTheta0 + np.sum(self.eLambda*self.lengths[:,np.newaxis],axis=1)
         
         self.expTheta = self.aTheta/self.bTheta
 
@@ -845,7 +839,6 @@ class AssemblyPathSVA():
             
             for g in range(self.G):
                 
-                self.removeGamma(g)
                 fgFileStubs = {}
                 threads = []
                 
@@ -866,8 +859,7 @@ class AssemblyPathSVA():
                 
                 self.readMarginals(fgFileStubs, g, drop_strain)
                            
-                self.addGamma(g)
-            
+             
             if self.ARD:
                 for g in range(self.G):
                     self.update_lambdak(g)
@@ -875,9 +867,7 @@ class AssemblyPathSVA():
             
             self.updateGammaDelta()
 
-            self.eLambda = np.zeros((self.V,self.S))
-            for g in range(self.G):
-                self.addGamma(g)
+            self.eLambda = np.dot(self.expPhi,self.expGamma)
             
             if self.BIAS:
                 self.updateTheta()
