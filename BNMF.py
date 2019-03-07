@@ -1,6 +1,6 @@
 import sys, os
 import argparse
-
+import numpy as np
 
 
 def main(argv):
@@ -23,7 +23,7 @@ def main(argv):
             
             covs = [float(x) for x in tokens[1:]]
 
-            covMap[initig] = covs
+            covMap[unitig] = covs
     
     unitigs = sorted(covMap.keys())
     V = len(unitigs)
