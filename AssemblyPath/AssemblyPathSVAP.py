@@ -814,12 +814,12 @@ class AssemblyPathSVA():
                             self.expLogPhi[v_idx,g] = self.logTau
                         
                         for unitig in greedyPath:
-                            if unitig in self.mapGeneIdx[gene]:
-                                v_idx = self.mapGeneIdx[gene][unitig]
+                            if unitig[:-1] in self.mapGeneIdx[gene]:
+                                v_idx = self.mapGeneIdx[gene][unitig[:-1]]
                         
                                 self.expPhi[v_idx,g] = 1.
                                 self.expPhi2[v_idx,g] = 1.
-                                elf.expLogPhi[v_idx,g] = 0.
+                                self.expLogPhi[v_idx,g] = 0.
                     else:
                         print("Cannot attempt greedy path")
                         
@@ -863,13 +863,15 @@ class AssemblyPathSVA():
                 
                 self.readMarginals(fgFileStubs, g, drop_strain)
                            
-             
+        #    self.updateP()
+
+            self.updateGammaDelta()
+     
             if self.ARD:
                 for g in range(self.G):
                     self.update_lambdak(g)
                     self.update_exp_lambdak(g)
             
-            self.updateGammaDelta()
 
             self.eLambda = np.dot(self.expPhi,self.expGamma)
             
@@ -1741,7 +1743,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(200, True, logFile=None,drop_strain=None,relax_path=True)
+        assGraph.update(200, True, logFile=None,drop_strain=None,relax_path=False)
         
         gene_mean_error = assGraph.gene_mean_diff()
         
