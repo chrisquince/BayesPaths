@@ -1208,12 +1208,12 @@ class AssemblyPathSVA():
         
         gammaDash[0,:] = self.expLogDelta
         
-        gammaDash[1,:] = self.expLogGamma
+        gammaDash[1:,:] = self.expLogGamma
         
         logPhiDash = np.zeros((self.V,self.G +1))
-        phiDash[:,1:] = self.expPhi
+        logPhiDash[:,1:] = self.expPhi
         
-        logLike += np.einsum('vs,vsg,gs,vg',self.X,self.norm_p,gammaDash,phiDash)
+        logLike += np.einsum('vs,vsg,gs,vg',self.X,self.norm_p,gammaDash,logPhiDash)
         
         logLike -= np.sum(sp.special.gammaln(self.X + 1))
         
