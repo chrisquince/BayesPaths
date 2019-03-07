@@ -1213,9 +1213,11 @@ class AssemblyPathSVA():
         logPhiDash = np.zeros((self.V,self.G +1))
         logPhiDash[:,1:] = self.expPhi
         
-        logLike += np.einsum('vs,vsg,gs,vg',self.X,self.norm_p,gammaDash,logPhiDash)
+        gammaPhi = gammaDash[np.newaxis,:,:] + logPhiDash[:,:,np.newaxis]
         
-        logLike -= np.sum(sp.special.gammaln(self.X + 1))
+        logLike += np.einsum('vs,vsg,vgs',self.X,self.norm_p,gammaPhi)
+        
+        logLike -= np.sum(sp.special.gammaln(self.X + 1.))
         
         exp_prior = 0.0
         # Prior lambdak, if using ARD, and prior U, V
