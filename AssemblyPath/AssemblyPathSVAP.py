@@ -562,36 +562,15 @@ class AssemblyPathSVA():
                 nMax = unitigFacNode.P.shape[0]
                 tempMatrix = np.zeros_like(P)
             
-                #first comute fractions
-                
-                temp_p = np.zeros((self.S,self.G + 1)) #first component noise
-                norm_p = np.zeros((self.S,self.G + 1))
-                sum_p = np.zeros((self.S,self.G + 1))
-                temp_p[:,0] = self.expLogDelta
-                
-                temp_v = self.expLogPhi[v_idx,:]
-                temp_v[gidx] = 0.
-                
-                temp_p[:,1:(self.G + 1)] = np.transpose(self.expLogGamma) + temp_v[np.newaxis,:]
-                
-                temp_log_phi = np.ones(self.G + 1)
-                temp_log_phi[1:] = np.copy(self.expLogPhi[v_idx,:])
+                temp_log_phi = self.logTau 
                 
                 for d in range(nMax):
-                    if d == 0:
-                        temp_p[:,gidx + 1] = self.logTau 
-                        temp_log_phi[gidx + 1] = self.logTau 
-                    else:
-                        temp_p[:,gidx + 1] = math.log(d)
-                        temp_log_phi[gidx + 1] = math.log(d)
-                    
-                    for s in range(self.S):
-                        norm_p[s,:] = expNormLogProb(temp_p[s,:])
-                    
-                    temp_s = np.sum(norm_p*(tempLogGamma.transpose() + temp_log_phi[np.newaxis,:]),axis=1)
-                    
-                    tempMatrix[d] = np.sum(-d*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + self.X[v_idx,:]*(temp_s))
-
+                    if d > 0:
+                        temp_log_phi = math.log(d)
+            
+                    tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + /
+                                      self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
+            
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
     def updateUnitigFactorsW(self,unitigs, unitigMap, unitigFacNodes, W,gidx):
@@ -709,8 +688,6 @@ class AssemblyPathSVA():
         
 
     def updateGammaDelta(self):
-        
-        self.updateP()
            
         bTemp = np.zeros(self.G + 1)
 
@@ -904,6 +881,8 @@ class AssemblyPathSVA():
             
             if self.BIAS:
                 self.updateTheta()
+            
+            self.updateP()
             
             total_elbo = self.calc_elbo()    
             DivF = self.divF()
@@ -1139,7 +1118,7 @@ class AssemblyPathSVA():
                 os.remove(outFileName)
             self.addGamma(g)   
  
-        self.updateGammaDelta()
+        self.updateP()
 
         print("-1,"+ str(self.div())) 
 
@@ -1185,7 +1164,7 @@ class AssemblyPathSVA():
                 os.remove(outFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
-        self.updateGammaDelta()
+        self.updateP()
 
     def exp_square_lambda(self):
         ''' Compute: sum_s E_q(phi,gamma) [ sum ( Phi_v Gamma_s )^2 ]. '''
