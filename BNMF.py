@@ -72,6 +72,34 @@ def main(argv):
         for K in values_K
     ]
     
+    all_performances = {metric:[] for metric in metrics} 
+    average_performances = {metric:[] for metric in metrics} # averaged over repeats
+    for K,(Ms_train,Ms_test) in zip(values_K,all_Ms_training_and_test):
+        print "Trying K=%s." % K
+    
+        # Run the algorithm <repeats> times and store all the performances
+        for metric in metrics:
+            all_performances[metric].append([])
+        
+        for fold,(M_train,M_test) in enumerate(zip(Ms_train,Ms_test)):
+            print "Fold %s of K=%s." % (fold+1, K)
+        
+            BNMF = bnmf_vb(R,M_train,K,ARD,hyperparams)
+            BNMF.initialise(init_UV)
+            BNMF.run(iterations)
+    
+            # Measure the performances
+            performances = BNMF.predict(M_test)
+            for metric in metrics:
+                # Add this metric's performance to the list of <repeat> performances for this fraction
+                all_performances[metric][-1].append(performances[metric])
+            
+            # Compute the average across attempts
+        
+        for metric in metrics:
+            average_performances[metric].append(sum(all_performances[metric][-1])/no_folds)
+    
+    
     print "Dummy"
     
 if __name__ == "__main__":
