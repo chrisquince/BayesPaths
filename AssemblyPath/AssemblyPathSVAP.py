@@ -1237,7 +1237,7 @@ class AssemblyPathSVA():
             #gamma prior on theta
             exp_prior += self.V*(self.alphaTheta0 * math.log(self.betaTheta0) - sp.special.gammaln(self.alphaTheta0))
         
-            exp_prior += (self.alphaTheta0 - 1)*self.expLogTheta.sum() - self.alphaBeta0*self.expTheta.sum()
+            exp_prior += (self.alphaTheta0 - 1)*self.expLogTheta.sum() - self.betaTheta0*self.expTheta.sum()
         
         #add phio prior assuming uniform 
         exp_prior += self.G*np.sum(self.logPhiPrior)
@@ -1252,15 +1252,15 @@ class AssemblyPathSVA():
                           + ((self.alphak_s - 1.)*self.exp_loglambdak).sum() - (self.betak_s * self.exp_lambdak).sum()        
         
         #q for gamma
-        exp_q += np.sum(self.aGamma*np.log(self.bGamma)) - np.sum(sp.special.gammaln(self.aGamma)) \
-                + np.sum((self.aGamma - 1.)*self.expLogGamma) - np.sum(self.bGamma*self.expGamma)
+        exp_q += np.sum(self.aGamma*np.log(self.bGamma)[:,np.newaxis]) - np.sum(sp.special.gammaln(self.aGamma)) \
+                + np.sum((self.aGamma - 1.)*self.expLogGamma) - np.sum(self.bGamma[:,np.newaxis]*self.expGamma)
         
         #q for delta
         exp_q += self.aDelta*math.log(self.bDelta) - sp.special.gammaln(self.aDelta) + (self.aDelta - 1.)*self.expLogDelta - self.bDelta*self.expDelta
        
         #q for theta 
         if self.BIAS:
-            exp_q += self.aTheta*math.log(self.bTheta) - sp.special.gammaln(self.aTheta) + (self.aTheta - 1.)*self.expLogTheta - self.bTheta*self.expTheta
+            exp_q += np.sum(self.aTheta*np.log(self.bTheta) - sp.special.gammaln(self.aTheta) + (self.aTheta - 1.)*self.expLogTheta - self.bTheta*self.expTheta)
         
         total_elbo = logLike + exp_prior - exp_q
         
