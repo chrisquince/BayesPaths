@@ -695,7 +695,7 @@ class AssemblyPathSVA():
         else:
             tTheta = self.lengths
             
-        bTemp[0] = np.sum(tTheta)
+        bTemp[0] = np.sum(tTheta)*self.S 
 
         bTemp[1:self.G + 1] = np.sum(tTheta[:,np.newaxis]*self.expPhi,axis=0)
 
@@ -715,7 +715,7 @@ class AssemblyPathSVA():
         
         self.expLogGamma = digamma(self.aGamma) - np.log(self.bGamma)[:,np.newaxis]
         
-        self.aDelta = np.sum(aTemp[0,:])
+        self.aDelta = np.sum(aTemp[0,:]) 
         self.bDelta = bTemp[0]
         
         self.aDelta += self.alphaDelta0
