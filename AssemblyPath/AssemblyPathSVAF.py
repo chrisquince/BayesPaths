@@ -351,7 +351,7 @@ class AssemblyPathSVA():
                     fIn = sum(indices[0:nIn])
                     fOut = sum(indices[nIn:])
                     
-		    if node == self.sourceNode: 
+                    if node == self.sourceNode: 
                         if fIn == fOut:
                             if fIn == 0:
                                 factorMatrix[indices] = 1.0
