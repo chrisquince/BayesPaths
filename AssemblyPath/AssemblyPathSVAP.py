@@ -653,8 +653,6 @@ class AssemblyPathSVA():
 
     def updateTheta(self):
         
-        
-        
         self.aTheta = self.alphaTheta0 + np.sum(self.X,axis=1)
         self.bTheta = self.betaTheta0 + np.sum(self.eLambda*self.lengths[:,np.newaxis],axis=1)
         
@@ -1204,11 +1202,7 @@ class AssemblyPathSVA():
         exp_prior = 0.
         exp_q = 0.
         
-        self.eLambda = np.dot(self.expPhi, self.expGamma) #maybe not necessary?
-        
-        logLike = -np.sum(self.eLambda*self.expTheta[:,np.newaxis])
-        
-        self.updateP() #also perhaps not necessary
+        logLike = -np.sum(self.eLambda*self.expTheta[:,np.newaxis]*self.lengths[:,np.newaxis])
         
         gammaDash = np.zeros((self.G + 1,self.S))
         
