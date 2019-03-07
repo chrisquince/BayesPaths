@@ -562,9 +562,13 @@ class AssemblyPathSVA():
                     if d > 0:
                         temp_log_phi = math.log(d)
             
-                    tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + \
-                                      self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
-            
+                    if self.BIAS:
+                        tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + \
+                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
+                    else:
+                        tempMatrix[d] = np.sum(-float(d)*mapGammaG*self.lengths[v_idx] + \
+                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
+                                        
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
     def updateUnitigFactorsW(self,unitigs, unitigMap, unitigFacNodes, W,gidx):
@@ -686,7 +690,11 @@ class AssemblyPathSVA():
         aTempT = np.einsum('vsg,vs->sg',self.norm_p, self.X)
         aTemp = aTempT.transpose()
         
-        tTheta = self.expTheta*self.lengths
+        if self.BIAS:
+            tTheta = self.expTheta*self.lengths
+        else:
+            tTheta = self.lengths
+            
         bTemp[0] = np.sum(tTheta)
 
         bTemp[1:self.G + 1] = np.sum(tTheta[:,np.newaxis]*self.expPhi,axis=0)
@@ -716,8 +724,6 @@ class AssemblyPathSVA():
         self.expDelta = self.aDelta/self.bDelta
         self.expLogDelta = digamma(self.aDelta) - np.log(self.bDelta)
         
-        
-
 
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
     
@@ -1202,8 +1208,11 @@ class AssemblyPathSVA():
         exp_prior = 0.
         exp_q = 0.
         
-        logLike = -np.sum(self.eLambda*self.expTheta[:,np.newaxis]*self.lengths[:,np.newaxis])
-        
+        if self.BIAS:
+            logLike = -np.sum(self.eLambda*self.expTheta[:,np.newaxis]*self.lengths[:,np.newaxis])
+        else:
+            logLike = -np.sum(self.eLambda*self.lengths[:,np.newaxis])
+            
         gammaDash = np.zeros((self.G + 1,self.S))
         
         gammaDash[0,:] = self.expLogDelta
