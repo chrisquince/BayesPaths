@@ -564,10 +564,10 @@ class AssemblyPathSVA():
             
                     if self.BIAS:
                         tempMatrix[d] = np.sum(-float(d)*self.expTheta[v_idx]*mapGammaG*self.lengths[v_idx] + \
-                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
+                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx + 1]*temp_log_phi)
                     else:
                         tempMatrix[d] = np.sum(-float(d)*mapGammaG*self.lengths[v_idx] + \
-                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx]*temp_log_phi)
+                                        self.X[v_idx,:]*self.norm_p[v_idx,:,gidx + 1]*temp_log_phi)
                                         
                 unitigFacNode.P = expNormLogProb(tempMatrix)
 
