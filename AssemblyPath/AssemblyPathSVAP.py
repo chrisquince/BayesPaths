@@ -653,10 +653,10 @@ class AssemblyPathSVA():
 
     def updateTheta(self):
         
-        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        
         
         self.aTheta = self.alphaTheta0 + np.sum(self.X,axis=1)
-        self.bTheta = self.alphaTheta0 + np.sum(self.eLambda*self.lengths[:,np.newaxis],axis=1)
+        self.bTheta = self.betaTheta0 + np.sum(self.eLambda*self.lengths[:,np.newaxis],axis=1)
         
         self.expTheta = self.aTheta/self.bTheta
 
