@@ -198,12 +198,15 @@ class AssemblyPathSVA():
         
         if minSumCov is not None:
             self.minSumCov = minSumCov
-        else if fracCov is not None:
+        elif fracCov is not None:
             self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
-        
+        else:
+            self.minSumCov = 0.0
+
         print("Minimum coverage: " + str(self.minSumCov)) 
-        for gene, unitigFluxNode in self.unitigFluxNodes.items():
-            self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
+        if self.minSumCov > 0.0:
+            for gene, unitigFluxNode in self.unitigFluxNodes.items():
+                self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -1259,15 +1262,12 @@ class AssemblyPathSVA():
     
     def gene_mean_elbo(self):
     
-        diff_matrix = self.divF_matrix()
-        gene_vals = defaultdict(list)
-        
         gene_means = {}
         
         for gene in self.genes:
             unitigs = self.mapUnitigs[gene]
             
-            gene_elbo = calc_unitig_elbo(gene, unitigs)
+            gene_elbo = self.calc_unitig_elbo(gene, unitigs)
             
             gene_mean_elbo = gene_elbo/len(unitigs)
             
@@ -1964,7 +1964,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS, nTauCats = 4)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)

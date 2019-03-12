@@ -37,7 +37,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-#    import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -104,7 +104,7 @@ def main(argv):
     assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
  
     gene_mean_error = assGraph.gene_mean_diff()
-    geme_mean_elbo = assGraph. gene_mean_elbo()
+    gene_mean_elbo = assGraph.gene_mean_elbo()
 
     for (gene, error) in gene_mean_error.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
