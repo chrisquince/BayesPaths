@@ -61,7 +61,8 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5,alpha=0.01,beta=0.01,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1, working_dir="/tmp", minSumCov = 10.):
+                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1, working_dir="/tmp", minSumCov = None, fracCov = None):
+                
         self.prng = prng #random state to store
 
         self.readLength = readLength #sequencing read length
@@ -92,8 +93,6 @@ class AssemblyPathSVA():
         self.sourceNode = 'source+'
         
         self.no_folds = no_folds
-        
-        self.minSumCov = minSumCov
         
         if minIntensity == None:
             self.minIntensity = 2.0/self.readLength
@@ -196,10 +195,13 @@ class AssemblyPathSVA():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
-         
-        self.minSumCov = 0.03*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
-        #self.minSumCov = 0.0
-        print("Minimum coverage: " + str(minSumCov)) 
+        
+        if minSumCov is not None:
+            self.minSumCov = minSumCov
+        else if fracCov is not None:
+            self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+        
+        print("Minimum coverage: " + str(self.minSumCov)) 
         for gene, unitigFluxNode in self.unitigFluxNodes.items():
             self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
@@ -1253,6 +1255,26 @@ class AssemblyPathSVA():
             gene_means[gene] = np.mean(np.array(gene_vals[gene]))
                 
         return gene_means
+        
+    
+    def gene_mean_elbo(self):
+    
+        diff_matrix = self.divF_matrix()
+        gene_vals = defaultdict(list)
+        
+        gene_means = {}
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            gene_elbo = calc_unitig_elbo(gene, unitigs)
+            
+            gene_mean_elbo = gene_elbo/len(unitigs)
+            
+            gene_means[gene] = gene_mean_elbo
+                
+        return gene_means
+    
         
     def exp_square_diff_matrix_unitigs(self,unitig_idxs): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
