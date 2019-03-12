@@ -196,8 +196,9 @@ class AssemblyPathSVA():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
-   
+         
         self.minSumCov = 0.03*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+        #self.minSumCov = 0.0
         print("Minimum coverage: " + str(minSumCov)) 
         for gene, unitigFluxNode in self.unitigFluxNodes.items():
             self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)

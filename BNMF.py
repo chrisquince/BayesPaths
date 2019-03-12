@@ -40,7 +40,7 @@ def main(argv):
         i += 1
     
     no_folds = 10
-    values_K = [1,2,3,4,6,8,10,15,20,30,40]
+    values_K = [1,2,3,4,6,8,10,15,20,25,30]
 
     output_folder = "./BNMTF_ARD/"
     output_file = output_folder+'nmf_vb_ard.txt'
@@ -99,8 +99,12 @@ def main(argv):
         for metric in metrics:
             average_performances[metric].append(sum(all_performances[metric][-1])/no_folds)
     
-    
-    print "Dummy"
-    
+    open(output_file,'w').write("%s" % all_performances)
+    print "K" + ",".join(metrics)
+    for (k,kidx) in enumerate(values_K):
+        pVals = [str(average_performances[metric][kidx]) for metric in metrics]
+        pString = ",".join(pVals) 
+        print str(k) + "," + pString        
+
 if __name__ == "__main__":
     main(sys.argv[1:])
