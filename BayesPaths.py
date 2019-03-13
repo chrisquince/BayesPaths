@@ -152,6 +152,8 @@ def main(argv):
 
     assGraphS2 = AssemblyPathSVA(prng, assemblyGraphsSelect2, source_maps_select2, sink_maps_select2, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
+    assGraphS2.initNMF()
+    
     assGraphS2.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
   
     assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
