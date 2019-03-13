@@ -192,20 +192,26 @@ class AssemblyPathSVA():
         
         sumSourceCovs = Counter()
         sumSinkCovs   = Counter()
+        sumSourceCovsS = defaultdict(lambda:np.zeros(self.S))
+        sumSinkCovsS = defaultdict(lambda:np.zeros(self.S))
         self.geneCovs = {}
         
         for gene, sources in source_maps.items():
             for source in sources:
                 sunitig = source[0]
                 sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
-        
+                sumSourceCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
         for gene, sinks in sink_maps.items():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
-            
+                sumSinkCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
+        
         for gene, sinkCovs in sumSinkCovs.items():
-            self.geneCovs[gene] = np.mean(sinkCovs + sumSourceCovs[gene])        
+            tempMatrix = np.zeros((2,self.S))
+            tempMatrix[0,:] = sumSinkCovsS[gene]
+            tempMatrix[1,:] = sumSourceCovsS[gene]
+            self.geneCovs[gene] = np.mean(tempMatrix,axis=0)        
         
         if minSumCov is not None:
             self.minSumCov = minSumCov
