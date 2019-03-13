@@ -126,7 +126,7 @@ def main(argv):
         assemblyGraphs[gene] = unitigGraph
     
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
     assGraph.initNMF()
 
@@ -138,7 +138,7 @@ def main(argv):
     source_maps_select = {s:source_maps[s] for s in genesSelect} 
     sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = assGraph.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
+    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = assGraph.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
     assGraphS.initNMF()
 
@@ -150,7 +150,7 @@ def main(argv):
     source_maps_select2 = {s:source_maps[s] for s in genesSelect2} 
     sink_maps_select2 = {s:sink_maps[s] for s in genesSelect2}
 
-    assGraphS2 = AssemblyPathSVA(prng, assemblyGraphsSelect2, source_maps_select2, sink_maps_select2, G = assGraphS.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
+    assGraphS2 = AssemblyPathSVA(prng, assemblyGraphsSelect2, source_maps_select2, sink_maps_select2, G = assGraphS.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
     assGraphS2.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
   
