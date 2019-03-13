@@ -955,59 +955,58 @@ class AssemblyPathSVA():
                     logF.write(str(iter)+","+ str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
     
-    
-    
-    
-    def updateGammaFixed(self, maxIter):
-    
+    def updateGammaFixed(self, maxIter, relax_path=False):
+
+            
         iter = 0
-         
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        self.updateTau() 
         while iter < maxIter:
             #update phi marginals
-            
+             
             for g in range(self.G):
                 
                 self.removeGamma(g)
-            
-                for gene, factorGraph in self.factorGraphs.items():
-                    unitigs = self.assemblyGraphs[gene].unitigs
-                   
-                    
-                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, self.expTau)
-                    
-        
-                    factorGraph.reset()
-        
-                    factorGraph.var['zero+source+'].condition(1)
-
-                    factorGraph.var['sink+infty+'].condition(1)
-                    
-                    graphString = str(factorGraph)
-                    graphFileName = self.working_dir + '/' + str(uuid.uuid4()) + 'graph_'+ str(g) + '.fg'                    
+                fgFileStubs = {}
+                threads = []
                 
-                    with open(graphFileName, "w") as text_file:
-                        print(graphString, file=text_file)
+                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
                 
-                    cmd = './runfg_marg ' + graphFileName + ' 0'
+                pool = ThreadPool(len(self.genes))
+                results = []
+                for gene, graphFileStub in fgFileStubs.items():
+                    graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
+                    outFileName = self.working_dir + '/' + graphFileStub + '.out'
+                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
+                    results.append(pool.apply_async(call_proc, (cmd,)))
+                pool.close()
+                pool.join()
+                for result in results:
+                    out, err = result.get()
+        #            print("out: {} err: {}".format(out, err))
                 
-                    p = Popen(cmd, stdout=PIPE,shell=True)
-        
-                    outLines = p.stdout.read()
-               
-                    margP = self.parseMargString(factorGraph, outLines)
-                    if len(margP) > 0:
-                        self.margG[gene][g] = margP
-       
-                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-                    os.remove(graphFileName) 
+                self.readMarginals(fgFileStubs, g, drop_strain)
+                           
                 self.addGamma(g)
-                      
+            
+            if self.ARD:
+                for g in range(self.G):
+                    self.update_lambdak(g)
+                    self.update_exp_lambdak(g)
+            
             self.updateTau()
             
+            if self.BIAS:
+                self.updateTheta()
+            
             total_elbo = self.calc_elbo()    
-            print(str(iter)+","+ str(self.divF()) +"," + str(total_elbo))  
+            DivF = self.divF()
+            Div  = self.div()
+            print(str(iter)+ "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
+
             iter += 1
     
+        
     
     def updatePhiFixed(self, maxIter):
     
