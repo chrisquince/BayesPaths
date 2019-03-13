@@ -198,10 +198,13 @@ class AssemblyPathSVA():
         
         if minSumCov is not None:
             self.minSumCov = minSumCov
+            self.fracCov = 0.0
         elif fracCov is not None:
+            self.fracCov = fracCov
             self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
         else:
             self.minSumCov = 0.0
+            self.fracCov = 0.0
 
         print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
@@ -871,7 +874,8 @@ class AssemblyPathSVA():
                             self.expPhi[v_idx,g] = 0.
                             self.expPhi2[v_idx,g] = 0.  
                         
-                        for unitig in greedyPath:
+                        for unitigd in greedyPath:
+                            unitig = unitigd[:-1]
                             if unitig in self.mapGeneIdx[gene]:
                                 v_idx = self.mapGeneIdx[gene][unitig]
                         
