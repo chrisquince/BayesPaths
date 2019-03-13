@@ -47,6 +47,13 @@ import shlex
 
 from multiprocessing.pool import ThreadPool
 
+
+def reject_outliers(data, m = 2.):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d/mdev if mdev else 0.
+    return s<m
+
 def call_proc(cmd):
     """ This runs in a separate thread. """
     #subprocess.call(shlex.split(cmd))  # This will block until cmd finishes
@@ -185,7 +192,8 @@ class AssemblyPathSVA():
         
         sumSourceCovs = Counter()
         sumSinkCovs   = Counter()
-    
+        self.geneCovs = {}
+        
         for gene, sources in source_maps.items():
             for source in sources:
                 sunitig = source[0]
@@ -195,6 +203,9 @@ class AssemblyPathSVA():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
+            
+        for gene, sinkCovs in sumSinkCovs.items():
+            self.geneCovs[gene] = np.mean(sinkCovs + sumSourceCovs[gene])        
         
         if minSumCov is not None:
             self.minSumCov = minSumCov
@@ -955,6 +966,30 @@ class AssemblyPathSVA():
                 with open(logFile, 'a') as logF:            
                     logF.write(str(iter)+ "," +  str(self.G) + "," + str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
+    
+    
+    
+    def get_outlier_cogs_sample(self, mCogFilter = 2.0, cogSampleFrac=0.95):
+    
+        uniquegenes = list(self.geneCovs.keys())
+        
+        nGenes = len(uniquegenes)
+        
+        g = 0
+        geneSampleCovArray = np.zeros((nGenes,self.S))
+        for gene in uniquegenes:
+            geneSampleCovArray[g,:] = self.geneCovs[gene]
+            g = g + 1    
+            
+        
+        outlierGeneSample = np.zeros((nGenes,self.S),dtype=bool)
+        for s in range(self.S):
+            outlierGeneSample[:,s] = reject_outliers(geneSampleCovArray[:,s], m = mCogFilter)
+    
+        filterGenes = outlierGeneSample.sum(axis=1) < (self.S*cogSampleFrac)
+        filteredGenes = [i for (i, v) in zip(uniquegenes, filterGenes) if v]
+        
+        return filteredGenes
     
     def updateGammaFixed(self, maxIter, relax_path=False):
 
