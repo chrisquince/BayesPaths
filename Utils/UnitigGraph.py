@@ -426,6 +426,36 @@ class UnitigGraph():
         else:
             return None
             
+    def isSourceSinkIsolated(self, unitig):
+      
+        allLinks = []
+        for outNode,links in self.overlaps[unitig].items():
+            
+            for link in links:
+                allLinks.append(link[0])
+        if len(allLinks) > 0:    
+            if all(x == allLinks[0] for x in allLinks):
+                return allLinks[0]
+            else:
+                return None
+        else:
+            return True
+
+            
+    def isIsolated(self, unitig):
+      
+        allLinks = []
+        for outNode,links in self.overlaps[unitig].items():
+            
+            for link in links:
+                allLinks.append(link[0])
+        
+        if len(allLinks) > 0:    
+            return False
+        else:
+            return True
+            
+            
     
     def getUnreachableBiGraph(self,source_names,sink_names):
     
@@ -643,7 +673,7 @@ class UnitigGraph():
         deadEndSet = set(deadends)        
         sourceSinks = []
         for unitig in self.undirectedUnitigGraph.nodes():
-            sourceSink = self.isSourceSink(unitig)
+            sourceSink = self.isSourceSinkIsolated(unitig)
             
             if sourceSink is not None and sourceSink not in deadEndSet:
                 sourceSinks.append(unitig)
@@ -704,6 +734,15 @@ class UnitigGraph():
                 if hit is not None:
                     sinks.append(hit)
                     sinkUnitigs.add(sourceSink)
+
+        #add any isolated singletons here
+        for sourceSink in sourceSinks:
+            if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
+                if self.isIsolated(unitig):
+                    sinks.append(sourceSink + "-")
+                    sinkUnitigs.add(sourceSink)
+                    sources.append(sourceSink + "+")
+                    sourceUnitigs.add(sourceSink)
 
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
