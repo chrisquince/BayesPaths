@@ -865,7 +865,8 @@ class AssemblyPathSVA():
                 except FileNotFoundError:
                 
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
-                        print("Attempt greedy path")
+
+                        print("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
                         greedyPath = self.sampleGreedyPath(gene, g)
                     
                         for unitig in self.assemblyGraphs[gene].unitigs:
