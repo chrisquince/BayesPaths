@@ -128,7 +128,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
-    assGraph.get_outlier_cogs_sample(mCogFilter = 2.0, cogSampleFrac=0.95)
+    assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
     assGraph.initNMF()
 
