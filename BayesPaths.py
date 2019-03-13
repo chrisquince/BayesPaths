@@ -97,7 +97,7 @@ def main(argv):
         assemblyGraphs[gene] = unitigGraph
     
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.01)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.02)
     
     assGraph.initNMF()
 
@@ -124,16 +124,22 @@ def main(argv):
         if devArray[gidx] < 2.0*medianDevError:
             genesSelect.append(gene)
 
-    assemblyGraphsSelect = {k:assemblyGraphs[s] for s in genesSelect}
-    source_maps_select = {k:source_maps[s] for s in genesSelect} 
-    sink_maps_select = {k:sink_maps[s] for s in genesSelect} 
+    assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
+    source_maps_select = {s:source_maps[s] for s in genesSelect} 
+    sink_maps_select = {s:sink_maps[s] for s in genesSelect} 
 
-    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.01)
+    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.02)
     
     assGraphS.initNMF()
 
-    assGraphS.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
+    assGraphS.update(500, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
   
+    gene_mean_error = assGraphS.gene_mean_diff()
+    gene_mean_elbo = assGraphS.gene_mean_elbo()
+
+    for (gene, error) in gene_mean_error.items():
+        print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
+
     #assGraph.update(100, False,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
 
     #assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
@@ -152,7 +158,7 @@ def main(argv):
 
     assGraphS.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraphS.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=True)
+    assGraphS.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
  
     assGraphS.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
