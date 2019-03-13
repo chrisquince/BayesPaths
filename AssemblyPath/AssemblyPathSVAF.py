@@ -869,10 +869,11 @@ class AssemblyPathSVA():
                         greedyPath = self.sampleGreedyPath(gene, g)
                     
                         for unitig in self.assemblyGraphs[gene].unitigs:
-                            v_idx = self.mapGeneIdx[gene][unitig]
+                            if unitig in self.mapGeneIdx[gene]:
+                                v_idx = self.mapGeneIdx[gene][unitig]
                         
-                            self.expPhi[v_idx,g] = 0.
-                            self.expPhi2[v_idx,g] = 0.  
+                                self.expPhi[v_idx,g] = 0.
+                                self.expPhi2[v_idx,g] = 0.  
                         
                         for unitigd in greedyPath:
                             unitig = unitigd[:-1]
