@@ -948,11 +948,11 @@ class AssemblyPathSVA():
             total_elbo = self.calc_elbo()    
             DivF = self.divF()
             Div  = self.div()
-            print(str(iter)+ "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
+            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
-                    logF.write(str(iter)+","+ str(DivF)+ "," + str(total_elbo) + "\n")
+                    logF.write(str(iter)+ "," +  str(self.G) + "," + str(DivF)+ "," + str(total_elbo) + "\n")
             iter += 1
     
     def updateGammaFixed(self, maxIter, relax_path=False):

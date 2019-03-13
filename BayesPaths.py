@@ -11,6 +11,32 @@ from AssemblyPath.AssemblyPathSVAF import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
+def filterGenes(assGraph):
+    gene_mean_error = assGraph.gene_mean_diff()
+    gene_mean_elbo = assGraph.gene_mean_elbo()
+
+    errors = []
+    genes = []
+    
+    for (gene, error) in gene_mean_error.items():
+        print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
+        errors.append(error)
+        genes.append(gene)
+    
+    error_array = np.array(errors)
+    medianErr = np.median(error_array)
+    devArray = np.absolute(error_array - medianErr)
+    medianDevError = np.median(devArray)
+
+    genesSelect = []
+    for gidx, gene in enumerate(genes):
+        if devArray[gidx] > 2.0*medianDevError and error_array[gidx] > medianErr:
+            print("Removing: " + str(gene))
+        else:
+            genesSelect.append(gene)
+
+    return genesSelect 
+
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -19,6 +45,9 @@ def main(argv):
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
 
     parser.add_argument("outFileStub", help="output file stub")
+
+    parser.add_argument('-f','--frac_cov',nargs='?', default=0.02, type=float, 
+        help=("fractional coverage for noise nodes"))
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
@@ -97,74 +126,51 @@ def main(argv):
         assemblyGraphs[gene] = unitigGraph
     
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.02)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
     
     assGraph.initNMF()
 
-    assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
+    assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
  
-    gene_mean_error = assGraph.gene_mean_diff()
-    gene_mean_elbo = assGraph.gene_mean_elbo()
-
-    errors = []
-    genes = []
-    
-    for (gene, error) in gene_mean_error.items():
-        print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
-        errors.append(error)
-        genes.append(gene)
-    
-    error_array = np.array(errors)
-    medianErr = np.median(error_array)
-    devArray = np.absolute(error_array - medianErr)
-    medianDevError = np.median(devArray)
-
-    genesSelect = []
-    for gidx, gene in enumerate(genes):
-        if devArray[gidx] < 2.0*medianDevError:
-            genesSelect.append(gene)
-
+    genesSelect = filterGenes(assGraph)
+ 
     assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
     source_maps_select = {s:source_maps[s] for s in genesSelect} 
-    sink_maps_select = {s:sink_maps[s] for s in genesSelect} 
+    sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = 0.02)
+    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = assGraph.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
     
     assGraphS.initNMF()
 
-    assGraphS.update(500, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=False)
+    assGraphS.update(200, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
+
+    genesSelect2 = filterGenes(assGraphS)
+ 
+    assemblyGraphsSelect2 = {s:assemblyGraphs[s] for s in genesSelect2}
+    source_maps_select2 = {s:source_maps[s] for s in genesSelect2} 
+    sink_maps_select2 = {s:sink_maps[s] for s in genesSelect2}
+
+    assGraphS2 = AssemblyPathSVA(prng, assemblyGraphsSelect2, source_maps_select2, sink_maps_select2, G = assGraphS.G, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.fracCov)
+    
+    assGraphS2.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
   
-    gene_mean_error = assGraphS.gene_mean_diff()
-    gene_mean_elbo = assGraphS.gene_mean_elbo()
+    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
+  
+    gene_mean_error = assGraphS2.gene_mean_diff()
+    gene_mean_elbo = assGraphS2.gene_mean_elbo()
 
     for (gene, error) in gene_mean_error.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
 
-    #assGraph.update(100, False,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
-
-    #assGraph.update(200, True,logFile=args.outFileStub + "_log.txt",drop_strain=None,relax_path=True)
-
-    #gene_mean_error = assGraph.gene_mean_diff()
-
-    #strain_drop_elbo = assGraph.calc_strain_drop_elbo()
-            
-    #for (gene,drops) in strain_drop_elbo.items():
-     #   for (g, drop) in enumerate(drops):
-      #      if drop:
-       #         assGraph.drop_gene_strains(gene, g)
-        
-            
-    #assGraph.update(100,False,logFile=args.outFileStub + "_log.txt",drop_strain=strain_drop_elbo)
-
-    assGraphS.writeMarginals(args.outFileStub + "margFile.csv")
+    assGraphS2.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraphS.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
+    assGraphS2.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
  
-    assGraphS.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
+    assGraphS2.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
-    assGraphS.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
+    assGraphS2.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
-    assGraphS.writeTheta(args.outFileStub + "Theta.csv") 
+    assGraphS2.writeTheta(args.outFileStub + "Theta.csv") 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
