@@ -128,7 +128,14 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
-    assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
+    genesFilter = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
+    
+    assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
+    source_maps_filter = {s:source_maps[s] for s in genesFilter} 
+    sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
+    
+    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+
     
     assGraph.initNMF()
 
