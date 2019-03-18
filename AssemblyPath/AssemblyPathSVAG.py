@@ -233,6 +233,7 @@ class AssemblyPathSVA():
         #Now initialise SVA parameters
         self.G = G
         
+        self.NOISE = NOISE
         if self.NOISE:
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
@@ -252,8 +253,8 @@ class AssemblyPathSVA():
             
             
         self.epsilon = epsilon #parameter for gamma exponential prior
-        self.expGamma = np.zeros((self.G,self.S)) #expectation of gamma
-        self.expGamma2 = np.zeros((self.G,self.S))
+        self.expGamma = np.zeros((self.GDash,self.S)) #expectation of gamma
+        self.expGamma2 = np.zeros((self.GDash,self.S))
         
         self.muGamma = np.zeros((self.GDash,self.S))
         self.tauGamma = np.zeros((self.GDash,self.S))
@@ -1194,7 +1195,7 @@ class AssemblyPathSVA():
         covNMF.factorize()
         covNMF.factorizeH()
 
-        self.expGamma = np.copy(covNMF.H)
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
         self.expGamma2 = self.expGamma*self.expGamma
         covNMF.factorizeW()
         
