@@ -7,7 +7,7 @@ import re
 
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAF import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAG import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
@@ -183,6 +183,8 @@ def main(argv):
    
     assGraphS2.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
+    assGraphS2.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
+    
     assGraphS2.writeTheta(args.outFileStub + "Theta.csv") 
 
 if __name__ == "__main__":
