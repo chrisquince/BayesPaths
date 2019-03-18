@@ -7,7 +7,7 @@ import re
 
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAG import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAF import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
@@ -136,7 +136,7 @@ def main(argv):
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
     sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, NOISE=False, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
 
     
     assGraph.initNMF()

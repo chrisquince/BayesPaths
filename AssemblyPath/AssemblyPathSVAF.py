@@ -1943,6 +1943,37 @@ class AssemblyPathSVA():
 
                 gammaFile.write(str(g) + "," + gString + "\n")
 
+    def writeGammaVarMatrix(self, gammaFile):
+
+        with open(gammaFile, "w") as gammaFile:
+            for g in range(self.G):
+                gammaVals = self.varGamma[g,:].tolist()
+                
+                gString = ",".join([str(x) for x in gammaVals])
+
+                gammaFile.write(str(g) + "," + gString + "\n")
+
+    def writeGammaMuMatrix(self, gammaFile):
+
+        with open(gammaFile, "w") as gammaFile:
+            for g in range(self.G):
+                gammaVals = self.muGamma[g,:].tolist()
+                
+                gString = ",".join([str(x) for x in gammaVals])
+
+                gammaFile.write(str(g) + "," + gString + "\n")
+
+
+    def writeGammaTauMatrix(self, gammaFile):
+
+        with open(gammaFile, "w") as gammaFile:
+            for g in range(self.G):
+                gammaVals = self.tauGamma[g,:].tolist()
+                
+                gString = ",".join([str(x) for x in gammaVals])
+
+                gammaFile.write(str(g) + "," + gString + "\n")
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
