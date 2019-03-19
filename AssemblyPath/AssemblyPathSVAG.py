@@ -1159,7 +1159,7 @@ class AssemblyPathSVA():
     
         while current != self.sourceNode:
             inPaths = list(factorGraph.predecessors(current))
-            NC = len(inPaths))
+            NC = len(inPaths)
             tempProb = np.zeros(NC)
             for idx, inPath in enumerate(inPaths):
 
