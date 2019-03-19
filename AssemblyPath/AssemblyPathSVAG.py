@@ -1159,7 +1159,7 @@ class AssemblyPathSVA():
     
         while current != self.sourceNode:
             inPaths = list(biGraph.predecessors(current))
-            NC = len(inPaths))
+            NC = len(inPaths)
             tempProb = np.zeros(NC)
             for idx, inPath in enumerate(inPaths):
 
@@ -1172,11 +1172,12 @@ class AssemblyPathSVA():
             
             path.append(current)
             
-            current = list(biGraph.predecessors(inPaths[selectIn]))[0]
+            current = list(biGraph.predecessors(inPaths[selectIn[0]]))[0]
             
-            visited.add(inPaths[selectIn])
+            visited.add(inPaths[selectIn[0]])
             
-        return path.reverse()
+        path.reverse()
+        return path
 
     def runFGMarginal(self, factorGraph, g):
         graphString = str(factorGraph)
@@ -1236,7 +1237,7 @@ class AssemblyPathSVA():
                     
                     pathG = self.sampleMargPath(marginals,biGraph)
 
-                    pathG.pop(0)
+                    pathG.pop()
                     paths[gene].append(pathG)
                     if len(pathG) > 0:
                         unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
