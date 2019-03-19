@@ -1681,20 +1681,19 @@ class AssemblyPathSVA():
                         removed[h] = True    
         
        
-        retained = np.logical_not(removed) 
+        retained = np.logical_not(removed)
+        if self.NOISE:
+            retained[self.G] = True
+ 
         nNewG = np.sum(retained)
         if nNewG < self.G:
             print("New strain number " + str(nNewG))
-            self.G = nNewG
             
             if self.NOISE:
-                self.GDash = self.G + 1
-                retainedNew = numpy.ones(self.GDash, dtype=bool)
-                
-                retainedNew[0:self.G] = retained
-                
-                retained = retainedNew 
+                self.G = nNewG
+                self.GDash = self.G + 1 
             else:
+                self.G = nNewG
                 self.GDash = self.G
             
             
