@@ -1178,6 +1178,30 @@ class AssemblyPathSVA():
             
         return path.reverse()
 
+    def runFGMarginal(self, factorGraph, g):
+        graphString = str(factorGraph)
+                    
+        outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+        graphFileName = self.working_dir + '/' + outFileStub + '.fg'                
+        outFileName = self.working_dir + '/' + outFileStub + ".out"
+
+        with open(graphFileName, "w") as text_file:
+            print(graphString, file=text_file)
+
+
+        cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1' 
+
+        p = Popen(cmd, stdout=PIPE,shell=True)
+             
+        p.wait()
+
+        with open (outFileName, "r") as myfile:
+            outString=myfile.readlines()
+       
+        os.remove(graphFileName)
+        os.remove(outFileName)
+        
+        return self.parseMargString(factorGraph, outString)
 
     def sampleNHaplotypes(self,nSample,drop_strain=None,relax_path=False):
 
