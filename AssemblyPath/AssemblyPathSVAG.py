@@ -1151,6 +1151,79 @@ class AssemblyPathSVA():
             #print(str(current))
         return path
 
+    def sampleMargPath(self,margP,biGraph):
+        
+        path = []
+        visited = set()
+        current = self.sinkNode
+    
+        while current != self.sourceNode:
+            inPaths = list(factorGraph.predecessors(current))
+            NC = len(inPaths))
+            tempProb = np.zeros(NC)
+            for idx, inPath in enumerate(inPaths):
+
+                if inPath not in visited:
+                    tempProb[idx] = np.sum(margP[inPath][1:]) 
+            
+            tempProb = tempProb/np.sum(tempProb)
+            
+            selectIn = self.prng.choice(np.arange(NC), 1, p=tempProb)
+            
+            path.append(current)
+            
+            current = list(factorGraph.predecessors(inPaths[selectIn]))[0]
+            
+            visited.add(inPaths[selectIn])
+            
+        return path.reverse()
+
+
+    def sampleNHaplotypes(self,nSample,drop_strain=None,relax_path=False):
+
+
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
+        
+        paths = defaultdict(list)
+        haplotypes = defaultdict(list)
+        
+        for g in range(self.G):
+            for gene, factorGraph in self.factorGraphs.items():
+                if not drop_strain[gene][g]:
+                    unitigs = self.assemblyGraphs[gene].unitigs
+
+                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)        
+                    
+                    factorGraph.reset()
+
+                    if not relax_path:
+                        factorGraph.var['zero+source+'].condition(1)
+
+                        factorGraph.var['sink+infty+'].condition(1)
+                    else:
+                        factorGraph.var['zero+source+'].clear_condition()
+
+                        factorGraph.var['sink+infty+'].clear_condition()
+                    
+                    marginals = self.runFGMarginal(factorGraph, g)
+                    
+                    biGraph = self.factorDiGraphs[gene]
+                    
+                    pathG = self.sampleMargPath(marginals,biGraph)
+
+                    pathG.pop(0)
+                    paths[gene].append(pathG)
+                    if len(pathG) > 0:
+                        unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                        haplotypes[gene].append(unitig)
+                    else:
+                        haplotypes[gene].append("")
+                        
+                else:
+                    haplotypes[gene].append("")
+                    paths[gene].append(None)  
+
 
     def convertMAPToPath(self,mapPath,factorGraph):
     

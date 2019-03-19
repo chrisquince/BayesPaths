@@ -141,8 +141,10 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+    assGraph.update(100, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
  
+    assGraph.sampleNHaplotypes(100,drop_strain=None,relax_path=False)
+    
     genesSelect = filterGenes(assGraph)
  
     assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
