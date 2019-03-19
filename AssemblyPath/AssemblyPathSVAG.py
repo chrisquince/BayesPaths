@@ -1158,7 +1158,7 @@ class AssemblyPathSVA():
         current = self.sinkNode
     
         while current != self.sourceNode:
-            inPaths = list(factorGraph.predecessors(current))
+            inPaths = list(biGraph.predecessors(current))
             NC = len(inPaths))
             tempProb = np.zeros(NC)
             for idx, inPath in enumerate(inPaths):
@@ -1172,7 +1172,7 @@ class AssemblyPathSVA():
             
             path.append(current)
             
-            current = list(factorGraph.predecessors(inPaths[selectIn]))[0]
+            current = list(biGraph.predecessors(inPaths[selectIn]))[0]
             
             visited.add(inPaths[selectIn])
             
