@@ -1688,7 +1688,7 @@ class AssemblyPathSVA():
         nNewG = np.sum(retained[0:self.G])
         if nNewG < self.G:
             print("New strain number " + str(nNewG))
-            
+            oldG = self.G
             if self.NOISE:
                 self.G = nNewG
                 self.GDash = self.G + 1 
@@ -1696,7 +1696,7 @@ class AssemblyPathSVA():
                 self.G = nNewG
                 self.GDash = self.G
             
-            oldG = self.G
+            
             newPhi  = self.expPhi[:,retained]        
             newPhi2 = self.expPhi2[:,retained]
             newPhiH = self.HPhi[:,retained] 
