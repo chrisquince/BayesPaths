@@ -1209,14 +1209,15 @@ class AssemblyPathSVA():
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
         
-        paths = defaultdict(list)
-        haplotypes = defaultdict(list)
         
         self.eLambda = np.dot(self.expPhi,self.expGamma) 
         all_paths = []
         all_haplotypes = []
         
         for s in range(nSamples):
+            paths = defaultdict(list)
+            haplotypes = defaultdict(list)
+
             for g in range(self.G):
                 for gene, factorGraph in self.factorGraphs.items():
                     if not drop_strain[gene][g]:
