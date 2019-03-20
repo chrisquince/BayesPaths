@@ -1781,18 +1781,20 @@ class AssemblyPathSVA():
     def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
     
         if uncertainFactor is not None:
-            self.getMaximalUnitigs(args.outFileStub + "Temo_" + str(self.G),drop_strain=None, relax_path)
+            self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
  
-            mean_div = self.getPathDivergence(100,drop_strain=None,relax_path)
+            mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
     
         #calculate number of good strains
         nNewG = 0
         
         sumIntensity = np.max(self.expGamma,axis=1)
+
+        sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
         
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
-        removed = sumIntensity - mean_div*uncertainFactor < minIntensity
+        removed = sumIntensity < minIntensity
         
         for g in range(self.G):
         

@@ -141,7 +141,7 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(20, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
+    assGraph.update(100, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
 
     assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
  
