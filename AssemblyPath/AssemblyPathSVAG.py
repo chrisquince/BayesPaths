@@ -1212,7 +1212,7 @@ class AssemblyPathSVA():
         
         paths = defaultdict(list)
         haplotypes = defaultdict(list)
-        
+	self.eLambda = np.dot(self.expPhi,self.expGamma) 
         all_paths = []
         all_haplotypes = []
         
@@ -1221,37 +1221,22 @@ class AssemblyPathSVA():
                 for gene, factorGraph in self.factorGraphs.items():
                     if not drop_strain[gene][g]:
                         unitigs = self.assemblyGraphs[gene].unitigs
-
-                        self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)        
                     
-                    factorGraph.reset()
-
-                    if not relax_path:
-                        factorGraph.var['zero+source+'].condition(1)
-
-                        factorGraph.var['sink+infty+'].condition(1)
-                    else:
-                        factorGraph.var['zero+source+'].clear_condition()
-
-                        factorGraph.var['sink+infty+'].clear_condition()
                     
-                    marginals = self.runFGMarginal(factorGraph, g)
+                    	marginals = self.margG[gene][g] #self.runFGMarginal(factorGraph, g)
                     
-                    biGraph = self.factorDiGraphs[gene]
+                    	biGraph = self.factorDiGraphs[gene]
                     
-                    pathG = self.sampleMargPath(marginals,biGraph)
+                    	pathG = self.sampleMargPath(marginals,biGraph)
 
-                    pathG.pop()
-                    paths[gene].append(pathG)
-                    if len(pathG) > 0:
-                        unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                        haplotypes[gene].append(unitig)
-                    else:
-                        haplotypes[gene].append("")
-                        
-                else:
-                    haplotypes[gene].append("")
-                    paths[gene].append(None)  
+                    	pathG.pop()
+                    	paths[gene].append(pathG)
+                    	if len(pathG) > 0:
+                        	unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                        	haplotypes[gene].append(unitig)
+                    	else:
+                        	haplotypes[gene].append("")
+                    		paths[gene].append(None)  
             
             all_haplotypes.append(haplotypes)
             all_paths.append(paths)
