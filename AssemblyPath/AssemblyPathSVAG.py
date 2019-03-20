@@ -1206,13 +1206,13 @@ class AssemblyPathSVA():
 
     def sampleNHaplotypes(self,nSamples,drop_strain=None,relax_path=False):
 
-
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
         
         paths = defaultdict(list)
         haplotypes = defaultdict(list)
-	self.eLambda = np.dot(self.expPhi,self.expGamma) 
+        
+        self.eLambda = np.dot(self.expPhi,self.expGamma) 
         all_paths = []
         all_haplotypes = []
         
@@ -1222,21 +1222,20 @@ class AssemblyPathSVA():
                     if not drop_strain[gene][g]:
                         unitigs = self.assemblyGraphs[gene].unitigs
                     
+                        marginals = self.margG[gene][g] #self.runFGMarginal(factorGraph, g)
                     
-                    	marginals = self.margG[gene][g] #self.runFGMarginal(factorGraph, g)
+                        biGraph = self.factorDiGraphs[gene]
                     
-                    	biGraph = self.factorDiGraphs[gene]
-                    
-                    	pathG = self.sampleMargPath(marginals,biGraph)
+                        pathG = self.sampleMargPath(marginals,biGraph)
 
-                    	pathG.pop()
-                    	paths[gene].append(pathG)
-                    	if len(pathG) > 0:
-                        	unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                        	haplotypes[gene].append(unitig)
-                    	else:
-                        	haplotypes[gene].append("")
-                    		paths[gene].append(None)  
+                        pathG.pop()
+                        paths[gene].append(pathG)
+                        if len(pathG) > 0:
+                            unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                            haplotypes[gene].append(unitig)
+                        else:
+                            haplotypes[gene].append("")
+                            paths[gene].append(None)  
             
             all_haplotypes.append(haplotypes)
             all_paths.append(paths)
