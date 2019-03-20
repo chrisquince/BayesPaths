@@ -141,12 +141,8 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(100, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
+    assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
- 
-    mean_div = assGraph.getPathDivergence(100,drop_strain=None,relax_path=False)
-     
     genesSelect = filterGenes(assGraph)
  
     assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
@@ -169,9 +165,9 @@ def main(argv):
     
     assGraphS2.initNMF()
     
-    assGraphS2.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
+    assGraphS2.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
   
-    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
+    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True,uncertainFactor=0.5)
   
     gene_mean_error = assGraphS2.gene_mean_diff()
     gene_mean_elbo = assGraphS2.gene_mean_elbo()
@@ -182,6 +178,11 @@ def main(argv):
     assGraphS2.writeMarginals(args.outFileStub + "margFile.csv")
    
     assGraphS2.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
+    
+    mean_div = assGraph.getPathDivergence(100,drop_strain=None,relax_path=True)
+ 
+    for g in range(assGraph.G):
+        print(str(g) + "," + str(mean_div[g]))
  
     assGraphS2.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
