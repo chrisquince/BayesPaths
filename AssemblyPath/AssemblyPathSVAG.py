@@ -1218,7 +1218,7 @@ class AssemblyPathSVA():
             for s in range(nSamples):
                 div_s = 0
                 for gene, factorGraph in self.factorGraphs.items():    
-                    gMap = self.MAPs[gene][g]
+                    gMap = self.paths[gene][g]
                     if s == 0:
                         map_length += len(gMap)
                     div_s += len(set(gMap) ^ set(paths[s][gene][g])) 
