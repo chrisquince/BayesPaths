@@ -141,14 +141,12 @@ def main(argv):
     
     assGraph.initNMF()
 
-    assGraph.update(20, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+    assGraph.update(20, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
 
     assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
  
     mean_div = assGraph.getPathDivergence(100,drop_strain=None,relax_path=False)
- 
-    (all_paths, all_haplotypes) = assGraph.sampleNHaplotypes(100,drop_strain=None,relax_path=False)
-    
+     
     genesSelect = filterGenes(assGraph)
  
     assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}

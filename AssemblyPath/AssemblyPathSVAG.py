@@ -923,7 +923,7 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False):
+    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -935,7 +935,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(self.minIntensity, 10,relax_path)
+                    self.removeRedundant(self.minIntensity, 10,relax_path,uncertainFactor)
             
             for g in range(self.G):
                 
@@ -1207,7 +1207,7 @@ class AssemblyPathSVA():
 
     def getPathDivergence(self, nSamples,drop_strain=None,relax_path=False):
     
-        divergence_mean = {}
+        divergence_mean = np.zeros(self.G)
         
         (paths,haplotypes) = self.sampleNHaplotypes(nSamples, drop_strain, relax_path)
 
@@ -1778,7 +1778,12 @@ class AssemblyPathSVA():
         return dist
         
     ''' Removes strain below a given total intensity and degenerate'''
-    def removeRedundant(self, minIntensity, gammaIter, relax_path):
+    def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
+    
+        if uncertainFactor is not None:
+            self.getMaximalUnitigs(args.outFileStub + "Temo_" + str(self.G),drop_strain=None, relax_path)
+ 
+            mean_div = self.getPathDivergence(100,drop_strain=None,relax_path)
     
         #calculate number of good strains
         nNewG = 0
@@ -1787,7 +1792,7 @@ class AssemblyPathSVA():
         
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
-        removed = sumIntensity < minIntensity
+        removed = sumIntensity - mean_div*uncertainFactor < minIntensity
         
         for g in range(self.G):
         
@@ -1796,7 +1801,6 @@ class AssemblyPathSVA():
                 for h in range(g+1,self.G):
                     if dist[g,h] == 0 and removed[h] == False:
                         removed[h] = True    
-        
        
         retained = np.logical_not(removed)
         if self.NOISE:
