@@ -1204,7 +1204,7 @@ class AssemblyPathSVA():
         
         return self.parseMargString(factorGraph, outString)
 
-    def sampleNHaplotypes(self,nSample,drop_strain=None,relax_path=False):
+    def sampleNHaplotypes(self,nSamples,drop_strain=None,relax_path=False):
 
 
         if drop_strain is None:
@@ -1213,12 +1213,16 @@ class AssemblyPathSVA():
         paths = defaultdict(list)
         haplotypes = defaultdict(list)
         
-        for g in range(self.G):
-            for gene, factorGraph in self.factorGraphs.items():
-                if not drop_strain[gene][g]:
-                    unitigs = self.assemblyGraphs[gene].unitigs
+        all_paths = []
+        all_haplotypes = []
+        
+        for s in range(nSamples):
+            for g in range(self.G):
+                for gene, factorGraph in self.factorGraphs.items():
+                    if not drop_strain[gene][g]:
+                        unitigs = self.assemblyGraphs[gene].unitigs
 
-                    self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)        
+                        self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)        
                     
                     factorGraph.reset()
 
@@ -1248,8 +1252,12 @@ class AssemblyPathSVA():
                 else:
                     haplotypes[gene].append("")
                     paths[gene].append(None)  
-
-
+            
+            all_haplotypes.append(haplotypes)
+            all_paths.append(paths)
+        
+        return (all_paths, all_haplotypes)
+        
     def convertMAPToPath(self,mapPath,factorGraph):
     
         path = []
