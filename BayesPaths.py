@@ -143,7 +143,7 @@ def main(argv):
 
     assGraph.update(100, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
  
-    assGraph.sampleNHaplotypes(100,drop_strain=None,relax_path=False)
+    (all_paths, all_haplotypes) = assGraph.sampleNHaplotypes(100,drop_strain=None,relax_path=False)
     
     genesSelect = filterGenes(assGraph)
  

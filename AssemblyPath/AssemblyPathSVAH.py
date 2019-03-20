@@ -245,7 +245,6 @@ class AssemblyPathSVA():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
         #create mask matrices
-        self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
         self.G = G
         
@@ -255,8 +254,7 @@ class AssemblyPathSVA():
             self.epsilonNoise = epsilonNoise
         else:
             self.GDash = self.G
-            
-        self.Omega = self.V*self.S      
+              
  
         #list of mean assignments of strains to graph
         self.expPhi = np.zeros((self.V,self.GDash))
@@ -316,11 +314,13 @@ class AssemblyPathSVA():
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
         for v in range(self.V):
             for s in range(self.S):
+                
                 start = 0
                 while self.X[v,s] > self.countQ[start]:
                     start+=1
                 self.tauMap[v,s] = start
-                self.tauFreq[start] += 1
+                if self.M_train[v,s] > 0:
+                    self.tauFreq[start] += 1
                 
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
@@ -658,12 +658,12 @@ class AssemblyPathSVA():
                 dFac = -0.5*self.expTau[v_idx,:]*lengthNode #now S dim
                 
                 if not self.BIAS:
-                    T1 = mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])
+                    T1 = mapGammaG*(lengthNode*currELambda - self.X[v_idx,:])*self.M_train[v_idx,:]
                 else:
-                    T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
+                    T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])*self.M_train[v_idx,:]
                 
                 dVal1 = 2.0*T1
-                dVal2 = lengthNode*mapGammaG2
+                dVal2 = lengthNode*mapGammaG2*self.M_train[v_idx,:]
                 if self.BIAS:
                     dVal2 *= self.expTheta2[v_idx]
                     
