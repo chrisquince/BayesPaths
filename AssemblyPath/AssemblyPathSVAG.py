@@ -1204,6 +1204,32 @@ class AssemblyPathSVA():
         
         return self.parseMargString(factorGraph, outString)
 
+
+    def getPathDivergence(self, nSamples,drop_strain=None,relax_path=False):
+    
+        divergence_mean = {}
+        
+        (paths,haplotypes) = self.sampleNHaplotypes(nSamples, drop_strain, relax_path)
+
+        for g in range(self.G):
+            divergences = np.zeros(nSamples)
+            map_length = 0.
+            
+            for s in range(nSamples):
+                div_s = 0
+                for gene, factorGraph in self.factorGraphs.items():    
+                    gMap = self.MAPs[gene][g]
+                    if s == 0:
+                        map_length += len(gMap)
+                    div_s += len(set(gMap) ^ set(paths[s][gene][g])) 
+            
+                divergences[s] = div_s
+            
+            divergence_mean[g] = np.mean(divergences)/map_length
+    
+        return divergence_mean
+
+
     def sampleNHaplotypes(self,nSamples,drop_strain=None,relax_path=False):
 
         if drop_strain is None:
@@ -2021,8 +2047,8 @@ class AssemblyPathSVA():
                             pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
                             pathString = ",".join(self.paths[gene][g])
                             pathFile.write(pathString+"\n")
-
-
+        return haplotypes
+        
     def outputOptimalRefPaths(self, ref_hit_file):
         
         (refHits,allHits) = readRefAssign(ref_hit_file)
