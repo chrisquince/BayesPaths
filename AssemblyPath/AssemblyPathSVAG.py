@@ -1212,7 +1212,7 @@ class AssemblyPathSVA():
         
         paths = defaultdict(list)
         haplotypes = defaultdict(list)
-        
+        self.eLambda = np.dot(self.expPhi,self.expGamma)        
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
                 if not drop_strain[gene][g]:
@@ -1231,7 +1231,7 @@ class AssemblyPathSVA():
 
                         factorGraph.var['sink+infty+'].clear_condition()
                     
-                    marginals = self.runFGMarginal(factorGraph, g)
+                    marginals = self.margG[gene][g] #self.runFGMarginal(factorGraph, g)
                     
                     biGraph = self.factorDiGraphs[gene]
                     
