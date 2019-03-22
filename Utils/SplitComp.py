@@ -1,7 +1,7 @@
 import argparse
 import sys
 from UnitigGraph import UnitigGraph
-from Utils import convertNodeToName
+from UtilsFunctions import convertNodeToName
 import networkx as nx
 
 

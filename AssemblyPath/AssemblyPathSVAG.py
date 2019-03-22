@@ -1789,8 +1789,8 @@ class AssemblyPathSVA():
         nNewG = 0
         
         sumIntensity = np.max(self.expGamma,axis=1)
-
-        sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
+        if uncertainFactor is not None:
+            sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
         
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
