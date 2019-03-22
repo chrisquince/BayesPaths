@@ -66,7 +66,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -167,7 +167,7 @@ def main(argv):
     
     assGraphS2.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
   
-    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True,uncertainFactor=0.5)
+    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
   
     gene_mean_error = assGraphS2.gene_mean_diff()
     gene_mean_elbo = assGraphS2.gene_mean_elbo()
@@ -179,11 +179,6 @@ def main(argv):
    
     assGraphS2.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
     
-    mean_div = assGraph.getPathDivergence(100,drop_strain=None,relax_path=True)
- 
-    for g in range(assGraph.G):
-        print(str(g) + "," + str(mean_div[g]))
- 
     assGraphS2.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
     assGraphS2.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
@@ -191,6 +186,11 @@ def main(argv):
     assGraphS2.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
     
     assGraphS2.writeTheta(args.outFileStub + "Theta.csv") 
+
+    mean_div = assGraphS2.getPathDivergence(100,drop_strain=None,relax_path=False)
+
+    for g in range(assGraphS2.G):
+        print(str(g) + "," + str(mean_div[g]))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
