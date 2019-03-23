@@ -50,7 +50,7 @@ def main(argv):
             pid = float(fields[2])
             alignlength = int(fields[3])
             mismatches = int(fields[4]) + int(fields[5])
-            matches = int(fields[3]) - int(fields[4])
+            matches = int(fields[3]) - int(fields[4]) -  int(fields[5])
 
             if float(matches) > haplo_match_gene_ref[haplo][gene][ref]:
                 haplo_match_gene_ref[haplo][gene][ref] = float(matches)
@@ -66,10 +66,15 @@ def main(argv):
                 haplo_matches[haplo][ref] += matches
                 haplo_match_length[haplo][ref] += haplo_length_gene_ref[haplo][gene][ref]
 
+    haplo_matches_pid = defaultdict(Counter)
+    for haplo, matches in haplo_matches.items():
+        for ref, match in matches.items():
+            haplo_matches_pid[haplo][ref] = match/haplo_match_length[haplo][ref]
 
 
     for haplo, matches in haplo_matches.items():
-        bestMatch = max(matches.items(), key=operator.itemgetter(1))[0]
+        
+        bestMatch = max(haplo_matches_pid[haplo].items(), key=operator.itemgetter(1))[0]
         nHits = len(haplo_match_id[haplo][bestMatch])
         meanPid = np.mean(np.asarray(haplo_match_id[haplo][bestMatch]))
         pid = haplo_matches[haplo][bestMatch]/haplo_match_length[haplo][bestMatch]    
