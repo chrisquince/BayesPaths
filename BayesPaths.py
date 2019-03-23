@@ -165,15 +165,11 @@ def main(argv):
     
     assGraphS2.initNMF()
     
-    assGraphS2.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
+    assGraphS2.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.25)
   
     assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
   
-    gene_mean_error = assGraphS2.gene_mean_diff()
-    gene_mean_elbo = assGraphS2.gene_mean_elbo()
-
-    for (gene, error) in gene_mean_error.items():
-        print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
+    assGraphS2.writeGeneError(args.outFileStub + "geneError.csv")
 
     assGraphS2.writeMarginals(args.outFileStub + "margFile.csv")
    
@@ -187,10 +183,8 @@ def main(argv):
     
     assGraphS2.writeTheta(args.outFileStub + "Theta.csv") 
 
-    mean_div = assGraphS2.getPathDivergence(100,drop_strain=None,relax_path=False)
+    assGraphS2.writePathDivergence(args.outFileStub + "Diver.csv")
 
-    for g in range(assGraphS2.G):
-        print(str(g) + "," + str(mean_div[g]))
 
 if __name__ == "__main__":
     main(sys.argv[1:])

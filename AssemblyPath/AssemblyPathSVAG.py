@@ -950,6 +950,7 @@ class AssemblyPathSVA():
                 for gene, graphFileStub in fgFileStubs.items():
                     graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
                     outFileName = self.working_dir + '/' + graphFileStub + '.out'
+                    
                     cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
                     results.append(pool.apply_async(call_proc, (cmd,)))
                 pool.close()
@@ -1939,6 +1940,23 @@ class AssemblyPathSVA():
                         v = self.mapGeneIdx[gene][unitig]
                         
                         thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
+
+    def writeGeneError(self,fileName):
+        
+        gene_mean_error = self.gene_mean_diff()
+        gene_mean_elbo = self.gene_mean_elbo()
+
+        with open(fileName, "w") as errorFile:
+            for (gene, error) in gene_mean_error.items():
+                errorFile.write(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
+
+    def writePathDivergence(self, fileName, nIter = 100, drop_strain=None,relax_path=False):
+
+        mean_div = self.getPathDivergence(nIter,drop_strain,relax_path)
+
+        with open(fileName, "w") as divergenceFile:        
+            for g in range(self.G):
+                divergenceFile.write( str(g) + "," + str(mean_div[g]))
 
 
     def writeMaximals(self,fileName,drop_strain=None):
