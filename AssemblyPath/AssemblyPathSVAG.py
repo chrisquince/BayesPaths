@@ -1948,7 +1948,7 @@ class AssemblyPathSVA():
 
         with open(fileName, "w") as errorFile:
             for (gene, error) in gene_mean_error.items():
-                errorFile.write(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
+                errorFile.write(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]) + "\n")
 
     def writePathDivergence(self, fileName, nIter = 100, drop_strain=None,relax_path=False):
 
@@ -1956,7 +1956,7 @@ class AssemblyPathSVA():
 
         with open(fileName, "w") as divergenceFile:        
             for g in range(self.G):
-                divergenceFile.write( str(g) + "," + str(mean_div[g]))
+                divergenceFile.write( str(g) + "," + str(mean_div[g]) + "\n")
 
 
     def writeMaximals(self,fileName,drop_strain=None):
