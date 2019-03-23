@@ -138,7 +138,10 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
 
-    maxGIter = 5
+    maxGIter = 4
+    nChange = 1
+    gIter = 0
+
     while nChange > 0 and gIter < maxGIter:
         assGraph.initNMF()
         print("Round " + str(gIter) + " of gene filtering")
@@ -148,7 +151,7 @@ def main(argv):
         
         genesSelect = filterGenes(assGraph)
         nChange = len(genesSelect) - len(assGraph.genes)
-        
+        print("Removed: " + str(nChange) + " genes")
         assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
         source_maps_select = {s:source_maps[s] for s in genesSelect} 
         sink_maps_select = {s:sink_maps[s] for s in genesSelect}
@@ -159,7 +162,7 @@ def main(argv):
     
     assGraph.initNMF()
     
-    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.25)
+    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.2)
   
     assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
   
@@ -167,7 +170,7 @@ def main(argv):
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=True)
     
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
