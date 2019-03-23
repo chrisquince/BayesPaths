@@ -138,52 +138,46 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
 
+    maxGIter = 5
+    while nChange > 0 and gIter < maxGIter:
+        assGraph.initNMF()
+        print("Round " + str(gIter) + " of gene filtering")
+        assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+
+        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
+        
+        genesSelect = filterGenes(assGraph)
+        nChange = len(genesSelect) - len(assGraph.genes)
+        
+        assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
+        source_maps_select = {s:source_maps[s] for s in genesSelect} 
+        sink_maps_select = {s:sink_maps[s] for s in genesSelect}
+
+        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+        
+        gIter += 1
     
     assGraph.initNMF()
-
-    assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-
-    genesSelect = filterGenes(assGraph)
- 
-    assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
-    source_maps_select = {s:source_maps[s] for s in genesSelect} 
-    sink_maps_select = {s:sink_maps[s] for s in genesSelect}
-
-    assGraphS = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
-    assGraphS.initNMF()
-
-    assGraphS.update(200, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
-
-    genesSelect2 = filterGenes(assGraphS)
- 
-    assemblyGraphsSelect2 = {s:assemblyGraphs[s] for s in genesSelect2}
-    source_maps_select2 = {s:source_maps[s] for s in genesSelect2} 
-    sink_maps_select2 = {s:sink_maps[s] for s in genesSelect2}
-
-    assGraphS2 = AssemblyPathSVA(prng, assemblyGraphsSelect2, source_maps_select2, sink_maps_select2, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-    
-    assGraphS2.initNMF()
-    
-    assGraphS2.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.25)
+    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.25)
   
-    assGraphS2.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
+    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
   
-    assGraphS2.writeGeneError(args.outFileStub + "geneError.csv")
+    assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
-    assGraphS2.writeMarginals(args.outFileStub + "margFile.csv")
+    assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraphS2.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraphS2.G),drop_strain=None, relax_path=True)
     
-    assGraphS2.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
+    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
-    assGraphS2.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
+    assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
 
-    assGraphS2.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
+    assGraph.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
     
-    assGraphS2.writeTheta(args.outFileStub + "Theta.csv") 
+    assGraph.writeTheta(args.outFileStub + "Theta.csv") 
 
-    assGraphS2.writePathDivergence(args.outFileStub + "Diver.csv")
+    assGraph.writePathDivergence(args.outFileStub + "Diver.csv")
 
 
 if __name__ == "__main__":
