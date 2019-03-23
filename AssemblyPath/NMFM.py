@@ -70,9 +70,8 @@ class NMF():
                 divl = div
                 div = self.div_objective()
  
-                print(str(iter) + "," + str(div))
-
                 iter += 1
+            print(str(iter) + "," + str(div))
             if div < bestdiv:
                 bestdiv = div
                 bestW = self.W
