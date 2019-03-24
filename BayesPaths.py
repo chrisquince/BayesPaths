@@ -150,7 +150,7 @@ def main(argv):
         assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
         genesSelect = filterGenes(assGraph)
-        nChange = len(genesSelect) - len(assGraph.genes)
+        nChange = -len(genesSelect) + len(assGraph.genes)
         print("Removed: " + str(nChange) + " genes")
         assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
         source_maps_select = {s:source_maps[s] for s in genesSelect} 
