@@ -30,7 +30,7 @@ def filterGenes(assGraph):
 
     genesSelect = []
     for gidx, gene in enumerate(genes):
-        if devArray[gidx] > 2.0*medianDevError and error_array[gidx] > medianErr:
+        if devArray[gidx] > 3.0*medianDevError and error_array[gidx] > medianErr:
             print("Removing: " + str(gene))
         else:
             genesSelect.append(gene)
@@ -162,15 +162,15 @@ def main(argv):
     
     assGraph.initNMF()
     
-    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.2)
+    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
   
-    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=True)
+    #assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=True)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
     
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    

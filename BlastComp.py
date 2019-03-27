@@ -74,7 +74,7 @@ def main(argv):
 
     for haplo, matches in haplo_matches.items():
         
-        bestMatch = max(haplo_matches_pid[haplo].items(), key=operator.itemgetter(1))[0]
+        bestMatch = max(matches.items(), key=operator.itemgetter(1))[0]
         nHits = len(haplo_match_id[haplo][bestMatch])
         meanPid = np.mean(np.asarray(haplo_match_id[haplo][bestMatch]))
         pid = haplo_matches[haplo][bestMatch]/haplo_match_length[haplo][bestMatch]    
