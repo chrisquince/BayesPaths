@@ -104,7 +104,7 @@ class UnitigGraph():
         return unitigGraph
     
     @classmethod
-    def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None):
+    def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None, tsvFile = False):
         """Creates graphs from a GFA file and an optional coverage file as csv without header"""
         gfa = gfapy.Gfa.from_file(gfaFile)
     
@@ -147,7 +147,7 @@ class UnitigGraph():
         unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
         unitigGraph.NC = nx.number_connected_components(unitigGraph.undirectedUnitigGraph)
         if covFile is not None:
-            unitigGraph.covMap = read_coverage_file(covFile)
+            unitigGraph.covMap = read_coverage_file(covFile,tsvFile)
         else:
             unitigGraph.covMap = None
         unitigGraph.createDirectedBiGraph()
@@ -757,7 +757,9 @@ class UnitigGraph():
         
     
     def selectSourceSinks(self, dFrac):
-    
+        
+        if self.N == 1:
+            return ([(self.unitigs[0],True)],[(self.unitigs[0],True)])
         sources = []
         sinks = []
         
