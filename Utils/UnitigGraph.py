@@ -760,8 +760,16 @@ class UnitigGraph():
         
         if self.N == 1:
             return ([(self.unitigs[0],True)],[(self.unitigs[0],True)])
+        
+        
         sources = []
         sinks = []
+        
+        isolated = []
+        
+        for unitig in self.undirectedUnitigGraph.nodes():
+            if self.isIsolated(unitig) and self.lengths['unitig'] > 200:
+                isolated.append(unitig)
         
         sourceSinks = []
         for unitig in self.undirectedUnitigGraph.nodes():
@@ -857,6 +865,10 @@ class UnitigGraph():
                             sinks.append(ssMinus)
 
                         sinkTigs.append(sourceSink)
+
+        for isolate in isolated:
+            source_list.append(isolate + "+")
+            sink_list.append(isolate + "+")
 
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
