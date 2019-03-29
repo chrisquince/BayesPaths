@@ -768,7 +768,7 @@ class UnitigGraph():
         isolated = []
         
         for unitig in self.undirectedUnitigGraph.nodes():
-            if self.isIsolated(unitig) and self.lengths['unitig'] > 200:
+            if self.isIsolated(unitig) and self.lengths[unitig] > 200:
                 isolated.append(unitig)
         
         sourceSinks = []
@@ -779,96 +779,96 @@ class UnitigGraph():
                 sourceSinks.append(unitig)
             
         #get all path lengths
-        self.createDirectedBiGraph()        
+        if len(sourceSinks) > 0:
+            self.createDirectedBiGraph()        
 
-        allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
-        allSSDict = defaultdict(dict)       
-        maxSourceSink = 0
-        maxSource = None
-        maxSink = None
-        for sourcePaths in allPaths:
-            source = sourcePaths[0]
-            unitig = source[:-1]
-            if unitig in sourceSinks:
+            allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
+            allSSDict = defaultdict(dict)       
+            maxSourceSink = 0
+            maxSource = None
+            maxSink = None
+            for sourcePaths in allPaths:
+                source = sourcePaths[0]
+                unitig = source[:-1]
+                if unitig in sourceSinks:
 
-                for sink, length in sourcePaths[1].items(): 
-                    sinkUnitig = sink[:-1]
-                    if sinkUnitig in sourceSinks:
-                        allSSDict[source][sink] = length
-                        if length > maxSourceSink:
-                            maxSourceSink = length
-                            maxSource = source
-                            maxSink = sink
+                    for sink, length in sourcePaths[1].items(): 
+                        sinkUnitig = sink[:-1]
+                        if sinkUnitig in sourceSinks:
+                            allSSDict[source][sink] = length
+                            if length > maxSourceSink:
+                                maxSourceSink = length
+                                maxSource = source
+                                maxSink = sink
             
-        sources = [maxSource]
-        sourceTigs = [maxSource[:-1]]
-        sinks = [maxSink]
-        sinkTigs = [maxSink[:-1]]
+            sources = [maxSource]
+            sourceTigs = [maxSource[:-1]]
+            sinks = [maxSink]
+            sinkTigs = [maxSink[:-1]]
 
-        for sourceSink in sourceSinks:
-            if sourceSink not in sourceTigs and sourceSink not in sinkTigs:
-                ssPlus = sourceSink + "+"
-                ssMinus = sourceSink + "-"
+            for sourceSink in sourceSinks:
+                if sourceSink not in sourceTigs and sourceSink not in sinkTigs:
+                    ssPlus = sourceSink + "+"
+                    ssMinus = sourceSink + "-"
                 
-                maxSourcePlus = 0.
-                maxSourceMinus = 0.
+                    maxSourcePlus = 0.
+                    maxSourceMinus = 0.
 
-                if ssPlus in allSSDict: 
-                    for sink in sinks:
-                        if sink in allSSDict[ssPlus]:
-                            if allSSDict[ssPlus][sink] > maxSourcePlus:
-                                maxSourcePlus = allSSDict[ssPlus][sink]
+                    if ssPlus in allSSDict: 
+                        for sink in sinks:
+                            if sink in allSSDict[ssPlus]:
+                                if allSSDict[ssPlus][sink] > maxSourcePlus:
+                                    maxSourcePlus = allSSDict[ssPlus][sink]
                  
-                if ssMinus in allSSDict:
-                    for sink in sinks:
-                        if sink in allSSDict[ssMinus]:
-                            if allSSDict[ssMinus][sink] > maxSourceMinus:
-                                maxSourceMinus = allSSDict[ssMinus][sink]
+                    if ssMinus in allSSDict:
+                        for sink in sinks:
+                            if sink in allSSDict[ssMinus]:
+                                if allSSDict[ssMinus][sink] > maxSourceMinus:
+                                    maxSourceMinus = allSSDict[ssMinus][sink]
                 
-                bSourcePlus = True
-                sourceMax = maxSourcePlus
-                if maxSourcePlus < maxSourceMinus:
-                    bSourcePlus = False
-                    sourceMax = maxSourceMinus
+                    bSourcePlus = True
+                    sourceMax = maxSourcePlus
+                    if maxSourcePlus < maxSourceMinus:
+                        bSourcePlus = False
+                        sourceMax = maxSourceMinus
                 
-                maxSinkPlus = 0.0
-                maxSinkMinus = 0.0
+                    maxSinkPlus = 0.0
+                    maxSinkMinus = 0.0
 
-                for source in sources:
-                    if ssPlus in allSSDict[source]:
-                        if allSSDict[source][ssPlus] > maxSinkPlus:
-                            maxSinkPlus = allSSDict[source][ssPlus]
+                    for source in sources:
+                        if ssPlus in allSSDict[source]:
+                            if allSSDict[source][ssPlus] > maxSinkPlus:
+                                maxSinkPlus = allSSDict[source][ssPlus]
 
-                for source in sources:
-                    if ssMinus in allSSDict[source]:
-                        if allSSDict[source][ssMinus] > maxSinkMinus:
-                            maxSinkMinus = allSSDict[source][ssMinus]
+                    for source in sources:
+                        if ssMinus in allSSDict[source]:
+                            if allSSDict[source][ssMinus] > maxSinkMinus:
+                                maxSinkMinus = allSSDict[source][ssMinus]
                 
-                sinkMax = maxSinkPlus
-                bSinkPlus = True
-                if maxSinkPlus < maxSinkMinus:
-                    bSinkPlus = False
-                    sinkMax = maxSinkMinus
+                    sinkMax = maxSinkPlus
+                    bSinkPlus = True
+                    if maxSinkPlus < maxSinkMinus:
+                        bSinkPlus = False
+                        sinkMax = maxSinkMinus
                 
-                if sourceMax > sinkMax:
-                    if sourceMax > dFrac*maxSourceSink:
-                        if bSourcePlus:
-                            sources.append(ssPlus)
-                        else:
-                            sources.append(ssMinus)
-                        sourceTigs.append(sourceSink)
-                else:
-                    if sinkMax > dFrac*maxSourceSink:
-                        if bSinkPlus:
-                            sinks.append(ssPlus)
-                        else: 
-                            sinks.append(ssMinus)
+                    if sourceMax > sinkMax:
+                        if sourceMax > dFrac*maxSourceSink:
+                            if bSourcePlus:
+                                sources.append(ssPlus)
+                            else:
+                                sources.append(ssMinus)
+                            sourceTigs.append(sourceSink)
+                    else:
+                        if sinkMax > dFrac*maxSourceSink:
+                            if bSinkPlus:
+                                sinks.append(ssPlus)
+                            else: 
+                                sinks.append(ssMinus)
 
-                        sinkTigs.append(sourceSink)
-
+                            sinkTigs.append(sourceSink)
         for isolate in isolated:
-            source_list.append(isolate + "+")
-            sink_list.append(isolate + "+")
+            sources.append(isolate + "+")
+            sinks.append(isolate + "+")
 
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
@@ -878,7 +878,7 @@ class UnitigGraph():
             sink_list = list(map(convertNameToNode2, sinks))
         else:
             sink_list = []
-        
+       
         return (source_list,sink_list)
 
 

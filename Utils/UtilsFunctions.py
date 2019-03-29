@@ -176,14 +176,19 @@ def read_unitig_order_file(unitig_order_file):
          
     return unitig_order
 
-def read_coverage_file(coverage_file):
+def read_coverage_file(coverage_file, tsvFile=False):
+
+    if tsvFile:
+        sep = '\t'
+    else:
+        sep = ','
 
     covMap = {}  
     with open(coverage_file) as f:
         for line in f:
             line = line.rstrip()
             
-            tokens = line.split(',')
+            tokens = line.split(sep)
             
             idx = tokens[0]
             

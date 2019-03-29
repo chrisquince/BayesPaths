@@ -64,6 +64,8 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
+    parser.add_argument('--relax', dest='relax_path', action='store_true')
+
     args = parser.parse_args()
 
     #import ipdb; ipdb.set_trace()
@@ -90,9 +92,9 @@ def main(argv):
 
         gene = m.group()
         
-        covFile = gfaFile[:-3] + "csv"
+        covFile = gfaFile[:-3] + "tsv"
         
-        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile)
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True)
             
         deadEndFile = gfaFile[:-3] + "deadends"
         
@@ -164,13 +166,13 @@ def main(argv):
     
     assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
   
-    #assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
+    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=False)
+    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
     
     assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
    
@@ -180,7 +182,7 @@ def main(argv):
     
     assGraph.writeTheta(args.outFileStub + "Theta.csv") 
 
-    assGraph.writePathDivergence(args.outFileStub + "Diver.csv")
+    assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
 
 
 if __name__ == "__main__":
