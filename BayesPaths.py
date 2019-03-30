@@ -30,7 +30,7 @@ def filterGenes(assGraph):
 
     genesSelect = []
     for gidx, gene in enumerate(genes):
-        if devArray[gidx] > 3.0*medianDevError and error_array[gidx] > medianErr:
+        if devArray[gidx] > 2.5*medianDevError and error_array[gidx] > medianErr:
             print("Removing: " + str(gene))
         else:
             genesSelect.append(gene)
