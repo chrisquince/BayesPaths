@@ -46,7 +46,7 @@ def main(argv):
 
     parser.add_argument("outFileStub", help="output file stub")
     
-    parser.add_argument('-l','--cog_list' nargs='?', type=argparse.FileType('r'), default=None)
+    parser.add_argument('-l','--cog_list',nargs='?', default=None)
 
     parser.add_argument('-f','--frac_cov',nargs='?', default=0.02, type=float, 
         help=("fractional coverage for noise nodes"))
@@ -78,9 +78,9 @@ def main(argv):
     if args.cog_list == None:
         gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')    
     else:
-        with open(args.cog_list) as cog_file:
+        with open(args.cog_list,'r') as cog_file:
             cogs = [line.rstrip() for line in cog_file]
-        gfaFiles = [args.Gene_dir + "/" + x for x in cogs]
+        gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
 
     assemblyGraphs = {} #dictionary of assembly graphs by gene name
     sink_maps = {} # sinks (in future these defined outside)
