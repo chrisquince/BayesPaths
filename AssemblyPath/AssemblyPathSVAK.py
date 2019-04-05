@@ -46,7 +46,7 @@ import subprocess
 import shlex
 
 from multiprocessing.pool import ThreadPool
-
+from Utils.mask import compute_folds_attempts
 
 def reject_outliers(data, m = 2.):
     d = np.abs(data - np.median(data))
@@ -2268,13 +2268,22 @@ def main(argv):
         #assGraph.tau = 1.0e-4
         assGraph.update(100)
     else:
-        M_train = np.ones((assGraph.V,assGraph.S),dtype=np.int)
-    
-        assGraph.initNMF(M_train)
+        
+        ''' Generate matrices M - one list of M's for each value of K. '''
+        M_attempts = 1000
+        M = np.ones((assGraph.V,=assGraph.S))
+        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+            
+        for fold,(M_train,M_test) in enumerate(Ms_training_and_test):
+        
+            assGraph.initNMF(M_train)
 
-        assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=True)
+            assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=True)
            
-        gene_mean_error = assGraph.gene_mean_diff(M_train)
+            train_elbo = assGraph.calc_elbo(M_test)
+            train_err  = assGraph.predixt(M_test)
+            
+            print(str(fold) +","+str(train_elbo) + "," + str(train_err))
         
         assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
