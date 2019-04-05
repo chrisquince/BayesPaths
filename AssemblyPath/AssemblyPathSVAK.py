@@ -1366,7 +1366,7 @@ class AssemblyPathSVA():
                 os.remove(graphFileName)
                 os.remove(outFileName)
             self.addGamma(g)    
-        print("-1,"+ str(self.div())) 
+        print("-1,"+ str(self.div(M_train))) 
 
     def initNMFGamma(self,gamma,M_train):
         
