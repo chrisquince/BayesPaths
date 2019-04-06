@@ -947,7 +947,7 @@ class AssemblyPathSVA():
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
-                    self.removeRedundant(self.minIntensity, 10,relax_path,uncertainFactor)
+                    self.removeRedundant(self.minIntensity, 10,relax_path,M_train,uncertainFactor)
             
             for g in range(self.G):
                 
@@ -2271,11 +2271,13 @@ def main(argv):
         
         ''' Generate matrices M - one list of M's for each value of K. '''
         M_attempts = 1000
-        M = np.ones((assGraph.V,=assGraph.S))
+        M = np.ones((assGraph.V,assGraph.S))
         Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
-            
-        for fold,(M_train,M_test) in enumerate(Ms_training_and_test):
         
+        fold = 0
+        for M_train_M_test in Ms_training_and_test:
+            M_train = M_train_M_test[0]
+            M_test = M_train_M_test[1]
             assGraph.initNMF(M_train)
 
             assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=True)
@@ -2284,6 +2286,7 @@ def main(argv):
             train_err  = assGraph.predixt(M_test)
             
             print(str(fold) +","+str(train_elbo) + "," + str(train_err))
+            fold += 1
         
         assGraph.writeMarginals(args.outFileStub + "margFile.csv")
    
