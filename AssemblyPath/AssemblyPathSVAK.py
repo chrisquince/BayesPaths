@@ -2283,7 +2283,7 @@ def main(argv):
             assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=True)
            
             train_elbo = assGraph.calc_elbo(M_test)
-            train_err  = assGraph.predixt(M_test)
+            train_err  = assGraph.predict(M_test)
             
             print(str(fold) +","+str(train_elbo) + "," + str(train_err))
             fold += 1
