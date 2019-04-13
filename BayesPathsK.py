@@ -10,6 +10,7 @@ from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAK import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
+from Utils.mask import compute_folds_attempts
 
 def filterGenes(assGraph,M_test):
     gene_mean_error = assGraph.gene_mean_diff(M_test)
@@ -151,14 +152,14 @@ def main(argv):
     nChange = 1
     gIter = 0
 
-    IdentityM = np.ones((assGraph.V,assGraph.S))
 
     while nChange > 0 and gIter < maxGIter:
-        assGraph.initNMF()
+        IdentityM = np.ones((assGraph.V,assGraph.S))
+        assGraph.initNMF(IdentityM)
         print("Round " + str(gIter) + " of gene filtering")
         assGraph.update(60, True,IdentityM,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
-        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
+        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv",IdentityM)
         
         genesSelect = filterGenes(assGraph,IdentityM)
         nChange = -len(genesSelect) + len(assGraph.genes)
@@ -173,7 +174,7 @@ def main(argv):
     
     
     ''' Generate matrices M - one list of M's for each value of K. '''
-    values_K = range(self.G)
+    values_K = range(assGraph.G)
     M_attempts = 1000
     no_folds = 10
     M = np.ones((assGraph.V,assGraph.S))
@@ -181,7 +182,7 @@ def main(argv):
         compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
         for K in values_K
     ]
-    
+    sys.stdout.flush()
     all_performances = {} 
     average_performances = {}
     
@@ -191,7 +192,7 @@ def main(argv):
        
         performances = []
         for fold,(M_train,M_test) in enumerate(zip(Ms_train,Ms_test)):
-            print "Fold %s of K=%s." % (fold+1, K)
+            print("Fold %s of K=%s." % (fold+1, K))
     
             assGraph.initNMF(M_train)
 
@@ -201,6 +202,7 @@ def main(argv):
             train_err  = assGraph.predict(M_test)
             
             print(str(K) + "," + str(assGraph.G) + "," + str(fold) +","+str(train_elbo) + "," + str(train_err))
+            sys.stdout.flush()
             performances.append(train_err) 
             fold += 1
         average_performances[K] = sum(performances)/no_folds

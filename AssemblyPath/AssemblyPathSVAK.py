@@ -1958,10 +1958,10 @@ class AssemblyPathSVA():
                         
                         thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
 
-    def writeGeneError(self,fileName):
+    def writeGeneError(self,fileName,m_Test):
         
-        gene_mean_error = self.gene_mean_diff()
-        gene_mean_elbo = self.gene_mean_elbo()
+        gene_mean_error = self.gene_mean_diff(m_Test)
+        gene_mean_elbo = self.gene_mean_elbo(m_Test)
 
         with open(fileName, "w") as errorFile:
             for (gene, error) in gene_mean_error.items():
