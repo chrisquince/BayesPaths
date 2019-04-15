@@ -1440,6 +1440,12 @@ class AssemblyPathSVA():
         return gene_means
         
     
+    def mean_diff(self):
+    
+        diff_matrix = self.divF_matrix()
+                        
+        return np.sum(diff_matrix)/self.V*self.S
+    
     def gene_mean_elbo(self):
     
         gene_means = {}
