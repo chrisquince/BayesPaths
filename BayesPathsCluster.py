@@ -37,6 +37,43 @@ def filterGenes(assGraph):
 
     return genesSelect 
 
+def overlapDist(gammaMatrixG, gammaMatrixH):
+
+    dist = 0.
+    
+    G = gammaMatrixG.shape[0]
+    H = gammaMatrixH.shape[0]
+    S = gammaMatrixH.shape[1]
+    
+    GCopy = np.copy(gammaMatrixG)
+    
+    gSort = np.argsort(np.sum(gammaMatrixG,axis=1))
+    hSort =  np.argsort(np.sum(gammaMatrixH,axis=1))
+    
+    assigned = np.full(H,-1)
+    totalOverlap = 0.
+    
+    for hidx in hSort:
+        
+        maxOverlap = -1.
+        maxG = -1
+        
+        for gidx in gSort:
+            overlap = np.sum(np.minimum(GCopy[gidx,:],gammaMatrixH[hidx,:]))
+            
+            if overlap > maxOverlap:
+                maxOverlap = overlap
+                maxG = gidx
+        
+        totalOverlap += maxOverlap
+        assigned[hidx] = maxG
+        GCopy[maxG,:] = np.maximum(GCopy[maxG,:] - gammaMatrixH[hidx,:],0)
+    
+    dSum = max(np.sum(gammaMatrixG),np.sum(gammaMatrixH))
+    dist = dSum - totalOverlap
+    
+    return dist, dist/dSum
+
 def main(argv):
     parser = argparse.ArgumentParser()
 
@@ -137,13 +174,22 @@ def main(argv):
         genes.append(gene)
     
     #run through individual graphs
-    
+    assGraphGenes = {}
     for gene in sorted(genes):
         assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
         assGraphGene.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
     
         print(gene + "," + str(assGraphGene.calc_elbo()))
+            
+        assGraphGenes[gene] = assGraphGene
+
+    overlapDists = defaultdict(dict)
+    
+    for geneI in sorted(genes):
+        for geneJ in sorted(genes):
+            (distIJ, fDistIJ) = overlapDist(assGraphGenes[geneI].expGamma, assGraphGenes[geneJ].expGamma)
+            overlapDists[geneI][geneJ] = fDistIJ
     
     #run through pairs
     
