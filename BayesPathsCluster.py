@@ -70,7 +70,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -141,6 +141,8 @@ def main(argv):
     for gene in sorted(genes):
         assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
+        assGraphGene.initNMF()   
+
         assGraphGene.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
     
         print(gene + "," + str(assGraphGene.calc_elbo()))
