@@ -194,6 +194,27 @@ def main(argv):
             (distIJ, fDistIJ) = overlapDist(assGraphGenes[geneI].expGamma, assGraphGenes[geneJ].expGamma)
             overlapDists[geneI][geneJ] = fDistIJ
     
+    errorDists = defaultdict(dict)
+    elboDists = defaultdict(dict)
+    
+    for geneI in sorted(genes):
+        for geneJ in sorted(genes):
+            if geneI != geneJ:
+                assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+   
+                assGraphGeneIJ.initNMF()   
+
+                assGraphGeneIJ.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+    
+                divElbo = assGraphGeneIJ.calc_elbo() - assGraphGenes[geneI].calc_elbo() -  assGraphGenes[geneJ].calc_elbo()
+        
+                divError = assGraphGeneIJ.mean_diff() - 0.5*(assGraphGenes[geneI].mean_diff() + assGraphGenes[geneJ].mean_diff())
+           
+                elboDists[geneI][geneJ] = divElbo
+                
+                errorDists[geneI][geneJ] = divError
+    
+    
     #run through pairs
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
