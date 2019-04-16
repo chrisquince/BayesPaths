@@ -12,6 +12,9 @@ from AssemblyPath.AssemblyPathSVAK import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
+from multiprocessing.pool import ThreadPool
+from Utils.mask import compute_folds_attempts
+
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
@@ -184,9 +187,10 @@ def main(argv):
         Ms_training_and_test = compute_folds_attempts(I=assGraphGene.V,J=assGraphGene.S,no_folds=10,attempts=M_attempts,M=M)
         
         fold = 0
-        for M_train_M_test in Ms_training_and_test:
-            M_train = M_train_M_test[0]
-            M_test = M_train_M_test[1]
+        for f in range(10):
+ 
+            M_train = Ms_training_and_test[0][f]
+            M_test = Ms_training_and_test[1][f]
             assGraphGene.initNMF(M_train)
 
             assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
