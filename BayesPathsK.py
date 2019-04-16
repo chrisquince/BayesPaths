@@ -157,7 +157,7 @@ def main(argv):
         IdentityM = np.ones((assGraph.V,assGraph.S))
         assGraph.initNMF(IdentityM)
         print("Round " + str(gIter) + " of gene filtering")
-        assGraph.update(60, True,IdentityM,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+        assGraph.update(200, True,IdentityM,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
         assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv",IdentityM)
         
@@ -196,7 +196,7 @@ def main(argv):
     
             assGraph.initNMF(M_train)
 
-            assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=True)
+            assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
            
             train_elbo = assGraph.calc_elbo(M_test)
             train_err  = assGraph.predict(M_test)
