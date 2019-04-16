@@ -200,6 +200,18 @@ def main(argv):
     for geneI in sorted(genes):
         for geneJ in sorted(genes):
             if geneI != geneJ:
+                #run geneJ using gamma from geneI
+                IG = assGraphGenes[geneI].G
+                assGraphGeneJ = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ}, G = IG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+   
+                assGraphGeneJ.initNMFGamma(assGraphGenes[geneI].expGamma)   
+
+                assGraphGeneJ.updateGammaFixed(100)
+
+
+    for geneI in sorted(genes):
+        for geneJ in sorted(genes):
+            if geneI != geneJ:
                 assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
                 assGraphGeneIJ.initNMF()   
@@ -215,63 +227,7 @@ def main(argv):
                 errorDists[geneI][geneJ] = divError
     
     
-    #run through pairs
-    
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-    
-    genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
-    
-    genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
 
-    assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
-    source_maps_filter = {s:source_maps[s] for s in genesFilter} 
-    sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
-    
-    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-
-    maxGIter = 4
-    nChange = 1
-    gIter = 0
-
-    while nChange > 0 and gIter < maxGIter:
-        assGraph.initNMF()
-        print("Round " + str(gIter) + " of gene filtering")
-        assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-
-        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
-        
-        genesSelect = filterGenes(assGraph)
-        nChange = -len(genesSelect) + len(assGraph.genes)
-        print("Removed: " + str(nChange) + " genes")
-        assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
-        source_maps_select = {s:source_maps[s] for s in genesSelect} 
-        sink_maps_select = {s:sink_maps[s] for s in genesSelect}
-
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-        
-        gIter += 1
-    
-    assGraph.initNMF()
-    
-    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
-  
-    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
-  
-    assGraph.writeGeneError(args.outFileStub + "geneError.csv")
-
-    assGraph.writeMarginals(args.outFileStub + "margFile.csv")
-   
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
-    
-    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
-   
-    assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
-
-    assGraph.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
-    
-    assGraph.writeTheta(args.outFileStub + "Theta.csv") 
-
-    assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
 
 
 if __name__ == "__main__":
