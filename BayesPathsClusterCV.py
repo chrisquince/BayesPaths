@@ -12,6 +12,19 @@ from AssemblyPath.AssemblyPathSVAK import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
+def call_train_test(assGraph,M_train,M_test,fold):
+    """ This runs in a separate thread. """
+    #subprocess.call(shlex.split(cmd))  # This will block until cmd finishes
+    assGraph.initNMF(M_train)
+
+    assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
+           
+    train_elbo = assGraphGene.calc_elbo(M_test)
+    train_err  = assGraphGene.predict(M_test)
+            
+    return(fold, train_elbo, train_err)
+            
+
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
@@ -181,24 +194,25 @@ def main(argv):
    
         M_attempts = 1000
         M = np.ones((assGraphGene.V,assGraphGene.S))
-        Ms_training_and_test = compute_folds_attempts(I=assGraphGene.V,J=assGraphGene.S,no_folds=10,attempts=M_attempts,M=M)
+        no_folds=10
+        Ms_training_and_test = compute_folds_attempts(I=assGraphGene.V,J=assGraphGene.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+        pool = ThreadPool(no_folds)
+                        
+        results = []
         
         fold = 0
-        for M_train_M_test in Ms_training_and_test:
-            M_train = M_train_M_test[0]
-            M_test = M_train_M_test[1]
-            assGraphGene.initNMF(M_train)
-
-            assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
-           
-            train_elbo = assGraphGene.calc_elbo(M_test)
-            train_err  = assGraphGene.predict(M_test)
+        for f in range(no_folds):
+            M_train = Ms_training_and_test[0]
+            M_test = Ms_training_and_test[1]
             
-            print(str(fold) +","+str(train_elbo) + "," + str(train_err))
-            fold += 1
-    
-    
-
+            assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+            
+            results.append(pool.apply_async(call_train_test, (assGraphGene,M_train,M_test,fold,)))
+        
+        pool.close()
+        pool.join()
+                
 
 if __name__ == "__main__":
     main(sys.argv[1:])
