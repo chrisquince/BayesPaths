@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAG import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAK import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
@@ -179,99 +179,25 @@ def main(argv):
     for gene in sorted(genes):
         assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
-        assGraphGene.initNMF()   
-
-        assGraphGene.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-    
-        print(gene + "," + str(assGraphGene.calc_elbo()))
-            
-        assGraphGenes[gene] = assGraphGene
-
-    overlapDists = defaultdict(dict)
-    
-    for geneI in sorted(genes):
-        for geneJ in sorted(genes):
-            (distIJ, fDistIJ) = overlapDist(assGraphGenes[geneI].expGamma, assGraphGenes[geneJ].expGamma)
-            overlapDists[geneI][geneJ] = fDistIJ
-    
-    errorDists = defaultdict(dict)
-    elboDists = defaultdict(dict)
-    
-    for geneI in sorted(genes):
-        for geneJ in sorted(genes):
-            if geneI != geneJ:
-                assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-   
-                assGraphGeneIJ.initNMF()   
-
-                assGraphGeneIJ.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-    
-                divElbo = assGraphGeneIJ.calc_elbo() - assGraphGenes[geneI].calc_elbo() -  assGraphGenes[geneJ].calc_elbo()
+        M_attempts = 1000
+        M = np.ones((assGraphGene.V,assGraphGene.S))
+        Ms_training_and_test = compute_folds_attempts(I=assGraphGene.V,J=assGraphGene.S,no_folds=10,attempts=M_attempts,M=M)
         
-                divError = assGraphGeneIJ.mean_diff() - 0.5*(assGraphGenes[geneI].mean_diff() + assGraphGenes[geneJ].mean_diff())
+        fold = 0
+        for M_train_M_test in Ms_training_and_test:
+            M_train = M_train_M_test[0]
+            M_test = M_train_M_test[1]
+            assGraphGene.initNMF(M_train)
+
+            assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
            
-                elboDists[geneI][geneJ] = divElbo
-                
-                errorDists[geneI][geneJ] = divError
+            train_elbo = assGraphGene.calc_elbo(M_test)
+            train_err  = assGraphGene.predict(M_test)
+            
+            print(str(fold) +","+str(train_elbo) + "," + str(train_err))
+            fold += 1
     
     
-    #run through pairs
-    
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-    
-    genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
-    
-    genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
-
-    assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
-    source_maps_filter = {s:source_maps[s] for s in genesFilter} 
-    sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
-    
-    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-
-    maxGIter = 4
-    nChange = 1
-    gIter = 0
-
-    while nChange > 0 and gIter < maxGIter:
-        assGraph.initNMF()
-        print("Round " + str(gIter) + " of gene filtering")
-        assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-
-        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
-        
-        genesSelect = filterGenes(assGraph)
-        nChange = -len(genesSelect) + len(assGraph.genes)
-        print("Removed: " + str(nChange) + " genes")
-        assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
-        source_maps_select = {s:source_maps[s] for s in genesSelect} 
-        sink_maps_select = {s:sink_maps[s] for s in genesSelect}
-
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-        
-        gIter += 1
-    
-    assGraph.initNMF()
-    
-    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
-  
-    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
-  
-    assGraph.writeGeneError(args.outFileStub + "geneError.csv")
-
-    assGraph.writeMarginals(args.outFileStub + "margFile.csv")
-   
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
-    
-    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
-   
-    assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
-
-    assGraph.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
-    
-    assGraph.writeTheta(args.outFileStub + "Theta.csv") 
-
-    assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
 
 
 if __name__ == "__main__":
