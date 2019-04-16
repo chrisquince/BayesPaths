@@ -191,6 +191,7 @@ def main(argv):
     
     #run through individual graphs
     assGraphGenes = {}
+    meanError = {}
     for gene in sorted(genes):
         assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
@@ -201,8 +202,7 @@ def main(argv):
 
     #    pool = ThreadPool(no_folds)
                         
-        results = []
-        
+        errors = []
         fold = 0
         
         for f in range(no_folds):
@@ -217,13 +217,86 @@ def main(argv):
            
             train_elbo = assGraphGene.calc_elbo(M_test)
             train_err  = assGraphGene.predict(M_test)
-            results.append((train_elbo,train_err))
+            errors.append(train_err)
+            
      #       results.append(pool.apply_async(call_train_test, (assGraphGene,M_train,M_test,fold,)))
         
         #pool.close()
         #pool.join()
+        meanError[gene] = sum(errors)/float(no_folds)
+        #print(results)        
+        
 
-        print(results)            
+    errorDists = defaultdict(dict)
+    elboDists = defaultdict(dict)
+    
+    for geneI in sorted(genes):
+        for geneJ in sorted(genes):
+            if geneI != geneJ:
+                assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+   
+                M_attempts = 1000
+                M = np.ones((assGraphGeneIJ.V,assGraphGeneIJ.S))
+                no_folds=10
+                Ms_training_and_test = compute_folds_attempts(I=assGraphGeneIJ.V,J=assGraphGeneIJ.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+                errors = []
+                fold = 0
+        
+                for f in range(no_folds):
+                    M_train = Ms_training_and_test[0][f]
+                    M_test = Ms_training_and_test[1][f]
+            
+                    assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+   
+                    assGraphGeneIJ.initNMF(M_train)
+
+                    assGraphGeneIJ.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
+           
+                    train_elbo = assGraphGeneIJ.calc_elbo(M_test)
+                    train_err  = assGraphGeneIJ.predict(M_test)
+                    errors.append(train_err)
+                
+                divError =  sum(errors)/float(no_folds) - 0.5*(meanError[geneI] + meanError[geneJ])
+                
+                errorDists[geneI][geneJ] = divError
+    
+    print("Debug")
+
+
+    #    pool = ThreadPool(no_folds)
+                        
+        errors = []
+        fold = 0
+        
+        for f in range(no_folds):
+            M_train = Ms_training_and_test[0][f]
+            M_test = Ms_training_and_test[1][f]
+            
+            assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+         
+            assGraphGene.initNMF(M_train)
+
+            assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
+           
+            train_elbo = assGraphGene.calc_elbo(M_test)
+            train_err  = assGraphGene.predict(M_test)
+            errors.append(train_err)
+     
+     
+   
+                assGraphGeneIJ.initNMF()   
+
+                assGraphGeneIJ.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+    
+                divElbo = assGraphGeneIJ.calc_elbo() - assGraphGenes[geneI].calc_elbo() -  assGraphGenes[geneJ].calc_elbo()
+        
+                divError = assGraphGeneIJ.mean_diff() - 0.5*(assGraphGenes[geneI].mean_diff() + assGraphGenes[geneJ].mean_diff())
+           
+                elboDists[geneI][geneJ] = divElbo
+                
+                errorDists[geneI][geneJ] = divError
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
