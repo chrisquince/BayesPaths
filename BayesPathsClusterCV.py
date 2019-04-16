@@ -22,8 +22,8 @@ def call_train_test(assGraph,M_train,M_test,fold):
 
     assGraph.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
            
-    train_elbo = assGraphGene.calc_elbo(M_test)
-    train_err  = assGraphGene.predict(M_test)
+    train_elbo = assGraph.calc_elbo(M_test)
+    train_err  = assGraph.predict(M_test)
             
     return(fold, train_elbo, train_err)
             
@@ -206,16 +206,24 @@ def main(argv):
         fold = 0
         
         for f in range(no_folds):
-            M_train = Ms_training_and_test[0]
-            M_test = Ms_training_and_test[1]
+            M_train = Ms_training_and_test[0][f]
+            M_test = Ms_training_and_test[1][f]
             
-            assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-            
+            #assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+         
+            #assGraphGene.initNMF(M_train)
+
+            #assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
+           
+            #train_elbo = assGraphGene.calc_elbo(M_test)
+            #train_err  = assGraphGene.predict(M_test)
+   
             results.append(pool.apply_async(call_train_test, (assGraphGene,M_train,M_test,fold,)))
         
         pool.close()
         pool.join()
-                
+
+        print(results)            
 
 if __name__ == "__main__":
     main(sys.argv[1:])
