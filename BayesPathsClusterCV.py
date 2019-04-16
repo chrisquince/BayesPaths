@@ -199,7 +199,7 @@ def main(argv):
         no_folds=10
         Ms_training_and_test = compute_folds_attempts(I=assGraphGene.V,J=assGraphGene.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
-        pool = ThreadPool(no_folds)
+    #    pool = ThreadPool(no_folds)
                         
         results = []
         
@@ -209,19 +209,19 @@ def main(argv):
             M_train = Ms_training_and_test[0][f]
             M_test = Ms_training_and_test[1][f]
             
-            #assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+            assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
          
-            #assGraphGene.initNMF(M_train)
+            assGraphGene.initNMF(M_train)
 
-            #assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
+            assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
            
-            #train_elbo = assGraphGene.calc_elbo(M_test)
-            #train_err  = assGraphGene.predict(M_test)
-   
-            results.append(pool.apply_async(call_train_test, (assGraphGene,M_train,M_test,fold,)))
+            train_elbo = assGraphGene.calc_elbo(M_test)
+            train_err  = assGraphGene.predict(M_test)
+            results.append((train_elbo,train_err))
+     #       results.append(pool.apply_async(call_train_test, (assGraphGene,M_train,M_test,fold,)))
         
-        pool.close()
-        pool.join()
+        #pool.close()
+        #pool.join()
 
         print(results)            
 
