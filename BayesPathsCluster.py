@@ -176,6 +176,7 @@ def main(argv):
     
     #run through individual graphs
     assGraphGenes = {}
+    geneG = {}
     for gene in sorted(genes):
         assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
@@ -186,6 +187,7 @@ def main(argv):
         print(gene + "," + str(assGraphGene.calc_elbo()))
             
         assGraphGenes[gene] = assGraphGene
+        geneG[gene] = assGraphGene.G
 
     overlapDists = defaultdict(dict)
     
@@ -196,35 +198,41 @@ def main(argv):
     
     errorDists = defaultdict(dict)
     elboDists = defaultdict(dict)
+    sorted_genes = sorted(geneG,key=d.get,reverse=True)
+
+    clusters = {}
+    clust_assign = defaultdict(list)    
+    radius = 0.5
+    idx = 0
+    for geneI in sorted_genes:
     
-    for geneI in sorted(genes):
-        for geneJ in sorted(genes):
-            if geneI != geneJ:
-                #run geneJ using gamma from geneI
-                IG = assGraphGenes[geneI].G
-                assGraphGeneJ = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ]}, G = IG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+        dist_min = sys.float_info.max
+        divI = assGraphGenes[geneI].divF()
+        bestCluster = None
+        for nameClust,clust in clusters.items():
+            CG = clust.G
+            
+            assGraphGeneIC = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ]}, G = CG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
-                assGraphGeneJ.initNMFGamma(assGraphGenes[geneI].expGamma)   
+            assGraphGeneIC.initNMFGamma(clust.expGamma)   
 
-                assGraphGeneJ.updateGammaFixed(100)
-
-
-    for geneI in sorted(genes):
-        for geneJ in sorted(genes):
-            if geneI != geneJ:
-                assGraphGeneIJ = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI],geneJ:assemblyGraphs[geneJ]},{geneI:source_maps[geneI],geneJ:source_maps[geneJ]},{geneI:sink_maps[geneI],geneJ:sink_maps[geneJ]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-   
-                assGraphGeneIJ.initNMF()   
-
-                assGraphGeneIJ.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-    
-                divElbo = assGraphGeneIJ.calc_elbo() - assGraphGenes[geneI].calc_elbo() -  assGraphGenes[geneJ].calc_elbo()
+            assGraphGeneIC.updateGammaFixed(100)
+            
+            divIC = assGraphGeneIC.divF()
+            
+            distC = (divIC - divI)/divI 
+            
+            if distC < dist_min:
+                bestCluster = nameClust
+                dist_min = distC
         
-                divError = assGraphGeneIJ.mean_diff() - 0.5*(assGraphGenes[geneI].mean_diff() + assGraphGenes[geneJ].mean_diff())
-           
-                elboDists[geneI][geneJ] = divElbo
-                
-                errorDists[geneI][geneJ] = divError
+        if dist_min < radius:
+            clust_assign[bestCluster].append(geneI)
+        else:
+            newName = 'clust' + str(idx)
+            clusters[newName] = assGraphGenes[geneI]
+            clust_assign[newName].append(geneI) 
+            idx = idx + 1
     
     
 
