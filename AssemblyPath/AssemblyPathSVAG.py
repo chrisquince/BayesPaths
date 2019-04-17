@@ -1385,17 +1385,22 @@ class AssemblyPathSVA():
                 with open(graphFileName, "w") as text_file:
                     print(graphString, file=text_file)
                       
-                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'                
-                p = Popen(cmd, stdout=PIPE,shell=True)
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'   
+               
+                #subprocess.run('./runfg_marg_old ' + graphFileName + ' 0 > ' + outFileName, shell=True,check=True)
+ 
+                subprocess.run(cmd, shell=True,check=True)
+
+                #p = Popen(cmd, stdout=PIPE,shell=True)
                 
                 with open (outFileName, "r") as myfile:
                     outLines=myfile.readlines()
                 
-                self.margG[gene][g] = self.parseMargString(factorGraph, outLines)
-             
+                self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
                 self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-                os.remove(graphFileName) 
+                os.remove(graphFileName)
                 os.remove(outFileName)
+                             
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
