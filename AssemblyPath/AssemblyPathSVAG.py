@@ -1358,16 +1358,23 @@ class AssemblyPathSVA():
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
-    def initNMFGamma(self,gamma):
-        
+    def initNMFGamma(self,assCopyGamma):
+        gamma = np.copy(assCopyGamma.expGamma)
         covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
         covNMF.random_initialize() 
         covNMF.H = np.copy(gamma[0:self.G,:])
         covNMF.factorizeW()
         self.eLambda = np.zeros((self.V,self.S))
         initEta = covNMF.W
-        self.expGamma = np.copy(gamma)
-        self.expGamma2 = self.expGamma*self.expGamma
+        
+        self.epsilon = assCopyGamma.epsilon #parameter for gamma exponential prior
+        self.expGamma = gamma  #expectation of gamma
+        self.expGamma2 = np.copy(assCopyGamma.expGamma2)
+        
+        self.muGamma = np.copy(assCopyGamma.muGamma)
+        self.tauGamma = np.copy(assCopyGamma.tauGamma)
+        self.varGamma = np.copy(assCopyGamma.varGamma)
+        
         for g in range(self.G):
             
             for gene, factorGraph in self.factorGraphs.items():

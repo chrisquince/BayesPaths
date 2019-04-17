@@ -214,7 +214,7 @@ def main(argv):
             
             assGraphGeneIC = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ]}, G = CG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
-            assGraphGeneIC.initNMFGamma(clust.expGamma)   
+            assGraphGeneIC.initNMFGamma(clust)   
 
             assGraphGeneIC.updateGammaFixed(100)
             
@@ -228,6 +228,18 @@ def main(argv):
         
         if dist_min < radius:
             clust_assign[bestCluster].append(geneI)
+            graphs = {gene:assemblyGraphs[gene] for gene in clust_assign[bestCluster]}
+            sources = {gene:source_maps[gene] for gene in clust_assign[bestCluster]}
+            sinks = {gene:sink_maps[gene] for gene in clust_assign[bestCluster]}
+            #now recompute cluster
+            assGraphGene = AssemblyPathSVA(prng,graphs,sources,sinks, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+   
+            assGraphGene.initNMF()   
+
+            assGraphGene.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+
+            clusters[bestCluster] = assGraphGene
+            
         else:
             newName = 'clust' + str(idx)
             clusters[newName] = assGraphGenes[geneI]
