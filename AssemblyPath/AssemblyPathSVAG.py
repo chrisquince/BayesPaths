@@ -1364,7 +1364,8 @@ class AssemblyPathSVA():
         covNMF.factorizeW()
         self.eLambda = np.zeros((self.V,self.S))
         initEta = covNMF.W
-            
+        self.expGamma = np.copy(gamma)
+        self.expGamma2 = self.expGamma*self.expGamma
         for g in range(self.G):
             
             for gene, factorGraph in self.factorGraphs.items():
