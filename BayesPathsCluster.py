@@ -198,11 +198,11 @@ def main(argv):
     
     errorDists = defaultdict(dict)
     elboDists = defaultdict(dict)
-    sorted_genes = sorted(geneG,key=d.get,reverse=True)
+    sorted_genes = sorted(geneG,key=geneG.get,reverse=True)
 
     clusters = {}
     clust_assign = defaultdict(list)    
-    radius = 0.5
+    radius = 0.15
     idx = 0
     for geneI in sorted_genes:
     
