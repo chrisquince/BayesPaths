@@ -1015,7 +1015,9 @@ class AssemblyPathSVA():
         return filteredGenes
     
     def updateGammaFixed(self, maxIter, drop_strain=None, relax_path=False):
-
+        
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
             
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
