@@ -1360,7 +1360,7 @@ class AssemblyPathSVA():
         
         covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
         covNMF.random_initialize() 
-        covNMF.H = np.copy(gamma)
+        covNMF.H = np.copy(gamma[0:self.G,:])
         covNMF.factorizeW()
         self.eLambda = np.zeros((self.V,self.S))
         initEta = covNMF.W

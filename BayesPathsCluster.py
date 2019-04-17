@@ -202,7 +202,7 @@ def main(argv):
             if geneI != geneJ:
                 #run geneJ using gamma from geneI
                 IG = assGraphGenes[geneI].G
-                assGraphGeneJ = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ}, G = IG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+                assGraphGeneJ = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ]}, G = IG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
                 assGraphGeneJ.initNMFGamma(assGraphGenes[geneI].expGamma)   
 
