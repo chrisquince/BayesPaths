@@ -1014,7 +1014,7 @@ class AssemblyPathSVA():
         
         return filteredGenes
     
-    def updateGammaFixed(self, maxIter, relax_path=False):
+    def updateGammaFixed(self, maxIter, drop_strain=None, relax_path=False):
 
             
         iter = 0
