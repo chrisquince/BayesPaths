@@ -202,7 +202,7 @@ def main(argv):
 
     clusters = {}
     clust_assign = defaultdict(list)    
-    radius = 0.15
+    radius = 0.10
     idx = 0
     for geneI in sorted_genes:
     
@@ -247,7 +247,7 @@ def main(argv):
             idx = idx + 1
     
     
-
+    print("Dummy")
 
 
 if __name__ == "__main__":

@@ -266,37 +266,6 @@ def main(argv):
 
     #    pool = ThreadPool(no_folds)
                         
-        errors = []
-        fold = 0
-        
-        for f in range(no_folds):
-            M_train = Ms_training_and_test[0][f]
-            M_test = Ms_training_and_test[1][f]
-            
-            assGraphGene = AssemblyPathSVA(prng,  {gene:assemblyGraphs[gene]},{gene:source_maps[gene]}, {gene:sink_maps[gene]}, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
-         
-            assGraphGene.initNMF(M_train)
-
-            assGraphGene.update(200, True, M_train,logFile=None,drop_strain=None,relax_path=False)
-           
-            train_elbo = assGraphGene.calc_elbo(M_test)
-            train_err  = assGraphGene.predict(M_test)
-            errors.append(train_err)
-     
-     
-   
-                assGraphGeneIJ.initNMF()   
-
-                assGraphGeneIJ.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-    
-                divElbo = assGraphGeneIJ.calc_elbo() - assGraphGenes[geneI].calc_elbo() -  assGraphGenes[geneJ].calc_elbo()
-        
-                divError = assGraphGeneIJ.mean_diff() - 0.5*(assGraphGenes[geneI].mean_diff() + assGraphGenes[geneJ].mean_diff())
-           
-                elboDists[geneI][geneJ] = divElbo
-                
-                errorDists[geneI][geneJ] = divError
-    
 
 if __name__ == "__main__":
     main(sys.argv[1:])

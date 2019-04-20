@@ -2207,7 +2207,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
@@ -2243,7 +2243,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS, nTauCats = 1)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS, nTauCats = 1, minIntensity = 1.0e-3)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
