@@ -204,6 +204,7 @@ def main(argv):
     clust_assign = defaultdict(list)    
     radius = 1.0
     idx = 0
+    store_dists = defaultdict(dict)
     for geneI in sorted_genes:
     
         dist_min = sys.float_info.max
@@ -230,7 +231,7 @@ def main(argv):
             if distElboC < dist_min:
                 bestCluster = nameClust
                 dist_min = distC
-        
+            store_dists[geneI][nameClust] = (distElboC,distC)
         if dist_min < radius:
             clust_assign[bestCluster].append(geneI)
             graphs = {gene:assemblyGraphs[gene] for gene in clust_assign[bestCluster]}
