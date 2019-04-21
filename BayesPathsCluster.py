@@ -202,7 +202,7 @@ def main(argv):
 
     clusters = {}
     clust_assign = defaultdict(list)    
-    radius = 0.25
+    radius = 1.0
     idx = 0
     for geneI in sorted_genes:
     
@@ -226,8 +226,8 @@ def main(argv):
 
             elboIC = assGraphGeneIC.calc_unitig_elbo(geneI, assGraphGeneIC.mapUnitigs[geneI])
             distElboC = -(elboIC - elboI)
-            
-            if distC < dist_min:
+            distElboC /= assGraphGeneIC.V
+            if distElboC < dist_min:
                 bestCluster = nameClust
                 dist_min = distC
         
