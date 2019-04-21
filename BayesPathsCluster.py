@@ -202,25 +202,30 @@ def main(argv):
 
     clusters = {}
     clust_assign = defaultdict(list)    
-    radius = 10.
+    radius = 0.25
     idx = 0
     for geneI in sorted_genes:
     
         dist_min = sys.float_info.max
-        divI = assGraphGenes[geneI].calc_unitig_elbo(geneI, assGraphGenes[geneI].mapUnitigs[geneI])
+        
+        elboI = assGraphGenes[geneI].calc_unitig_elbo(geneI, assGraphGenes[geneI].mapUnitigs[geneI])
+        divI  = assGraphGenes[geneI].divF()
+        
         bestCluster = None
         for nameClust,clust in clusters.items():
             CG = clust.G
             
-            assGraphGeneIC = AssemblyPathSVA(prng,  {geneJ:assemblyGraphs[geneJ]},{geneJ:source_maps[geneJ]}, {geneJ:sink_maps[geneJ]}, G = CG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+            assGraphGeneIC = AssemblyPathSVA(prng,  {geneI:assemblyGraphs[geneI]},{geneI:source_maps[geneI]}, {geneI:sink_maps[geneI]}, G = CG, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
    
             assGraphGeneIC.initNMFGamma(clust)   
 
             assGraphGeneIC.updateGammaFixed(100)
             
-            divIC = assGraphGeneIC.calc_unitig_elbo(geneI, assGraphGeneIC.mapUnitigs[geneI])
-            
-            distC = -(divIC - divI)
+            divC  = assGraphGeneIC.divF()
+            distC = (divC - divI)/divI            
+
+            elboIC = assGraphGeneIC.calc_unitig_elbo(geneI, assGraphGeneIC.mapUnitigs[geneI])
+            distElboC = -(elboIC - elboI)
             
             if distC < dist_min:
                 bestCluster = nameClust

@@ -13,6 +13,8 @@ def main(argv):
     parser.add_argument("kmer_length", help="kmer length assumed overlap")
     
     parser.add_argument("cov_file", help="coverages")
+
+    parser.add_argument("out_stub", help="output file stub")
     
     args = parser.parse_args()
 
@@ -26,9 +28,9 @@ def main(argv):
     for component in components:
         unitigSubGraph = unitigGraph.createUndirectedGraphSubset(component)
         
-        unitigSubGraph.writeToGFA('component_' + str(c) + '.gfa')
+        unitigSubGraph.writeToGFA(args.out_stub + 'component_' + str(c) + '.gfa')
 
-        unitigSubGraph.writeCovToCSV('component_' + str(c) + '.csv')
+        unitigSubGraph.writeCovToCSV(args.out_stub + 'component_' + str(c) + '.csv')
         
         c = c + 1
 
