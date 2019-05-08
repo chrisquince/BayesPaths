@@ -931,7 +931,9 @@ class AssemblyPathSVA():
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         self.updateTau() 
-        while iter < maxIter:
+        diffElbo = 1.0
+        currElbo=self.calc_elbo()
+        while iter < maxIter and diffElbo > 1.0e-4:
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
@@ -980,10 +982,15 @@ class AssemblyPathSVA():
             if self.BIAS:
                 self.updateTheta()
             
-            total_elbo = self.calc_elbo()    
+            total_elbo = self.calc_elbo()
+            diffElbo = abs(total_elbo - currElbo) 
+            if np.isnan(diffElbo) or math.isinf(diffElbo):
+                diffElbo = 1.
+ 
+            currElbo = total_elbo   
             DivF = self.divF()
             Div  = self.div()
-            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
+            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo),str(diffElbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
@@ -2274,7 +2281,7 @@ def main(argv):
     else:
         assGraph.initNMF()
 
-        assGraph.update(200, True, logFile=None,drop_strain=None,relax_path=True)
+        assGraph.update(1000, True, logFile=None,drop_strain=None,relax_path=True)
            
         gene_mean_error = assGraph.gene_mean_diff()
         
