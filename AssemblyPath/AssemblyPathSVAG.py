@@ -923,7 +923,7 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None):
+    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -933,7 +933,7 @@ class AssemblyPathSVA():
         self.updateTau() 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
-        while iter < maxIter and diffElbo > 1.0e-4:
+        while iter < maxIter and diffElbo > minDiff:
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
@@ -990,11 +990,11 @@ class AssemblyPathSVA():
             currElbo = total_elbo   
             DivF = self.divF()
             Div  = self.div()
-            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo),str(diffElbo))
+            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
-                    logF.write(str(iter)+ "," +  str(self.G) + "," + str(DivF)+ "," + str(total_elbo) + "\n")
+                    logF.write(str(iter)+ "," +  str(self.G) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo) + "\n")
             iter += 1
     
     
