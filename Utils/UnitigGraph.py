@@ -662,7 +662,7 @@ class UnitigGraph():
         return hit
         
             
-    def selectSourceSinksStops(self, stops, deadends):
+    def selectSourceSinksStops(self, stops, deadends, minLength=0.):
     
         if self.N == len(stops):
             return (stops,stops)
@@ -738,7 +738,7 @@ class UnitigGraph():
         #add any isolated singletons here
         for sourceSink in sourceSinks:
             if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
-                if self.isIsolated(unitig):
+                if self.isIsolated(sourceSink) and self.lengths[sourceSink] > minLength:
                     sinks.append(sourceSink + "-")
                     sinkUnitigs.add(sourceSink)
                     sources.append(sourceSink + "+")

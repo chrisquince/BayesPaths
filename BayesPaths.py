@@ -48,6 +48,8 @@ def main(argv):
     
     parser.add_argument('-l','--cog_list',nargs='?', default=None)
 
+    parser.add_argument('-t','--length_list',nargs='?', default=None, help=("amino acid lengths for genes"))
+
     parser.add_argument('-f','--frac_cov',nargs='?', default=0.02, type=float, 
         help=("fractional coverage for noise nodes"))
 
@@ -74,6 +76,15 @@ def main(argv):
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
+
+    cogLengths = None
+    if  args.length_list != None:
+        with open(args.length_list,'r') as cog_file:
+            for line in cog_file:
+                line.rstrip()
+                toks = line.split('\t') 
+                cogLengths[toks[0]] = toks[1]
+        
     
     if args.cog_list == None:
         gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')    
@@ -124,7 +135,10 @@ def main(argv):
                     dirn = False
                 stops.append((toks[0],dirn))
         
-        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
+        if cogLengths is not None:
+            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
+        else:
+            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
         
 
         source_names = [convertNodeToName(source) for source in source_list] 
