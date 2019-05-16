@@ -70,7 +70,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
@@ -148,13 +148,13 @@ def main(argv):
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
 
     maxGIter = 4
-    nChange = 1
+    nChange = 0
     gIter = 0
 
     while nChange > 0 and gIter < maxGIter:
         assGraph.initNMF()
         print("Round " + str(gIter) + " of gene filtering")
-        assGraph.update(200, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+        assGraph.update(500, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
         assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
@@ -169,11 +169,12 @@ def main(argv):
         
         gIter += 1
     
+    import ipdb; ipdb.set_trace()
     assGraph.initNMF()
     
-    assGraph.update(300, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
   
-    assGraph.update(100, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
