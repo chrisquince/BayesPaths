@@ -196,6 +196,7 @@ class AssemblyPathSVA():
         sumSinkCovs   = Counter()
         sumSourceCovsS = defaultdict(lambda:np.zeros(self.S))
         sumSinkCovsS = defaultdict(lambda:np.zeros(self.S))
+        
         self.geneCovs = {}
         
         for gene, sources in source_maps.items():
@@ -214,19 +215,26 @@ class AssemblyPathSVA():
             tempMatrix[0,:] = sumSinkCovsS[gene]
             tempMatrix[1,:] = sumSourceCovsS[gene]
             self.geneCovs[gene] = np.mean(tempMatrix,axis=0)        
-        
+        self.maxSampleCov = 0.
         if minSumCov is not None:
             self.minSumCov = minSumCov
             self.fracCov = 0.0
         elif fracCov is not None:
             self.fracCov = fracCov
             self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+            
+            self.meanSampleCov = np.mean(np.array(list(sumSourceCovs.values()) + list(sumSinkCovs.values())),axis=0)
+
+            self.maxSampleCov = self.fracCov*np.max(self.minSampleCov)
+            
         else:
             self.minSumCov = 0.0
             self.fracCov = 0.0
 
         print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
+            self.minIntensity = self.minSumCov/self.readLength
+        
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
@@ -239,6 +247,8 @@ class AssemblyPathSVA():
         if self.NOISE:
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
+            if self.maxSampleCov > 0.:
+                self.epsilonNoise = self.maxSampleCov/self.readLength
         else:
             self.GDash = self.G
             
