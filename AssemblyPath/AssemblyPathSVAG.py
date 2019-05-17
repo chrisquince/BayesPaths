@@ -223,9 +223,9 @@ class AssemblyPathSVA():
             self.fracCov = fracCov
             self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
             
-            self.meanSampleCov = np.mean(np.array(list(sumSourceCovs.values()) + list(sumSinkCovs.values())),axis=0)
+            self.meanSampleCov = np.mean(np.array(list(sumSourceCovsS.values()) + list(sumSinkCovsS.values())),axis=0)
 
-            self.maxSampleCov = self.fracCov*np.max(self.minSampleCov)
+            self.maxSampleCov = self.fracCov*np.max(self.meanSampleCov)
             
         else:
             self.minSumCov = 0.0
@@ -248,7 +248,7 @@ class AssemblyPathSVA():
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
             if self.maxSampleCov > 0.:
-                self.epsilonNoise = self.maxSampleCov/self.readLength
+                self.epsilonNoise = (self.fracCov*self.maxSampleCov)/self.readLength
         else:
             self.GDash = self.G
             
@@ -1860,15 +1860,20 @@ class AssemblyPathSVA():
         
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
-        removed = sumIntensity < minIntensity
+        #removed = sumIntensity < minIntensity
+        removed = np.zeros(self.GDash,dtype=bool)
+        if np.min(sumIntensity[0:self.G]) < minIntensity:
+            removed[np.argmin(sumIntensity[0:self.G])] = True
+ 
+        if np.sum(removed == True) == 0:
+            for g in range(self.G):
         
-        for g in range(self.G):
-        
-            if removed[g] == False:    
+                if removed[g] == False:    
 
-                for h in range(g+1,self.G):
-                    if dist[g,h] == 0 and removed[h] == False:
-                        removed[h] = True    
+                    for h in range(g+1,self.G):
+                        if dist[g,h] == 0 and removed[h] == False:
+                            removed[h] = True
+                            break    
        
         retained = np.logical_not(removed)
         if self.NOISE:
