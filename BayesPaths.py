@@ -77,13 +77,13 @@ def main(argv):
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
-    cogLengths = None
+    cogLengths = {}
     if  args.length_list != None:
         with open(args.length_list,'r') as cog_file:
             for line in cog_file:
-                line.rstrip()
+                line = line.rstrip()
                 toks = line.split('\t') 
-                cogLengths[toks[0]] = toks[1]
+                cogLengths[toks[0]] = float(toks[1])
         
     
     if args.cog_list == None:
@@ -135,7 +135,7 @@ def main(argv):
                     dirn = False
                 stops.append((toks[0],dirn))
         
-        if cogLengths is not None:
+        if gene in cogLengths:
             (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
         else:
             (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)

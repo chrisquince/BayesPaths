@@ -299,13 +299,13 @@ class AssemblyPathSVA():
         
             AssemblyPathSVA.tauThresh
             
-            self.NPos = np.sum(self.X[v,s] > AssemblyPathSVA.tauThresh) 
+            self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
             
             self.dQuant = 1.0/NDash
             
             self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
             
-            XPos = self.X[self.X[v,s] > AssemblyPathSVA.tauThresh]
+            XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
             
             self.countQ = np.zeros(self.nQuant)
             
@@ -2222,6 +2222,8 @@ def main(argv):
 
     parser.add_argument("outFileStub", help="stub for output file names")
 
+    parser.add_argument('-t','--ntau_cats', nargs='?',default=1,type=int,help="number of precision cats")
+
     parser.add_argument('-fg','--gamma_file', nargs='?',help="gamma file")
 
     parser.add_argument('-fr','--ref_blast_file', nargs='?',help="ref blast file")
@@ -2277,7 +2279,7 @@ def main(argv):
             source_maps[str(c)] = source_list
         c = c + 1
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS, nTauCats = 1, minIntensity = 1.0e-3)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.read_length, ARD=args.ARD,BIAS=args.BIAS, nTauCats = args.ntau_cats, minIntensity = 1.0e-3)
     
     if args.ref_blast_file:
         refPath = assGraph.outputOptimalRefPaths(args.ref_blast_file)
