@@ -112,7 +112,7 @@ def main(argv):
         
         covFile = gfaFile[:-3] + "tsv"
         
-        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True)
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True, bRemoveSelfLinks = True)
             
         deadEndFile = gfaFile[:-3] + "deadends"
         
