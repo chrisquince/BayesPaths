@@ -104,7 +104,7 @@ class UnitigGraph():
         return unitigGraph
     
     @classmethod
-    def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None, tsvFile = False):
+    def loadGraphFromGfaFile(cls,gfaFile, kmerLength = None, covFile = None, tsvFile = False, bRemoveSelfLinks = False):
         """Creates graphs from a GFA file and an optional coverage file as csv without header"""
         gfa = gfapy.Gfa.from_file(gfaFile)
     
@@ -137,11 +137,13 @@ class UnitigGraph():
             if edge.to_orient == "-":
                 end = False
             
-            unitigGraph.overlaps[edge.from_segment.name][edge.to_segment.name].append((start,end))
+            if not bRemoveSelfLinks or edge.to_segment.name != edge.from_segment.name:
+            
+                unitigGraph.overlaps[edge.from_segment.name][edge.to_segment.name].append((start,end))
 
-            unitigGraph.overlaps[edge.to_segment.name][edge.from_segment.name].append((not end,not start))
+                unitigGraph.overlaps[edge.to_segment.name][edge.from_segment.name].append((not end,not start))
                 
-            unitigGraph.undirectedUnitigGraph.add_edge(edge.from_segment.name,edge.to_segment.name)
+                unitigGraph.undirectedUnitigGraph.add_edge(edge.from_segment.name,edge.to_segment.name)
         
         unitigGraph.unitigs = list(unitigGraph.undirectedUnitigGraph.nodes())
         unitigGraph.N = nx.number_of_nodes(unitigGraph.undirectedUnitigGraph)
