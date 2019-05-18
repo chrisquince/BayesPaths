@@ -153,7 +153,7 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength  + self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength # + self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -1388,17 +1388,47 @@ class AssemblyPathSVA():
                
                 #subprocess.run('./runfg_marg_old ' + graphFileName + ' 0 > ' + outFileName, shell=True,check=True)
  
-                subprocess.run(cmd, shell=True,check=True)
+                subprocess.run(cmd, shell=True,check=False)
 
                 #p = Popen(cmd, stdout=PIPE,shell=True)
+               
+                try:
+                    inHandle = open(outFileName, 'r')
+                    
+                    outLines = inHandle.readlines()
+
+                    inHandle.close()
+
+                    self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
+                    self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+                    os.remove(graphFileName)
+                    os.remove(outFileName)
+
+                except FileNotFoundError:
+                    os.remove(graphFileName)
+
+                    if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
+
+                        print("Attempt greedy path: " + str(g) + " " + gene)
+                        greedyPath = self.sampleGreedyPath(gene, g)
+                    
+                        for unitig in self.assemblyGraphs[gene].unitigs:
+                            if unitig in self.mapGeneIdx[gene]:
+                                v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                                self.expPhi[v_idx,g] = 0.
+                                self.expPhi2[v_idx,g] = 0.  
+                        
+                        for unitigd in greedyPath:
+                            unitig = unitigd[:-1]
+                            if unitig in self.mapGeneIdx[gene]:
+                                v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                                self.expPhi[v_idx,g] = 1.
+                                self.expPhi2[v_idx,g] = 1.  
+                    else:
+                        print("Cannot attempt greedy path")
                 
-                with open (outFileName, "r") as myfile:
-                    outLines=myfile.readlines()
-                
-                self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
-                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
-                os.remove(graphFileName)
-                os.remove(outFileName)
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
 
@@ -1861,9 +1891,10 @@ class AssemblyPathSVA():
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
         #removed = sumIntensity < minIntensity
-        removed = np.zeros(self.GDash,dtype=bool)
-        if np.min(sumIntensity[0:self.G]) < minIntensity:
-            removed[np.argmin(sumIntensity[0:self.G])] = True
+        #removed = np.zeros(self.GDash,dtype=bool)
+        removed = sumIntensity < minIntensity
+        #if np.min(sumIntensity[0:self.G]) < minIntensity:
+         #   removed[np.argmin(sumIntensity[0:self.G])] = True
  
         if np.sum(removed == True) == 0:
             for g in range(self.G):
