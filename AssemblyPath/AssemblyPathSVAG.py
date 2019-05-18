@@ -153,7 +153,7 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength # + self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
@@ -221,7 +221,8 @@ class AssemblyPathSVA():
             self.fracCov = 0.0
         elif fracCov is not None:
             self.fracCov = fracCov
-            self.minSumCov = self.fracCov*np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+            self.estCov = np.mean(np.asarray(list(sumSourceCovs.values()) + list(sumSinkCovs.values())))
+            self.minSumCov = self.fracCov*self.estCov
             
             self.meanSampleCov = np.mean(np.array(list(sumSourceCovsS.values()) + list(sumSinkCovsS.values())),axis=0)
 
@@ -303,11 +304,48 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
-        if nTauCats > 1:
+        if nTauCats == -1:
+        
+            if self.estCov > 50.:
+                self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
+                NDash = nTauCats - 1
+            
+                self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
+            
+                self.dQuant = 1.0/NDash
+            
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            
+                XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
+            
+                self.countQ = np.zeros(self.nQuant)
+            
+                self.countQ[1:] = np.quantile(XPos,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
+            
+                self.countQ[0] = AssemblyPathSVA.tauThresh
+            
+                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+            
+                for v in range(self.V):
+                    for s in range(self.S):
+                        start = 0
+                        while self.X[v,s] > self.countQ[start]:
+                            start+=1
+                        self.tauMap[v,s] = start
+                        self.tauFreq[start] += 1
+                
+        
+            else:
+                self.nQuant = nTauCats
+                self.dQuant = 1.0/self.nQuant
+                self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+                self.tauFreq[0] = self.V*self.S 
+        
+        elif nTauCats > 1:
             self.nQuant = nTauCats
             NDash = nTauCats - 1
-        
-            AssemblyPathSVA.tauThresh
             
             self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
             
@@ -1892,9 +1930,9 @@ class AssemblyPathSVA():
     #    dist = np.ones((self.G,self.G))
         #removed = sumIntensity < minIntensity
         #removed = np.zeros(self.GDash,dtype=bool)
-        removed = sumIntensity < minIntensity
-        #if np.min(sumIntensity[0:self.G]) < minIntensity:
-         #   removed[np.argmin(sumIntensity[0:self.G])] = True
+        #removed = sumIntensity < minIntensity
+        if np.min(sumIntensity[0:self.G]) < minIntensity:
+            removed[np.argmin(sumIntensity[0:self.G])] = True
  
         if np.sum(removed == True) == 0:
             for g in range(self.G):
