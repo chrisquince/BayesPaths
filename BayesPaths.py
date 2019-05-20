@@ -147,7 +147,7 @@ def main(argv):
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
     
-    import ipdb; ipdb.set_trace() 
+    #import ipdb; ipdb.set_trace() 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
