@@ -2153,7 +2153,7 @@ class AssemblyPathSVA():
         self.MAPs = defaultdict(list)
         haplotypes = defaultdict(list)
         self.paths = defaultdict(list)
-        output = np.sum(self.expGamma,axis=1) > self.minIntensity
+
 
         for g in range(self.G):
             for gene, factorGraph in self.factorGraphs.items():
@@ -2195,21 +2195,21 @@ class AssemblyPathSVA():
         fileName = fileStub + ".fa"
         with open(fileName, "w") as fastaFile:
             for g in range(self.G):
-                if output[g]:
-                    for gene, factorGraph in self.factorGraphs.items():
-                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
-                            fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                            fastaFile.write(haplotypes[gene][g]+"\n")
+
+                for gene, factorGraph in self.factorGraphs.items():
+                    if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
+                        fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                        fastaFile.write(haplotypes[gene][g]+"\n")
 
         fileName = fileStub + "_path.txt"
         with open(fileName, "w") as pathFile:
             for g in range(self.G):
-                if output[g]:
-                    for gene, factorGraph in self.factorGraphs.items():
-                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
-                            pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                            pathString = ",".join(self.paths[gene][g])
-                            pathFile.write(pathString+"\n")
+
+                for gene, factorGraph in self.factorGraphs.items():
+                    if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
+                        pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                        pathString = ",".join(self.paths[gene][g])
+                        pathFile.write(pathString+"\n")
         return haplotypes
         
     def outputOptimalRefPaths(self, ref_hit_file):
