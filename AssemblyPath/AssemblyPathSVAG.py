@@ -1829,7 +1829,7 @@ class AssemblyPathSVA():
         qGamma = -0.5*np.log(self.tauGamma).sum() + 0.5*self.GDash*self.S*math.log(2.*math.pi)
         temp = sps.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))
         
-        temp[temp < AssemblyPathSVAG.minLogQGamma] = AssemblyPathSVAG.minLogQGamma
+        temp[temp < AssemblyPathSVA.minLogQGamma] = AssemblyPathSVA.minLogQGamma
         
         qGamma += np.log(0.5*temp).sum()
         qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
