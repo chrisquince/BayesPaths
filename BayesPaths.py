@@ -203,6 +203,8 @@ def main(argv):
     
     assGraph.writeTheta(args.outFileStub + "Theta.csv") 
 
+    assGraph.writeTau(args.outFileStub + "Tau.csv")
+
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
 
 
