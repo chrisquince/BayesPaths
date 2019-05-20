@@ -2086,6 +2086,14 @@ class AssemblyPathSVA():
                         
                         thetaFile.write(gene + "_" + unitig + "," + str(self.expTheta[v]) + "\n")
 
+    def writeTau(self,fileName):
+
+        with open(fileName, "w") as tauFile:
+        
+            for n in range(self.nQuant):
+                tauFile.write(str(n) + "," + str(self.tauFreq[n]) + "," + str(self.countQ[n]) + "," + str(self.expTauCat[n]) + "\n")
+                
+            
     def writeGeneError(self,fileName):
         
         gene_mean_error = self.gene_mean_diff()
