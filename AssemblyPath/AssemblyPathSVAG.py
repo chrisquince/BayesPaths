@@ -66,6 +66,7 @@ class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3
     tauThresh = 0.5
+    minLogQGamma = 1.0e-100
         
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.,beta=1.,alpha0=1.0e-9,beta0=1.0e-9,
@@ -1826,7 +1827,11 @@ class AssemblyPathSVA():
 
         #add q for gamma
         qGamma = -0.5*np.log(self.tauGamma).sum() + 0.5*self.GDash*self.S*math.log(2.*math.pi)
-        qGamma += np.log(0.5*sps.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))).sum()
+        temp = sps.erfc(-self.muGamma*np.sqrt(self.tauGamma)/math.sqrt(2.))
+        
+        temp[temp < AssemblyPathSVAG.minLogQGamma] = AssemblyPathSVAG.minLogQGamma
+        
+        qGamma += np.log(0.5*temp).sum()
         qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
 
         total_elbo += qGamma
