@@ -147,7 +147,7 @@ def main(argv):
         source_maps[gene] = source_list
         assemblyGraphs[gene] = unitigGraph
     
-    
+    import ipdb; ipdb.set_trace() 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
@@ -185,7 +185,7 @@ def main(argv):
 
     assGraph.initNMF()
     
-    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=0.5)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
   
     assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   

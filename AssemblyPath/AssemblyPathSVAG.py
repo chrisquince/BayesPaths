@@ -308,7 +308,7 @@ class AssemblyPathSVA():
         
             if self.estCov > 50.:
                 self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
-                NDash = nTauCats - 1
+                NDash = self.nQuant - 1
             
                 self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
             
@@ -336,7 +336,7 @@ class AssemblyPathSVA():
                 
         
             else:
-                self.nQuant = nTauCats
+                self.nQuant = 1
                 self.dQuant = 1.0/self.nQuant
                 self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
                 self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
@@ -1929,20 +1929,20 @@ class AssemblyPathSVA():
         dist = self.calcPathDist(relax_path)
     #    dist = np.ones((self.G,self.G))
         #removed = sumIntensity < minIntensity
-        #removed = np.zeros(self.GDash,dtype=bool)
+        removed = np.zeros(self.GDash,dtype=bool)
         #removed = sumIntensity < minIntensity
         if np.min(sumIntensity[0:self.G]) < minIntensity:
             removed[np.argmin(sumIntensity[0:self.G])] = True
  
-        if np.sum(removed == True) == 0:
-            for g in range(self.G):
+        #if np.sum(removed == True) == 0:
+        for g in range(self.G):
         
-                if removed[g] == False:    
+            if removed[g] == False:    
 
-                    for h in range(g+1,self.G):
-                        if dist[g,h] == 0 and removed[h] == False:
-                            removed[h] = True
-                            break    
+                for h in range(g+1,self.G):
+                    if dist[g,h] == 0 and removed[h] == False:
+                        removed[h] = True
+                        break    
        
         retained = np.logical_not(removed)
         if self.NOISE:
