@@ -1940,15 +1940,15 @@ class AssemblyPathSVA():
         if np.min(sumIntensity[0:self.G]) < minIntensity:
             removed[np.argmin(sumIntensity[0:self.G])] = True
  
-        if np.sum(removed == True) == 0:
-            for g in range(self.G):
+#        if np.sum(removed == True) == 0:
+        for g in range(self.G):
         
-                if removed[g] == False:    
+            if removed[g] == False:    
 
-                    for h in range(g+1,self.G):
-                        if dist[g,h] == 0 and removed[h] == False:
-                            removed[h] = True
-                            break    
+                for h in range(g+1,self.G):
+                    if dist[g,h] == 0 and removed[h] == False:
+                        removed[h] = True
+                        break    
        
         retained = np.logical_not(removed)
         if self.NOISE:
