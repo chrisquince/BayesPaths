@@ -1914,7 +1914,8 @@ class AssemblyPathSVA():
                     if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
                         comp += 1 
                         diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
-                dist[g,h] = diff    
+                dist[g,h] = diff
+                dist[h,g] = diff    
 
         return dist
         
