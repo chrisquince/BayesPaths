@@ -5,6 +5,7 @@ import sys, getopt
 import os
 import pandas as p
 import numpy as np
+import numpy.ma as ma
 import random
 import scipy.stats as ss
 import scipy as sp
@@ -1933,22 +1934,47 @@ class AssemblyPathSVA():
             sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
         
         dist = self.calcPathDist(relax_path)
-    #    dist = np.ones((self.G,self.G))
-        #removed = sumIntensity < minIntensity
-        removed = np.zeros(self.GDash,dtype=bool)
-        #removed = sumIntensity < minIntensity
-        if np.min(sumIntensity[0:self.G]) < minIntensity:
-            removed[np.argmin(sumIntensity[0:self.G])] = True
- 
-#        if np.sum(removed == True) == 0:
-        for g in range(self.G):
-        
-            if removed[g] == False:    
 
-                for h in range(g+1,self.G):
-                    if dist[g,h] == 0 and removed[h] == False:
-                        removed[h] = True
-                        break    
+        #first collapse degenerate clusters
+        clusters = defaultdict(list)
+        
+        for g in range(self.G):
+            
+            found = False
+            hclust = -1
+            for clust, members in clusters.items():
+                if dist[g][clust] == 0:
+                    found=True
+                    hclust = clust
+                    break
+        
+            if not found:
+                clusters[g].append(g) 
+            else:
+                clusters[hclust].append(g)
+        
+        nClusts = len(list(clusters.keys()))
+    
+        removed = np.zeros(self.GDash,dtype=bool)
+        if nClusts < self.G:
+            newGamma = np.copy(self.expGamma)
+            
+            for clust, members in clusters.items():
+                for c in members:
+                    if c != clust:
+                        newGamma[clust,:] += self.expGamma[c,:]     
+                        removed[c] = True
+                        newGamma[c,:] = 0.
+                        
+            self.expGamma = newGamma
+
+        #removed = sumIntensity < minIntensity
+        
+        if np.sum(not removed[0:self.G]) > 1:
+            maskedIntensity = ma.masked_array(sumIntensity,not removed)
+            if ma.min(maskedIntensity) < minIntensity:
+                removed[ma.argmin(maskedIntensity)] = True
+ 
        
         retained = np.logical_not(removed)
         if self.NOISE:
