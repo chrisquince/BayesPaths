@@ -1914,7 +1914,8 @@ class AssemblyPathSVA():
                     if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
                         comp += 1 
                         diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
-                dist[g,h] = diff    
+                dist[g,h] = diff
+                dist[h,g] = diff    
 
         return dist
         
@@ -1971,7 +1972,7 @@ class AssemblyPathSVA():
         #removed = sumIntensity < minIntensity
         
         if np.sum(np.logical_not(removed[0:self.G])) > 1:
-            maskedIntensity = ma.masked_array(sumIntensity,not removed)
+            maskedIntensity = ma.masked_array(sumIntensity[0:self.G],removed[0:self.G])
             if ma.min(maskedIntensity) < minIntensity:
                 removed[ma.argmin(maskedIntensity)] = True
  
