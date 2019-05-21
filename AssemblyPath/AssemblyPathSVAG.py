@@ -1970,7 +1970,7 @@ class AssemblyPathSVA():
 
         #removed = sumIntensity < minIntensity
         
-        if np.sum(not removed[0:self.G]) > 1:
+        if np.sum(np.logical_not(removed[0:self.G])) > 1:
             maskedIntensity = ma.masked_array(sumIntensity,not removed)
             if ma.min(maskedIntensity) < minIntensity:
                 removed[ma.argmin(maskedIntensity)] = True
