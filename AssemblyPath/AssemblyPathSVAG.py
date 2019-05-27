@@ -345,6 +345,22 @@ class AssemblyPathSVA():
                 self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
                 self.tauFreq[0] = self.V*self.S 
         
+        elif nTauCats == -2:
+        
+            self.nQuant = 4
+            
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            
+            self.countQ = np.asarray([10.,100.,1000.,1.e10],dtype=np.float)
+            
+            for v in range(self.V):
+                for s in range(self.S):
+                    start = 0
+                    while self.X[v,s] > self.countQ[start]:
+                        start+=1
+                    self.tauMap[v,s] = start
+                    self.tauFreq[start] += 1
+        
         elif nTauCats > 1:
             self.nQuant = nTauCats
             NDash = nTauCats - 1
