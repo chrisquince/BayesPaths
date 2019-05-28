@@ -308,7 +308,7 @@ class AssemblyPathSVA():
         
         if nTauCats == -1:
         
-            if self.estCov > 50.:
+            if self.estCov > 100.:
                 self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
                 NDash = self.nQuant - 1
             
@@ -347,12 +347,16 @@ class AssemblyPathSVA():
         
         elif nTauCats == -2:
         
-            self.nQuant = 4
+            self.nQuant = 5
             
             self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
             
-            self.countQ = np.asarray([10.,100.,1000.,1.e10],dtype=np.float)
+            self.countQ = np.asarray([1.0,10.,100.,1000.,1.e10],dtype=np.float)
             
+            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+            
+            self.dQuant = 1.0/self.nQuant
+
             for v in range(self.V):
                 for s in range(self.S):
                     start = 0

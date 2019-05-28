@@ -68,6 +68,9 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
+        help=("penalisation on uncertain strains"))
+
     parser.add_argument('--relax', dest='relax_path', action='store_true')
 
     args = parser.parse_args()
@@ -185,9 +188,9 @@ def main(argv):
 
     assGraph.initNMF()
     
-    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
   
-    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
