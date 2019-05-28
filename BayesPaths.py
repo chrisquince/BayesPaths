@@ -114,29 +114,42 @@ def main(argv):
         
         covFile = gfaFile[:-3] + "tsv"
         
-        unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True, bRemoveSelfLinks = True)
-            
+        try:
+            unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True, bRemoveSelfLinks = True)
+        except IOError:
+             print('Trouble using file {}'.format(gfaFile))
+             continue
+             
         deadEndFile = gfaFile[:-3] + "deadends"
         
         stopFile = gfaFile[:-3] + "stops"
         
         deadEnds = []
-        with open(deadEndFile) as f:
+        
+        try:
+            with open(deadEndFile) as f:
             for line in f:
                 line.strip()
                 deadEnds.append(line)
+        except IOError:
+             print('Trouble using file {}'.format(deadEndFile))
+             continue
         
         stops = []
         
-        with open(stopFile) as f:
-            for line in f:
-                line = line.strip()
-                toks = line.split("\t")
-                dirn = True
-                if toks[1] == '-':
-                    dirn = False
-                stops.append((toks[0],dirn))
-        
+        try:
+            with open(stopFile) as f:
+                for line in f:
+                    line = line.strip()
+                    toks = line.split("\t")
+                    dirn = True
+                    if toks[1] == '-':
+                        dirn = False
+                    stops.append((toks[0],dirn))
+        except IOError:
+            print('Trouble using file {}'.format(stopFile))
+            continue
+             
         if gene in cogLengths:
             (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
         else:
