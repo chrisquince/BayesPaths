@@ -203,7 +203,7 @@ def main(argv):
     
     assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
   
-    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
+    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
