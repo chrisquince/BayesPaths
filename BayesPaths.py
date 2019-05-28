@@ -128,9 +128,9 @@ def main(argv):
         
         try:
             with open(deadEndFile) as f:
-            for line in f:
-                line.strip()
-                deadEnds.append(line)
+                for line in f:
+                    line.strip()
+                    deadEnds.append(line)
         except IOError:
              print('Trouble using file {}'.format(deadEndFile))
              continue
