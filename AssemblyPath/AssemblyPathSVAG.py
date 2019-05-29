@@ -236,7 +236,7 @@ class AssemblyPathSVA():
 
         print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
-            self.minIntensity = self.minSumCov/self.readLength
+            self.minIntensity = self.maxSampleCov/self.readLength
         
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
@@ -308,7 +308,7 @@ class AssemblyPathSVA():
         
         if nTauCats == -1:
         
-            if self.estCov > 50.:
+            if self.estCov > 100.:
                 self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
                 NDash = self.nQuant - 1
             
@@ -344,6 +344,26 @@ class AssemblyPathSVA():
                 self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
                 self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
                 self.tauFreq[0] = self.V*self.S 
+        
+        elif nTauCats == -2:
+        
+            self.nQuant = 5
+            
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            
+            self.countQ = np.asarray([1.0,10.,100.,1000.,1.e10],dtype=np.float)
+            
+            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+            
+            self.dQuant = 1.0/self.nQuant
+
+            for v in range(self.V):
+                for s in range(self.S):
+                    start = 0
+                    while self.X[v,s] > self.countQ[start]:
+                        start+=1
+                    self.tauMap[v,s] = start
+                    self.tauFreq[start] += 1
         
         elif nTauCats > 1:
             self.nQuant = nTauCats
