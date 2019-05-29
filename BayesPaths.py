@@ -158,10 +158,11 @@ def main(argv):
 
         source_names = [convertNodeToName(source) for source in source_list] 
         sink_names = [convertNodeToName(sink) for sink in sink_list]
-            
-        sink_maps[gene] = sink_list
-        source_maps[gene] = source_list
-        assemblyGraphs[gene] = unitigGraph
+        
+        if len(sink_list) > 0 and len(source_list) > 0:        
+            sink_maps[gene] = sink_list
+            source_maps[gene] = source_list
+            assemblyGraphs[gene] = unitigGraph
     
     #import ipdb; ipdb.set_trace() 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
