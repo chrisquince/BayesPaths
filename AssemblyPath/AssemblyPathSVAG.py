@@ -347,11 +347,11 @@ class AssemblyPathSVA():
         
         elif nTauCats == -2:
         
-            self.nQuant = 4
+            self.nQuant = 7
             
             self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
             
-            self.countQ = np.asarray([10.0,100.,1000.,1.e10],dtype=np.float)
+            self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
             
             self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
             
@@ -367,11 +367,11 @@ class AssemblyPathSVA():
         
         elif nTauCats == -3:
             self.bReassign = True
-            self.nQuant = 4
+            self.nQuant = 7
             
             self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
             
-            self.countQ = np.asarray([10.0,100.,1000.,1.e10],dtype=np.float)
+            self.countQ = np.asarray([5.0,10.0,20.,50.,100.,1000.,1.e10],dtype=np.float)
             
             self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
             
