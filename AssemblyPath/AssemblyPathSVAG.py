@@ -305,7 +305,7 @@ class AssemblyPathSVA():
             self.varTheta = 1.0/self.tauTheta 
             
         self.elbo = 0.
-        
+        self.bReassign = False
         if nTauCats == -1:
         
             if self.estCov > 100.:
@@ -364,6 +364,27 @@ class AssemblyPathSVA():
                         start+=1
                     self.tauMap[v,s] = start
                     self.tauFreq[start] += 1
+        
+        elif nTauCats == -3:
+            self.bReassign = True
+            self.nQuant = 4
+            
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            
+            self.countQ = np.asarray([10.0,100.,1000.,1.e10],dtype=np.float)
+            
+            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+            
+            self.dQuant = 1.0/self.nQuant
+
+            for v in range(self.V):
+                for s in range(self.S):
+                    start = 0
+                    while self.X[v,s] > self.countQ[start]:
+                        start+=1
+                    self.tauMap[v,s] = start
+                    self.tauFreq[start] += 1
+        
         
         elif nTauCats > 1:
             self.nQuant = nTauCats
@@ -903,7 +924,27 @@ class AssemblyPathSVA():
         self.varGamma[g_idx,:]  = varGammaG
         
     def updateTau(self):
-        
+    
+        if self.bReassign:
+    
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+           
+            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+    
+            P = self.eLambda*self.lengths[:,np.newaxis]
+            
+            if self.BIAS:
+                P = P*self.expTheta[:,np.newaxis]
+    
+            for v in range(self.V):
+                for s in range(self.S):
+                    start = 0
+                    while P[v,s] > self.countQ[start]:
+                        start+=1
+                    self.tauMap[v,s] = start
+                    self.tauFreq[start] += 1
+            
+            
         self.betaTauCat = np.full(self.nQuant,self.beta)
         
         square_diff_matrix = self.exp_square_diff_matrix()  
