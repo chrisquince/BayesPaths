@@ -66,7 +66,7 @@ def call_proc(cmd):
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3
-    tauThresh = 0.5
+    tauThresh = 0.1
     minLogQGamma = 1.0e-100
         
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
@@ -308,7 +308,7 @@ class AssemblyPathSVA():
         self.bReassign = False
         if nTauCats == -1:
         
-            if self.estCov > 100.:
+            if self.estCov > 50.:
                 self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
                 NDash = self.nQuant - 1
             
