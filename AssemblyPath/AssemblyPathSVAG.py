@@ -857,29 +857,29 @@ class AssemblyPathSVA():
         self.tauGamma[g_idx,:]  = tauGammaG
         self.muGamma[g_idx,:]   = muGammaG
         self.varGamma[g_idx,:]  = varGammaG
+    
+    def reassignTau(self):
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+           
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+    
+        P = self.eLambda*self.lengths[:,np.newaxis]
+            
+        if self.BIAS:
+            P = P*self.expTheta[:,np.newaxis]
+    
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while P[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1
+        
+        self.alphaTauCat = self.alpha + 0.5*self.tauFreq
         
     def updateTau(self):
-    
-        if self.bReassign:
-    
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-           
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
-    
-            P = self.eLambda*self.lengths[:,np.newaxis]
-            
-            if self.BIAS:
-                P = P*self.expTheta[:,np.newaxis]
-    
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while P[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
-            
-            
+                
         self.betaTauCat = np.full(self.nQuant,self.beta)
         
         square_diff_matrix = self.exp_square_diff_matrix()  
@@ -1052,7 +1052,9 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             self.updateTau()
-            
+            if iter % 10 == 0 and self.bReassign:
+                    self.reassignTau()
+                    
             if self.BIAS:
                 self.updateTheta()
             
