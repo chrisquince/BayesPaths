@@ -317,7 +317,7 @@ class AssemblyPathSVA():
 
             self.dQuant = 1.0
             
-            self.countQ = np.quantile(self.X,1.0)
+            self.countQ = [np.max(self.X)]
         
         elif self.tauType == 'Variable':
         
@@ -325,7 +325,7 @@ class AssemblyPathSVA():
             
             NDash = nTauCats - 1
             
-            self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
+            self.NPos = np.sum(self.X > self.tauThresh) 
             
             self.dQuant = 1.0/NDash
             

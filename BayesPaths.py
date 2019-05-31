@@ -59,6 +59,10 @@ def main(argv):
     parser.add_argument('-n','--ncat',nargs='?', default=1, type=int, 
         help=("number of noise categories"))
 
+    parser.add_argument('-y','--tautype',nargs='?', default='None', type=str,
+        help=("type of variance model"))
+
+
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
 
@@ -165,7 +169,7 @@ def main(argv):
             assemblyGraphs[gene] = unitigGraph
     
     import ipdb; ipdb.set_trace() 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
