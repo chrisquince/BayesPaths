@@ -346,6 +346,16 @@ class AssemblyPathSVA():
             
             self.dQuant = 1.0/self.nQuant
 
+        elif self.tauType == 'Fixed2':
+            self.nQuant = 8
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.countQ = np.asarray([0.5,5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
+
+            self.dQuant = 1.0/self.nQuant
+        
+
         self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
 
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
