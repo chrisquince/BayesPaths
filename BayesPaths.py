@@ -61,7 +61,9 @@ def main(argv):
 
     parser.add_argument('-y','--tautype',nargs='?', default='None', type=str,
         help=("type of variance model"))
-
+        
+    parser.add_argument('--reassign', dest='reassign', action='store_true')
+    
 
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
@@ -169,7 +171,9 @@ def main(argv):
             assemblyGraphs[gene] = unitigGraph
     
     import ipdb; ipdb.set_trace() 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,fracCov = args.frac_cov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
+                                ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
@@ -199,7 +203,9 @@ def main(argv):
         source_maps_select = {s:source_maps[s] for s in genesSelect} 
         sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
+                                    ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                    fracCov = args.frac_cov)
         
         gIter += 1
     
