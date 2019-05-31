@@ -66,13 +66,14 @@ def call_proc(cmd):
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3
-    tauThresh = 0.1
+    
     minLogQGamma = 1.0e-100
         
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.,beta=1.,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1, working_dir="/tmp", minSumCov = None, fracCov = None):
+                minIntensity = None, fgExePath="./runfg_source/", tauType = 'None', nTauCats = 1, tauThresh = 0.1, bReassign = False,
+                working_dir="/tmp", minSumCov = None, fracCov = None):
                 
         self.prng = prng #random state to store
 
@@ -251,7 +252,7 @@ class AssemblyPathSVA():
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
             if self.maxSampleCov > 0.:
-                self.epsilonNoise = (self.fracCov*self.maxSampleCov)/self.readLength
+                self.epsilonNoise = self.maxSampleCov/self.readLength
         else:
             self.GDash = self.G
             
@@ -305,124 +306,58 @@ class AssemblyPathSVA():
             self.varTheta = 1.0/self.tauTheta 
             
         self.elbo = 0.
-        self.bReassign = False
-        if nTauCats == -1:
         
-            if self.estCov > 50.:
-                self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
-                NDash = self.nQuant - 1
-            
-                self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
-            
-                self.dQuant = 1.0/NDash
-            
-                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-                XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
-            
-                self.countQ = np.zeros(self.nQuant)
-            
-                self.countQ[1:] = np.quantile(XPos,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-            
-                self.countQ[0] = AssemblyPathSVA.tauThresh
-            
-                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            
-                for v in range(self.V):
-                    for s in range(self.S):
-                        start = 0
-                        while self.X[v,s] > self.countQ[start]:
-                            start+=1
-                        self.tauMap[v,s] = start
-                        self.tauFreq[start] += 1
-                
+        self.bReassign = bReassign
+        self.tauType   = tauType
+        self.tauThresh = tauThresh 
         
-            else:
-                self.nQuant = 1
-                self.dQuant = 1.0/self.nQuant
-                self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-                self.tauFreq[0] = self.V*self.S 
+        if self.tauType == 'None':
         
-        elif nTauCats == -2:
-        
-            self.nQuant = 7
-            
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-            self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
-            
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
-            
-            self.dQuant = 1.0/self.nQuant
+            self.nQuant = 1
 
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
+            self.dQuant = 1.0
+            
+            self.countQ = np.quantile(self.X,1.0)
         
-        elif nTauCats == -3:
-            self.bReassign = True
-            self.nQuant = 7
-            
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-            self.countQ = np.asarray([5.0,10.0,20.,50.,100.,1000.,1.e10],dtype=np.float)
-            
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
-            
-            self.dQuant = 1.0/self.nQuant
-
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
+        elif self.tauType == 'Variable':
         
-        
-        elif nTauCats > 1:
             self.nQuant = nTauCats
+            
             NDash = nTauCats - 1
             
             self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
             
             self.dQuant = 1.0/NDash
             
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-            XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
+            XPos = self.X[self.X > self.tauThresh]
             
             self.countQ = np.zeros(self.nQuant)
             
             self.countQ[1:] = np.quantile(XPos,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
             
-            self.countQ[0] = AssemblyPathSVA.tauThresh
-            
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
-        else:
-            self.nQuant = nTauCats
-
-            self.dQuant = 1.0/self.nQuant
-            self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-    
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            self.tauFreq[0] = self.V*self.S 
+            self.countQ[0] = self.tauThresh
         
+        elif self.tauType == 'Fixed':
+            self.nQuant = 7
+            
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            
+            self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
+            
+            self.dQuant = 1.0/self.nQuant
+
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+            
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while self.X[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1        
+
                 
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
