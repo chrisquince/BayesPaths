@@ -216,8 +216,6 @@ def main(argv):
     
     assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
   
-    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
-  
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
     assGraph.writeMarginals(args.outFileStub + "margFile.csv")
@@ -235,6 +233,26 @@ def main(argv):
     assGraph.writeTau(args.outFileStub + "Tau.csv")
 
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
+    
+    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
+  
+    assGraph.writeGeneError(args.outFileStub + "P_geneError.csv")
+
+    assGraph.writeMarginals(args.outFileStub + "P_margFile.csv")
+   
+    assGraph.getMaximalUnitigs(args.outFileStub + "P_Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
+    
+    assGraph.writeMaximals(args.outFileStub + "P_maxFile.tsv",drop_strain=None)
+   
+    assGraph.writeGammaMatrix(args.outFileStub + "P_Gamma.csv") 
+
+    assGraph.writeGammaVarMatrix(args.outFileStub + "P_varGamma.csv") 
+    
+    assGraph.writeTheta(args.outFileStub + "P_Theta.csv") 
+
+    assGraph.writeTau(args.outFileStub + "P_Tau.csv")
+
+    assGraph.writePathDivergence(args.outFileStub + "P_Diver.csv",relax_path=args.relax_path)
 
 
 if __name__ == "__main__":
