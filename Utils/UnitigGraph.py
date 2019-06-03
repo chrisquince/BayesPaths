@@ -739,14 +739,14 @@ class UnitigGraph():
                     sinkUnitigs.add(sourceSink)
 
         #add any isolated singletons here
-        sinkMapUnitig = {x[:-1]:x for x in sinks}
-        sourceMapUnitig = {x[:-1]:x for x in sources}
+        sinkMapUnitigs = {x[:-1]:x for x in sinks}
+        sourceMapUnitigs = {x[:-1]:x for x in sources}
         
         for sourceSink in sourceSinks:
             if self.isIsolated(sourceSink) and self.lengths[sourceSink] > minLength:
             
                 if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
-                    sinks.append(sourceSink + "-")
+                    sinks.append(sourceSink + "+")
                     sinkUnitigs.add(sourceSink)
                     sources.append(sourceSink + "+")
                     sourceUnitigs.add(sourceSink)
@@ -755,17 +755,17 @@ class UnitigGraph():
                     sink = sinkMapUnitigs[sourceSink]
                     dirn = sink[-1]
                     if dirn == '+':
-                        sources.append(sourceSink + "-")
-                    else:
                         sources.append(sourceSink + "+")
-                else sourceSink not in sinkUnitigs:
+                    else:
+                        sources.append(sourceSink + "-")
+                elif sourceSink not in sinkUnitigs:
                 
                     source = sourceMapUnitigs[sourceSink]
                     dirn = source[-1]
                     if dirn == '+':
-                        sinks.append(sourceSink + "-")
-                    else:
                         sinks.append(sourceSink + "+")
+                    else:
+                        sinks.append(sourceSink + "-")
                         
                     
         if len(sources) > 0:
