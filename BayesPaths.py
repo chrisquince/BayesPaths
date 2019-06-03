@@ -234,6 +234,8 @@ def main(argv):
 
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
     
+    addGraph.filterUncertain(0.1,relax_path=False)
+    
     assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
     assGraph.writeGeneError(args.outFileStub + "P_geneError.csv")

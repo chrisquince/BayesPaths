@@ -1936,6 +1936,87 @@ class AssemblyPathSVA():
                 dist[h,g] = diff    
 
         return dist
+
+
+    def filterHaplotypes(self,retained):
+        nNewG = np.sum(retained[0:self.G])
+        if nNewG < self.G:
+            print("New strain number " + str(nNewG))
+            oldG = self.G
+            if self.NOISE:
+                self.G = nNewG
+                self.GDash = self.G + 1 
+            else:
+                self.G = nNewG
+                self.GDash = self.G
+            
+            
+            newPhi  = self.expPhi[:,retained]        
+            newPhi2 = self.expPhi2[:,retained]
+            newPhiH = self.HPhi[:,retained] 
+
+            newExpGamma = self.expGamma[retained,:]
+            newExpGamma2 = self.expGamma2[retained,:]
+            newMuGamma   = self.muGamma[retained,:]     
+            newTauGamma  = self.tauGamma[retained,:]
+            newVarGamma  = self.varGamma[retained,:]
+        
+            self.expPhi  = newPhi
+            self.expPhi2 = newPhi2
+            self.HPhi    = newPhiH
+        
+            self.expGamma  = newExpGamma
+            self.expGamma2 = newExpGamma2
+            self.muGamma   = newMuGamma
+            self.tauGamma  = newTauGamma
+            self.varGamma  = newVarGamma
+        
+            if self.ARD:
+                self.alphak_s = self.alphak_s[retained[0:oldG]]
+                self.betak_s  = self.betak_s[retained[0:oldG]]
+                self.exp_lambdak = self.exp_lambdak[retained[0:oldG]]
+                self.exp_loglambdak = self.exp_loglambdak[retained[0:oldG]]
+        
+            iter = 0    
+            while iter < gammaIter:
+        
+                if self.ARD:
+                    for g in range(self.G):
+                        self.update_lambdak(g)
+                        self.update_exp_lambdak(g)
+            
+                for g in range(self.GDash):
+                    self.updateGamma(g)
+
+                self.eLambda = np.zeros((self.V,self.S))
+                for g in range(self.GDash):
+                    self.addGamma(g)
+            
+                self.updateTau()
+            
+                iter += 1
+        
+        self.margG = dict()
+        for gene in self.genes:
+            self.margG[gene] = [dict() for x in range(self.G)]     
+    
+
+    ''' Filters on uncertainty'''
+    def filterUncertain(self, maxUncertainty,relax_path):
+    
+        self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
+ 
+        mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
+        
+        removed = np.zeros(self.GDash,dtype=bool)
+        
+        removed[0:self.G] = mean_div > maxUncertainty
+        
+        retained = np.logical_not(removed)
+        if self.NOISE:
+            retained[self.G] = True
+        
+        self.filterHaplotypes(retained)
         
     ''' Removes strain below a given total intensity and degenerate'''
     def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
@@ -1999,66 +2080,7 @@ class AssemblyPathSVA():
         if self.NOISE:
             retained[self.G] = True
  
-        nNewG = np.sum(retained[0:self.G])
-        if nNewG < self.G:
-            print("New strain number " + str(nNewG))
-            oldG = self.G
-            if self.NOISE:
-                self.G = nNewG
-                self.GDash = self.G + 1 
-            else:
-                self.G = nNewG
-                self.GDash = self.G
-            
-            
-            newPhi  = self.expPhi[:,retained]        
-            newPhi2 = self.expPhi2[:,retained]
-            newPhiH = self.HPhi[:,retained] 
-
-            newExpGamma = self.expGamma[retained,:]
-            newExpGamma2 = self.expGamma2[retained,:]
-            newMuGamma   = self.muGamma[retained,:]     
-            newTauGamma  = self.tauGamma[retained,:]
-            newVarGamma  = self.varGamma[retained,:]
-        
-            self.expPhi  = newPhi
-            self.expPhi2 = newPhi2
-            self.HPhi    = newPhiH
-        
-            self.expGamma  = newExpGamma
-            self.expGamma2 = newExpGamma2
-            self.muGamma   = newMuGamma
-            self.tauGamma  = newTauGamma
-            self.varGamma  = newVarGamma
-        
-            if self.ARD:
-                self.alphak_s = self.alphak_s[retained[0:oldG]]
-                self.betak_s  = self.betak_s[retained[0:oldG]]
-                self.exp_lambdak = self.exp_lambdak[retained[0:oldG]]
-                self.exp_loglambdak = self.exp_loglambdak[retained[0:oldG]]
-        
-            iter = 0    
-            while iter < gammaIter:
-        
-                if self.ARD:
-                    for g in range(self.G):
-                        self.update_lambdak(g)
-                        self.update_exp_lambdak(g)
-            
-                for g in range(self.GDash):
-                    self.updateGamma(g)
-
-                self.eLambda = np.zeros((self.V,self.S))
-                for g in range(self.GDash):
-                    self.addGamma(g)
-            
-                self.updateTau()
-            
-                iter += 1
-        
-        self.margG = dict()
-        for gene in self.genes:
-            self.margG[gene] = [dict() for x in range(self.G)]       
+        self.filterHaplotypes(retained)
  
 
     def collapseDegenerate(self):
