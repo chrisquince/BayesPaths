@@ -81,7 +81,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -170,7 +170,7 @@ def main(argv):
             source_maps[gene] = source_list
             assemblyGraphs[gene] = unitigGraph
     
-    import ipdb; ipdb.set_trace() 
+    #import ipdb; ipdb.set_trace() 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov)
@@ -234,7 +234,7 @@ def main(argv):
 
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
     
-    addGraph.filterUncertain(0.1,relax_path=False)
+    assGraph.filterUncertain(0.1,relax_path=False)
     
     assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
