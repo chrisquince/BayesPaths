@@ -1938,7 +1938,7 @@ class AssemblyPathSVA():
         return dist
 
 
-    def filterHaplotypes(self,retained):
+    def filterHaplotypes(self,retained,gammaIter):
         nNewG = np.sum(retained[0:self.G])
         if nNewG < self.G:
             print("New strain number " + str(nNewG))
@@ -2002,7 +2002,7 @@ class AssemblyPathSVA():
     
 
     ''' Filters on uncertainty'''
-    def filterUncertain(self, maxUncertainty,relax_path):
+    def filterUncertain(self, maxUncertainty,relax_path,gammaIter=10):
     
         self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
  
@@ -2016,7 +2016,7 @@ class AssemblyPathSVA():
         if self.NOISE:
             retained[self.G] = True
         
-        self.filterHaplotypes(retained)
+        self.filterHaplotypes(retained,gammaIter)
         
     ''' Removes strain below a given total intensity and degenerate'''
     def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
@@ -2080,7 +2080,7 @@ class AssemblyPathSVA():
         if self.NOISE:
             retained[self.G] = True
  
-        self.filterHaplotypes(retained)
+        self.filterHaplotypes(retained,gammaIter)
  
 
     def collapseDegenerate(self):
