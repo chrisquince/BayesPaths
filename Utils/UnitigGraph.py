@@ -685,9 +685,10 @@ class UnitigGraph():
         #define sinks as stop tips and tips reachable from from stops on forward graph
         
         stopMap = {}
+        stopMapUnitig = {}
         for stop in stops:
             stopMap[stop[0]] = stop
-                        
+            stopMapUnitig[stop[0][:-1]] = stop[0]
         allPaths = nx.all_pairs_dijkstra_path_length(self.directedUnitigBiGraph)
         allSSDict = defaultdict(dict)       
 
@@ -738,14 +739,35 @@ class UnitigGraph():
                     sinkUnitigs.add(sourceSink)
 
         #add any isolated singletons here
+        sinkMapUnitigs = {x[:-1]:x for x in sinks}
+        sourceMapUnitigs = {x[:-1]:x for x in sources}
+        
         for sourceSink in sourceSinks:
-            if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
-                if self.isIsolated(sourceSink) and self.lengths[sourceSink] > minLength:
-                    sinks.append(sourceSink + "-")
+            if self.isIsolated(sourceSink) and self.lengths[sourceSink] > minLength:
+            
+                if sourceSink not in sinkUnitigs and sourceSink not in sourceUnitigs:
+                    sinks.append(sourceSink + "+")
                     sinkUnitigs.add(sourceSink)
                     sources.append(sourceSink + "+")
                     sourceUnitigs.add(sourceSink)
-
+                elif sourceSink not in sourceUnitigs:
+                    
+                    sink = sinkMapUnitigs[sourceSink]
+                    dirn = sink[-1]
+                    if dirn == '+':
+                        sources.append(sourceSink + "+")
+                    else:
+                        sources.append(sourceSink + "-")
+                elif sourceSink not in sinkUnitigs:
+                
+                    source = sourceMapUnitigs[sourceSink]
+                    dirn = source[-1]
+                    if dirn == '+':
+                        sinks.append(sourceSink + "+")
+                    else:
+                        sinks.append(sourceSink + "-")
+                        
+                    
         if len(sources) > 0:
             source_list = list(map(convertNameToNode2, sources))
         else:

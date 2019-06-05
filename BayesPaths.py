@@ -59,6 +59,11 @@ def main(argv):
     parser.add_argument('-n','--ncat',nargs='?', default=10, type=int, 
         help=("number of noise categories"))
 
+    parser.add_argument('-y','--tautype',nargs='?', default='Fixed', type=str,
+        help=("type of variance model"))
+        
+    parser.add_argument('--noreassign', dest='reassign', action='store_false')
+    
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
 
@@ -71,11 +76,11 @@ def main(argv):
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
         help=("penalisation on uncertain strains"))
 
-    parser.add_argument('--relax', dest='relax_path', action='store_true')
+    parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     args = parser.parse_args()
 
-    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -165,7 +170,9 @@ def main(argv):
             assemblyGraphs[gene] = unitigGraph
     
     #import ipdb; ipdb.set_trace() 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
+                                ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
@@ -175,7 +182,9 @@ def main(argv):
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
     sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
-    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
+                                ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                fracCov = args.frac_cov)
 
     maxGIter = 4
     nChange = 1
@@ -195,7 +204,9 @@ def main(argv):
         source_maps_select = {s:source_maps[s] for s in genesSelect} 
         sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,ARD=True,BIAS=True, fgExePath=args.executable_path,nTauCats=args.ncat,fracCov = args.frac_cov)
+        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
+                                    ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                    fracCov = args.frac_cov)
         
         gIter += 1
     
@@ -203,8 +214,6 @@ def main(argv):
     assGraph.initNMF()
     
     assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
-  
-    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
     assGraph.writeGeneError(args.outFileStub + "geneError.csv")
 
@@ -223,6 +232,28 @@ def main(argv):
     assGraph.writeTau(args.outFileStub + "Tau.csv")
 
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
+    
+    #assGraph.filterUncertain(0.1,relax_path=False)
+    
+    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
+  
+    assGraph.writeGeneError(args.outFileStub + "P_geneError.csv")
+
+    assGraph.writeMarginals(args.outFileStub + "P_margFile.csv")
+   
+    assGraph.getMaximalUnitigs(args.outFileStub + "P_Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
+    
+    assGraph.writeMaximals(args.outFileStub + "P_maxFile.tsv",drop_strain=None)
+   
+    assGraph.writeGammaMatrix(args.outFileStub + "P_Gamma.csv") 
+
+    assGraph.writeGammaVarMatrix(args.outFileStub + "P_varGamma.csv") 
+    
+    assGraph.writeTheta(args.outFileStub + "P_Theta.csv") 
+
+    assGraph.writeTau(args.outFileStub + "P_Tau.csv")
+
+    assGraph.writePathDivergence(args.outFileStub + "P_Diver.csv",relax_path=args.relax_path)
 
 
 if __name__ == "__main__":

@@ -66,13 +66,14 @@ def call_proc(cmd):
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
     minW = 1.0e-3
-    tauThresh = 0.5
+    
     minLogQGamma = 1.0e-100
         
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.,beta=1.,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", nTauCats = 1, working_dir="/tmp", minSumCov = None, fracCov = None):
+                minIntensity = None, fgExePath="./runfg_source/", tauType = 'None', nTauCats = 1, tauThresh = 0.1, bReassign = False,
+                working_dir="/tmp", minSumCov = None, fracCov = None):
                 
         self.prng = prng #random state to store
 
@@ -251,7 +252,7 @@ class AssemblyPathSVA():
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
             if self.maxSampleCov > 0.:
-                self.epsilonNoise = (self.fracCov*self.maxSampleCov)/self.readLength
+                self.epsilonNoise = self.maxSampleCov/self.readLength
         else:
             self.GDash = self.G
             
@@ -306,102 +307,76 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
-        if nTauCats == -1:
+        self.bReassign = bReassign
+        self.tauType   = tauType
+        self.tauThresh = tauThresh 
         
-            if self.estCov > 100.:
-                self.nQuant = max(int((self.V*self.S)/100) + 1, 10)
-                NDash = self.nQuant - 1
-            
-                self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
-            
-                self.dQuant = 1.0/NDash
-            
-                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-                XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
-            
-                self.countQ = np.zeros(self.nQuant)
-            
-                self.countQ[1:] = np.quantile(XPos,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-            
-                self.countQ[0] = AssemblyPathSVA.tauThresh
-            
-                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            
-                for v in range(self.V):
-                    for s in range(self.S):
-                        start = 0
-                        while self.X[v,s] > self.countQ[start]:
-                            start+=1
-                        self.tauMap[v,s] = start
-                        self.tauFreq[start] += 1
-                
+        if self.tauType == 'None':
         
-            else:
-                self.nQuant = 1
-                self.dQuant = 1.0/self.nQuant
-                self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-                self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-                self.tauFreq[0] = self.V*self.S 
-        
-        elif nTauCats == -2:
-        
-            self.nQuant = 5
-            
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-            self.countQ = np.asarray([1.0,10.,100.,1000.,1.e10],dtype=np.float)
-            
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
-            
-            self.dQuant = 1.0/self.nQuant
+            self.nQuant = 1
 
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
+            self.dQuant = 1.0
+            
+            self.countQ = [np.max(self.X)]
         
-        elif nTauCats > 1:
+        elif self.tauType == 'Variable':
+        
             self.nQuant = nTauCats
+            
             NDash = nTauCats - 1
             
-            self.NPos = np.sum(self.X > AssemblyPathSVA.tauThresh) 
+            self.NPos = np.sum(self.X > self.tauThresh) 
             
             self.dQuant = 1.0/NDash
             
-            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            
-            XPos = self.X[self.X > AssemblyPathSVA.tauThresh]
+            XPos = self.X[self.X > self.tauThresh]
             
             self.countQ = np.zeros(self.nQuant)
             
             self.countQ[1:] = np.quantile(XPos,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
             
-            self.countQ[0] = AssemblyPathSVA.tauThresh
+            self.countQ[0] = self.tauThresh
+        
+        elif self.tauType == 'Fixed':
+            self.nQuant = 7
             
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
             
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
-        else:
-            self.nQuant = nTauCats
+            self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
+            
+            self.dQuant = 1.0/self.nQuant
+
+        elif self.tauType == 'Fixed2':
+            self.nQuant = 8
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.countQ = np.asarray([0.5,5.0,10.0,20.0,50.,100.,1000.,1.e10],dtype=np.float)
 
             self.dQuant = 1.0/self.nQuant
-            self.countQ = np.quantile(self.X,np.arange(self.dQuant,1.0 + self.dQuant,self.dQuant))
-    
+        elif self.tauType == 'Fixed3':
+            self.nQuant = 12
+
             self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            self.tauFreq[0] = self.V*self.S 
-        
+
+            self.countQ = np.asarray([4.0,8.0,16.0,32.0,64.,128.,256.,512.,1024.,2048.,4096.,1.0e10],dtype=np.float)
+
+            self.dQuant = 1.0/self.nQuant        
+
+
+
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+            
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while self.X[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1        
+
                 
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
@@ -901,9 +876,29 @@ class AssemblyPathSVA():
         self.tauGamma[g_idx,:]  = tauGammaG
         self.muGamma[g_idx,:]   = muGammaG
         self.varGamma[g_idx,:]  = varGammaG
+    
+    def reassignTau(self):
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+           
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
+    
+        P = self.eLambda*self.lengths[:,np.newaxis]
+            
+        if self.BIAS:
+            P = P*self.expTheta[:,np.newaxis]
+    
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while P[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1
+        
+        self.alphaTauCat = self.alpha + 0.5*self.tauFreq
         
     def updateTau(self):
-        
+                
         self.betaTauCat = np.full(self.nQuant,self.beta)
         
         square_diff_matrix = self.exp_square_diff_matrix()  
@@ -1076,7 +1071,10 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             self.updateTau()
-            
+            if iter > 0 and iter % 10 == 0:
+                    if self.bReassign:
+                        self.reassignTau()
+                    
             if self.BIAS:
                 self.updateTheta()
             
@@ -1938,6 +1936,87 @@ class AssemblyPathSVA():
                 dist[h,g] = diff    
 
         return dist
+
+
+    def filterHaplotypes(self,retained,gammaIter):
+        nNewG = np.sum(retained[0:self.G])
+        if nNewG < self.G:
+            print("New strain number " + str(nNewG))
+            oldG = self.G
+            if self.NOISE:
+                self.G = nNewG
+                self.GDash = self.G + 1 
+            else:
+                self.G = nNewG
+                self.GDash = self.G
+            
+            
+            newPhi  = self.expPhi[:,retained]        
+            newPhi2 = self.expPhi2[:,retained]
+            newPhiH = self.HPhi[:,retained] 
+
+            newExpGamma = self.expGamma[retained,:]
+            newExpGamma2 = self.expGamma2[retained,:]
+            newMuGamma   = self.muGamma[retained,:]     
+            newTauGamma  = self.tauGamma[retained,:]
+            newVarGamma  = self.varGamma[retained,:]
+        
+            self.expPhi  = newPhi
+            self.expPhi2 = newPhi2
+            self.HPhi    = newPhiH
+        
+            self.expGamma  = newExpGamma
+            self.expGamma2 = newExpGamma2
+            self.muGamma   = newMuGamma
+            self.tauGamma  = newTauGamma
+            self.varGamma  = newVarGamma
+        
+            if self.ARD:
+                self.alphak_s = self.alphak_s[retained[0:oldG]]
+                self.betak_s  = self.betak_s[retained[0:oldG]]
+                self.exp_lambdak = self.exp_lambdak[retained[0:oldG]]
+                self.exp_loglambdak = self.exp_loglambdak[retained[0:oldG]]
+        
+            iter = 0    
+            while iter < gammaIter:
+        
+                if self.ARD:
+                    for g in range(self.G):
+                        self.update_lambdak(g)
+                        self.update_exp_lambdak(g)
+            
+                for g in range(self.GDash):
+                    self.updateGamma(g)
+
+                self.eLambda = np.zeros((self.V,self.S))
+                for g in range(self.GDash):
+                    self.addGamma(g)
+            
+                self.updateTau()
+            
+                iter += 1
+        
+        self.margG = dict()
+        for gene in self.genes:
+            self.margG[gene] = [dict() for x in range(self.G)]     
+    
+
+    ''' Filters on uncertainty'''
+    def filterUncertain(self, maxUncertainty,relax_path,gammaIter=10):
+    
+        self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
+ 
+        mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
+        
+        removed = np.zeros(self.GDash,dtype=bool)
+        
+        removed[0:self.G] = mean_div > maxUncertainty
+        
+        retained = np.logical_not(removed)
+        if self.NOISE:
+            retained[self.G] = True
+        
+        self.filterHaplotypes(retained,gammaIter)
         
     ''' Removes strain below a given total intensity and degenerate'''
     def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
@@ -2001,66 +2080,7 @@ class AssemblyPathSVA():
         if self.NOISE:
             retained[self.G] = True
  
-        nNewG = np.sum(retained[0:self.G])
-        if nNewG < self.G:
-            print("New strain number " + str(nNewG))
-            oldG = self.G
-            if self.NOISE:
-                self.G = nNewG
-                self.GDash = self.G + 1 
-            else:
-                self.G = nNewG
-                self.GDash = self.G
-            
-            
-            newPhi  = self.expPhi[:,retained]        
-            newPhi2 = self.expPhi2[:,retained]
-            newPhiH = self.HPhi[:,retained] 
-
-            newExpGamma = self.expGamma[retained,:]
-            newExpGamma2 = self.expGamma2[retained,:]
-            newMuGamma   = self.muGamma[retained,:]     
-            newTauGamma  = self.tauGamma[retained,:]
-            newVarGamma  = self.varGamma[retained,:]
-        
-            self.expPhi  = newPhi
-            self.expPhi2 = newPhi2
-            self.HPhi    = newPhiH
-        
-            self.expGamma  = newExpGamma
-            self.expGamma2 = newExpGamma2
-            self.muGamma   = newMuGamma
-            self.tauGamma  = newTauGamma
-            self.varGamma  = newVarGamma
-        
-            if self.ARD:
-                self.alphak_s = self.alphak_s[retained[0:oldG]]
-                self.betak_s  = self.betak_s[retained[0:oldG]]
-                self.exp_lambdak = self.exp_lambdak[retained[0:oldG]]
-                self.exp_loglambdak = self.exp_loglambdak[retained[0:oldG]]
-        
-            iter = 0    
-            while iter < gammaIter:
-        
-                if self.ARD:
-                    for g in range(self.G):
-                        self.update_lambdak(g)
-                        self.update_exp_lambdak(g)
-            
-                for g in range(self.GDash):
-                    self.updateGamma(g)
-
-                self.eLambda = np.zeros((self.V,self.S))
-                for g in range(self.GDash):
-                    self.addGamma(g)
-            
-                self.updateTau()
-            
-                iter += 1
-        
-        self.margG = dict()
-        for gene in self.genes:
-            self.margG[gene] = [dict() for x in range(self.G)]       
+        self.filterHaplotypes(retained,gammaIter)
  
 
     def collapseDegenerate(self):
