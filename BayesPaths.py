@@ -59,12 +59,11 @@ def main(argv):
     parser.add_argument('-n','--ncat',nargs='?', default=1, type=int, 
         help=("number of noise categories"))
 
-    parser.add_argument('-y','--tautype',nargs='?', default='None', type=str,
+    parser.add_argument('-y','--tautype',nargs='?', default='Fixed', type=str,
         help=("type of variance model"))
         
-    parser.add_argument('--reassign', dest='reassign', action='store_true')
+    parser.add_argument('--noreassign', dest='reassign', action='store_false')
     
-
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
 
@@ -77,7 +76,7 @@ def main(argv):
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
         help=("penalisation on uncertain strains"))
 
-    parser.add_argument('--relax', dest='relax_path', action='store_true')
+    parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     args = parser.parse_args()
 
@@ -234,7 +233,7 @@ def main(argv):
 
     assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
     
-    assGraph.filterUncertain(0.1,relax_path=False)
+    #assGraph.filterUncertain(0.1,relax_path=False)
     
     assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path,uncertainFactor=args.uncertain_factor)
   
