@@ -238,7 +238,7 @@ class AssemblyPathSVA():
         print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
             self.minIntensity = self.maxSampleCov/self.readLength
-        
+            self.adjUncertain = np.max(self.meanSampleCov)/self.readLength
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
