@@ -1071,10 +1071,15 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             self.updateTau()
-            if iter > 0 and iter % 10 == 0:
-                    if self.bReassign:
+            
+            if self.bReassign:
+                if iter > 0 and iter < 100:
+                    if iter % 10 == 0:
                         self.reassignTau()
-                    
+                else:
+                    if iter % 50 == 0:
+                        self.reassignTau()
+                        
             if self.BIAS:
                 self.updateTheta()
             
