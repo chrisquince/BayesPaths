@@ -56,7 +56,7 @@ def main(argv):
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
 
-    parser.add_argument('-n','--ncat',nargs='?', default=1, type=int, 
+    parser.add_argument('-n','--ncat',nargs='?', default=10, type=int, 
         help=("number of noise categories"))
 
     parser.add_argument('-y','--tautype',nargs='?', default='Fixed', type=str,
