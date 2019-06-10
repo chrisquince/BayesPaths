@@ -2211,6 +2211,27 @@ class AssemblyPathSVA():
 
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
 
+    def writeOutput(self, outFileStub, relax_path_out):
+        
+        self.writeGeneError(outFileStub + "geneError.csv")
+
+        self.writeMarginals(outFileStub + "margFile.csv")
+   
+        self.getMaximalUnitigs(outFileStub + "Haplo_" + str(self.G),drop_strain=None, relax_path=relax_path_out)
+    
+        self.writeMaximals(outFileStub + "maxFile.tsv",drop_strain=None)
+   
+        self.writeGammaMatrix(outFileStub + "Gamma.csv") 
+
+        self.writeGammaVarMatrix(outFileStub + "varGamma.csv") 
+    
+        self.writeTheta(outFileStub + "Theta.csv") 
+
+        self.writeTau(outFileStub + "Tau.csv")
+
+        self.writePathDivergence(outFileStub + "Diver.csv",relax_path=relax_path_out)
+
+
     def runFGMaximal(self, factorGraph, g):
         graphString = str(factorGraph)
                     

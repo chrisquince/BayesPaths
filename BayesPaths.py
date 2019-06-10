@@ -80,7 +80,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -212,51 +212,18 @@ def main(argv):
     
 
     assGraph.initNMF()
-    #uFactor = max(0.5,0.5*assGraph.adjUncertain)    
-    assGraph.update(500, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertainFactor)
+
+    assGraph.update(250, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
+
+    assGraph.update(250, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+
+    assGraph.writeOutput(args.outFileStub, args.relax_path)
+
+    assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertainFactor)
+
+    assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeGeneError(args.outFileStub + "geneError.csv")
-
-    assGraph.writeMarginals(args.outFileStub + "margFile.csv")
-   
-    assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
-    
-    assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
-   
-    assGraph.writeGammaMatrix(args.outFileStub + "Gamma.csv") 
-
-    assGraph.writeGammaVarMatrix(args.outFileStub + "varGamma.csv") 
-    
-    assGraph.writeTheta(args.outFileStub + "Theta.csv") 
-
-    assGraph.writeTau(args.outFileStub + "Tau.csv")
-
-    assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=args.relax_path)
-    
-    #assGraph.filterUncertain(0.1,relax_path=False)
-   
-    uFactor = max(0.5,0.5*assGraph.adjUncertain)
-
-    assGraph.update(500, True,logFile=args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path)
-  
-    assGraph.writeGeneError(args.outFileStub + "P_geneError.csv")
-
-    assGraph.writeMarginals(args.outFileStub + "P_margFile.csv")
-   
-    assGraph.getMaximalUnitigs(args.outFileStub + "P_Haplo_" + str(assGraph.G),drop_strain=None, relax_path=args.relax_path)
-    
-    assGraph.writeMaximals(args.outFileStub + "P_maxFile.tsv",drop_strain=None)
-   
-    assGraph.writeGammaMatrix(args.outFileStub + "P_Gamma.csv") 
-
-    assGraph.writeGammaVarMatrix(args.outFileStub + "P_varGamma.csv") 
-    
-    assGraph.writeTheta(args.outFileStub + "P_Theta.csv") 
-
-    assGraph.writeTau(args.outFileStub + "P_Tau.csv")
-
-    assGraph.writePathDivergence(args.outFileStub + "P_Diver.csv",relax_path=args.relax_path)
-
+    assGraph.writeOutput(args.outFileStub + "_P", args.relax_path)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
