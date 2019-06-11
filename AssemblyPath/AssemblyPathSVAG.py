@@ -1032,7 +1032,7 @@ class AssemblyPathSVA():
         self.updateTau() 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
-        while iter < maxIter and diffElbo > minDiff:
+        while iter < maxIter and (diffElbo > minDiff or iter < 100):
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
