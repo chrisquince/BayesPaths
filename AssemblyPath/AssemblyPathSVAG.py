@@ -370,6 +370,22 @@ class AssemblyPathSVA():
             self.countQ = np.asarray([5.0,10.0,20.0,40.,80.,160.,320.,640.,1280.,2560.,5120.,10240.,20480,1.e10],dtype=np.float)
 
             self.dQuant = 1.0/self.nQuant
+        elif self.tauType == 'Fixed5':
+            self.nQuant = 102
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.countQ = np.zeros(self.nQuant)
+            
+            self.countQ[0] = 5.0
+            self.countQ[1] = 10.0
+            
+            for n in range(1,100):
+                self.countQ[2 + n] = 1.0/(0.1 - (n)*0.001)
+            
+
+            self.dQuant = 1.0/self.nQuant
+
 
 
         self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
