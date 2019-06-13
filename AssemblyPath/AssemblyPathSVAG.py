@@ -319,6 +319,8 @@ class AssemblyPathSVA():
             
             self.countQ = [np.max(self.X)]
         
+            self.bReassign = False
+
         elif self.tauType == 'Variable':
         
             self.nQuant = nTauCats
