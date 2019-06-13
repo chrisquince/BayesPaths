@@ -928,7 +928,7 @@ class AssemblyPathSVA():
         
         for v in range(self.V):
             for s in range(self.S):
-                self.betaTauCat[self.tauMap[v,s]] += square_diff_matrix[v,s]
+                self.betaTauCat[self.tauMap[v,s]] += 0.5*square_diff_matrix[v,s]
         
         self.expTauCat = self.alphaTauCat/self.betaTauCat
         for d in range(self.nQuant):
