@@ -339,6 +339,8 @@ class AssemblyPathSVA():
             
             self.countQ[0] = self.tauThresh
         
+            self.bReassign = False
+
         elif self.tauType == 'Fixed':
             self.nQuant = 7
             
