@@ -310,7 +310,21 @@ class AssemblyPathSVA():
         self.bReassign = bReassign
         self.tauType   = tauType
         self.tauThresh = tauThresh 
-        
+       
+        if self.tauType == 'Adaptive':
+
+            X1_Mean = np.mean(self.X[self.X > 1])
+
+            print('X1_mean = ' + str(X1_Mean))
+    
+            if X1_Mean > 100.:
+                print('Using Fixed6')
+                self.tauType = 'Fixed6'
+            else:
+                print('Using Fixed8')
+                self.tauType = 'Fixed8'
+
+ 
         if self.tauType == 'None':
         
             self.nQuant = 1
@@ -320,6 +334,8 @@ class AssemblyPathSVA():
             self.countQ = [np.max(self.X)]
         
             self.bReassign = False
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
 
         elif self.tauType == 'Variable':
         
@@ -340,6 +356,8 @@ class AssemblyPathSVA():
             self.countQ[0] = self.tauThresh
         
             self.bReassign = False
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
 
         elif self.tauType == 'Fixed':
             self.nQuant = 7
