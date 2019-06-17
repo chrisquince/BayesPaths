@@ -389,11 +389,55 @@ class AssemblyPathSVA():
             
 
             self.dQuant = 1.0/self.nQuant
+        
+        elif self.tauType == 'Fixed6':
+            self.nQuant = 16
 
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
 
+            self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
 
-        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+            self.dQuant = 1.0/self.nQuant
 
+        elif self.tauType == 'Fixed7':
+            self.nQuant = 9 + 10 + 9 + 10;
+
+            self.countQ = np.zeros(self.nQuant)
+
+            for n in range(1,10):
+                self.countQ[n - 1] = float(n)
+
+            for n in range(10,20):
+                self.countQ[n - 1] = 10.0*float(n) 
+
+            for n in range(2,10):
+                self.countQ[17 + n] = 100.0*float(n)
+
+            for n in range(1,10):
+                self.countQ[26 + n] = 1000.0*float(n)
+
+            self.countQ[self.nQuant - 1] = 1.0e10 
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.dQuant = 1.0/self.nQuant
+
+            self.eL = np.zeros(self.nQuant)
+
+            self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
+
+            self.eL[0] = 0.5*self.countQ[0]
+
+        elif self.tauType == 'Fixed8':
+            self.nQuant = 17
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.countQ = np.asarray([0.1,5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+            self.dQuant = 1.0/self.nQuant
+
+        
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
             
         for v in range(self.V):
@@ -410,10 +454,16 @@ class AssemblyPathSVA():
         
         self.expTauCat = np.full(self.nQuant,0.01)
         self.expLogTauCat = np.full(self.nQuant,-4.60517)
-         
-        self.alphaTauCat = self.alpha + 0.5*self.tauFreq
-        self.betaTauCat = np.full(self.nQuant,self.beta)
         
+        if self.tauType != 'Fixed7': 
+            self.eL = None
+            self.alphaTauCat = self.alpha + 0.5*self.tauFreq
+            self.betaTauCat = np.full(self.nQuant,self.beta)
+        else:
+            
+            self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
+
+            self.betaTauCat = self.beta/self.eL        
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
@@ -922,12 +972,16 @@ class AssemblyPathSVA():
                 self.tauMap[v,s] = start
                 self.tauFreq[start] += 1
         
-        self.alphaTauCat = self.alpha + 0.5*self.tauFreq
+        if self.eL is not None:
+            self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
+        else:
+            self.alphaTauCat = self.alpha + 0.5*self.tauFreq
         
     def updateTau(self):
-                
-        self.betaTauCat = np.full(self.nQuant,self.beta)
-        
+        if self.eL is None:
+            self.betaTauCat = np.full(self.nQuant,self.beta)
+        else:
+            self.betaTauCat = self.beta/self.eL
         square_diff_matrix = self.exp_square_diff_matrix()  
         
         for v in range(self.V):
