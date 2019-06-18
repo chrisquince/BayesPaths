@@ -59,7 +59,7 @@ def main(argv):
     parser.add_argument('-n','--ncat',nargs='?', default=10, type=int, 
         help=("number of noise categories"))
 
-    parser.add_argument('-y','--tautype',nargs='?', default='Fixed', type=str,
+    parser.add_argument('-y','--tautype',nargs='?', default='Adaptive', type=str,
         help=("type of variance model"))
         
     parser.add_argument('--noreassign', dest='reassign', action='store_false')
