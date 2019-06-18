@@ -20,6 +20,7 @@ from copy import deepcopy
 from copy import copy
 
 import math
+from math import floor
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 from operator import mul, truediv, eq, ne, add, ge, le, itemgetter
@@ -445,7 +446,7 @@ class AssemblyPathSVA():
 
             self.dQuant = 1.0/self.nQuant
        
-       elif self.tauType == 'Adaptive':
+        elif self.tauType == 'Adaptive':
 
             X1_Mean = np.mean(self.X[self.X > 1])
 
@@ -484,7 +485,7 @@ class AssemblyPathSVA():
         
             minX = self.noiseFrac*X1_Mean
             
-            minX = max(5.0,floor(minX/0.1)*0.1 + 0.1)
+            minX = min(5.0,floor(minX/0.1)*0.1 + 0.1)
             
             if minX > 2.5:
                 self.nQuant = 16
