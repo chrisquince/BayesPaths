@@ -73,7 +73,7 @@ class AssemblyPathSVA():
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.,beta=1.,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauType = 'None', nTauCats = 1, tauThresh = 0.1, bReassign = False,
-                working_dir="/tmp", minSumCov = None, fracCov = None):
+                working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.02):
                 
         self.prng = prng #random state to store
 
@@ -105,6 +105,8 @@ class AssemblyPathSVA():
         self.sourceNode = 'source+'
         
         self.no_folds = no_folds
+        
+        self.noiseFrac = noiseFrac 
         
         if minIntensity == None:
             self.minIntensity = 2.0/self.readLength
@@ -311,20 +313,8 @@ class AssemblyPathSVA():
         self.tauType   = tauType
         self.tauThresh = tauThresh 
        
-        if self.tauType == 'Adaptive':
-
-            X1_Mean = np.mean(self.X[self.X > 1])
-
-            print('X1_mean = ' + str(X1_Mean))
-    
-            if X1_Mean > 100.:
-                print('Using Fixed6')
-                self.tauType = 'Fixed6'
-            else:
-                print('Using Fixed8')
-                self.tauType = 'Fixed8'
-
  
+
         if self.tauType == 'None':
         
             self.nQuant = 1
@@ -454,7 +444,74 @@ class AssemblyPathSVA():
             self.countQ = np.asarray([0.1,5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
 
             self.dQuant = 1.0/self.nQuant
+       
+       elif self.tauType == 'Adaptive':
 
+            X1_Mean = np.mean(self.X[self.X > 1])
+
+            print('X1_mean = ' + str(X1_Mean))
+    
+            if X1_Mean > 100.:
+                print('Using Fixed6')
+                self.tauType = 'Fixed6'
+                
+                self.nQuant = 16
+
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+                self.countQ = np.asarray([5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+                self.dQuant = 1.0/self.nQuant
+                
+                
+            else:
+                print('Using Fixed8')
+                self.tauType = 'Fixed8'
+                
+                self.nQuant = 17
+
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+                self.countQ = np.asarray([0.1,5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+                self.dQuant = 1.0/self.nQuant
+                
+        elif self.tauType == 'Adaptive2':
+            
+            X1_Mean = np.mean(self.X[self.X > 1])
+
+            print('X1_mean = ' + str(X1_Mean))
+        
+            minX = self.noiseFrac*X1_Mean
+            
+            minX = max(5.0,floor(minX/0.1)*0.1 + 0.1)
+            
+            if minX > 2.5:
+                self.nQuant = 16
+
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+                self.countQ = np.asarray([minX,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+                self.dQuant = 1.0/self.nQuant
+            elif minX > 1.0:
+                self.nQuant = 17
+                
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+                self.countQ = np.asarray([minX,5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+                self.dQuant = 1.0/self.nQuant
+            else:
+                self.nQuant = 18
+                
+                self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+                self.countQ = np.asarray([minX,2.5,5.0,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+                self.dQuant = 1.0/self.nQuant                
+                
+                
         
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
             
