@@ -5,6 +5,7 @@ import numpy as np
 import os
 import re
 
+from collections import defaultdict
 from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAG import AssemblyPathSVA
@@ -82,7 +83,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -171,7 +172,7 @@ def main(argv):
             source_maps[gene] = source_list
             assemblyGraphs[gene] = unitigGraph
     
-    import ipdb; ipdb.set_trace() 
+    #import ipdb; ipdb.set_trace() 
     
     if  args.paths_file != None:
     
@@ -193,7 +194,7 @@ def main(argv):
                     cog = toks[0]
                     cogs.add(cog)
                     
-                    line = paths_file.next()
+                    line = paths_file.readline()
                     
                     line = line.rstrip()
                     
