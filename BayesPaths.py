@@ -59,6 +59,8 @@ def main(argv):
     parser.add_argument('-n','--ncat',nargs='?', default=10, type=int, 
         help=("number of noise categories"))
 
+    parser.add_argument('-p','--paths_file',nargs='?', default=None)
+
     parser.add_argument('-y','--tautype',nargs='?', default='Adaptive', type=str,
         help=("type of variance model"))
         
@@ -169,7 +171,56 @@ def main(argv):
             source_maps[gene] = source_list
             assemblyGraphs[gene] = unitigGraph
     
-    #import ipdb; ipdb.set_trace() 
+    import ipdb; ipdb.set_trace() 
+    
+    if  args.paths_file != None:
+    
+        margPhiFixed = defaultdict(lambda: defaultdict(dict))
+        strains = set()
+        cogs = set()
+        
+        with open(args.paths_file,'r') as paths_file:
+
+            for line in paths_file:
+                line = line.rstrip()
+                
+                if line.startswith('>'):
+                    toks = line[1:].split('_')
+                    
+                    g = int(toks[1])
+                    strains.add(g)
+                    
+                    cog = toks[0]
+                    cogs.add(cog)
+                    
+                    line = paths_file.next()
+                    
+                    line = line.rstrip()
+                    
+                    toks = line.split(',')
+                    
+                    for tok in toks:
+                        margPhiFixed[g][cog][tok[:-1]] = np.asarray([0.0,1.0])
+                
+        G = len(strains)
+        genesFilter = list(cogs)
+        assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
+        source_maps_filter = {s:source_maps[s] for s in genesFilter} 
+        sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
+    
+        assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
+                                ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                fracCov = args.frac_cov)
+        
+        
+        for g in strains:
+            for gene, factorGraph in assGraph.factorGraphs.items():
+                unitigs = assGraph.assemblyGraphs[gene].unitigs
+                
+                assGraph.updateExpPhi(unitigs,assGraph.mapGeneIdx[gene],margPhiFixed[g][gene],g)
+        
+        
+    
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov)
