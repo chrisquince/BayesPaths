@@ -74,7 +74,7 @@ class AssemblyPathSVA():
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.,beta=1.,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauType = 'None', nTauCats = 1, tauThresh = 0.1, bReassign = False,
-                working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.02):
+                working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
 
@@ -313,7 +313,7 @@ class AssemblyPathSVA():
         self.bReassign = bReassign
         self.tauType   = tauType
         self.tauThresh = tauThresh 
-        self.eL = None
+        self.bAdaptivePrior = False
  
 
         if self.tauType == 'None':
@@ -436,6 +436,8 @@ class AssemblyPathSVA():
             self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
 
             self.eL[0] = 0.5*self.countQ[0]
+    
+            self.bAdaptivePrior = True
 
         elif self.tauType == 'Fixed8':
             self.nQuant = 17
@@ -547,7 +549,7 @@ class AssemblyPathSVA():
 
             self.eL[0] = 0.5*self.countQ[0]
         
-        
+            self.bAdaptivePrior = True
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
             
         for v in range(self.V):
@@ -565,7 +567,7 @@ class AssemblyPathSVA():
         self.expTauCat = np.full(self.nQuant,0.01)
         self.expLogTauCat = np.full(self.nQuant,-4.60517)
         
-        if self.eL == None: 
+        if self.bAdaptivePrior == False: 
             self.alphaTauCat = self.alpha + 0.5*self.tauFreq
             self.betaTauCat = np.full(self.nQuant,self.beta)
         else:
@@ -1080,13 +1082,13 @@ class AssemblyPathSVA():
                 self.tauMap[v,s] = start
                 self.tauFreq[start] += 1
         
-        if self.eL is not None:
+        if self.bAdaptivePrior == True:
             self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
         else:
             self.alphaTauCat = self.alpha + 0.5*self.tauFreq
         
     def updateTau(self):
-        if self.eL is None:
+        if self.bAdaptivePrior == False:
             self.betaTauCat = np.full(self.nQuant,self.beta)
         else:
             self.betaTauCat = self.beta/self.eL
