@@ -313,7 +313,7 @@ class AssemblyPathSVA():
         self.bReassign = bReassign
         self.tauType   = tauType
         self.tauThresh = tauThresh 
-       
+        self.eL = None
  
 
         if self.tauType == 'None':
@@ -541,6 +541,12 @@ class AssemblyPathSVA():
 
                 self.dQuant = 1.0/self.nQuant
                 
+            self.eL = np.zeros(self.nQuant)
+
+            self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
+
+            self.eL[0] = 0.5*self.countQ[0]
+        
         
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
             
@@ -559,15 +565,13 @@ class AssemblyPathSVA():
         self.expTauCat = np.full(self.nQuant,0.01)
         self.expLogTauCat = np.full(self.nQuant,-4.60517)
         
-        if self.tauType != 'Fixed7': 
-            self.eL = None
+        if self.eL == None: 
             self.alphaTauCat = self.alpha + 0.5*self.tauFreq
             self.betaTauCat = np.full(self.nQuant,self.beta)
         else:
-            
             self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
-
             self.betaTauCat = self.beta/self.eL        
+            
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
