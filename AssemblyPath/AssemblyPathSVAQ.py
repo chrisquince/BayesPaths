@@ -233,8 +233,8 @@ class AssemblyPathSVA():
                 sunitig = source[0]
                 sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
                 sumSourceCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
-                
-                if sunitig in self.degenSeq: 
+                vunitig = self.mapGeneIdx[gene][sunitig] 
+                if vunitig in self.degenSeq: 
                     self.geneDegenerate[gene] = True
                      
         for gene, sinks in sink_maps.items():
@@ -242,8 +242,8 @@ class AssemblyPathSVA():
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
                 sumSinkCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
-            
-                if sunitig in self.degenSeq: 
+                vunitig = self.mapGeneIdx[gene][sunitig]
+                if vunitig in self.degenSeq: 
                     self.geneDegenerate[gene] = True
         
         for gene, sinkCovs in sumSinkCovs.items():
