@@ -581,7 +581,7 @@ class AssemblyPathSVA():
         
             self.bAdaptivePrior = True
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            
+        self.sampleDiv = np.zeros((self.nQuant,self.S))
         for v in range(self.V):
             for s in range(self.S):
                 start = 0
@@ -589,8 +589,14 @@ class AssemblyPathSVA():
                     start+=1
                 self.tauMap[v,s] = start
                 self.tauFreq[start] += 1        
-
-                
+                self.sampleDiv[start,s] +=1
+        
+        self.sampleEntropy = np.zeros(self.S)
+        for t in range(self.nQuant):
+            if np.sum(self.sampleDiv[start,:]) > 0:
+                relP = self.sampleDiv[start,:]/np.sum(self.sampleDiv[start,:])
+                self.sampleEntropy[t] = -np.sum(relp*np.log(relp))
+        
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
         
