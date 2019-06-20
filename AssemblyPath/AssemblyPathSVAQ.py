@@ -183,11 +183,11 @@ class AssemblyPathSVA():
             unitigs = self.mapUnitigs[gene]
             
             for unitig in unitigs:
-                uniqSeqs[assemblyGraph.sequences[unitig]].append(gene,unitig)
+                uniqSeqs[assemblyGraph.sequences[unitig]].append((gene,unitig))
         
-        maskMatrix = np.ones(self.V,self.S)
+        maskMatrix = np.ones((self.V,self.S))
         for uniqSeq, hits in uniqSeqs.items():
-            if len(hits) > 0:
+            if len(hits) > 1:
                 for hit in hits[1:]:
                     vmask = self.mapGeneIdx[hit[0]][hit[1]]
                     maskMatrix[vmask,:] = 0.
