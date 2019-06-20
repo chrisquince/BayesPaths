@@ -54,6 +54,9 @@ def main(argv):
     parser.add_argument('-f','--frac_cov',nargs='?', default=0.02, type=float, 
         help=("fractional coverage for noise nodes"))
 
+    parser.add_argument('-nf','--noise_frac',nargs='?', default=0.02, type=float,
+        help=("fractional coverage for noise category"))
+
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
 
@@ -83,7 +86,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -211,7 +214,7 @@ def main(argv):
     
         assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
-                                fracCov = args.frac_cov)
+                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         
         for g in strains:
@@ -224,7 +227,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
-                                fracCov = args.frac_cov)
+                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
@@ -236,7 +239,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
-                                fracCov = args.frac_cov)
+                                fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
     maxGIter = 4
     nChange = 1
@@ -258,7 +261,7 @@ def main(argv):
 
         assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                     ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
-                                    fracCov = args.frac_cov)
+                                    fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         gIter += 1
     
