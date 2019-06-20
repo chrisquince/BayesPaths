@@ -592,10 +592,41 @@ class AssemblyPathSVA():
                 self.sampleDiv[start,s] +=1
         
         self.sampleEntropy = np.zeros(self.S)
+        
         for t in range(self.nQuant):
             if np.sum(self.sampleDiv[t,:]) > 0:
                 relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
                 self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
+        
+        if self.nQuant > 3:
+            mapT = defaultdict(list)
+            revCountQ = []
+            t = self.nQuant - 1
+            while t > 2:
+                if self.tauFreq[t] > 0:
+                    s = t - 1
+                    revCountQ.append(self.countQ[t])
+                    while self.sampleEntropy[t] < 2.0 and s > -1:
+                        self.sampleDiv[t,:] += self.sampleDiv[s,:]
+                        relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
+                        self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
+                        
+                        s = s - 1
+                    
+                    revCountQ.append(self.countQ[s])
+                    
+                    t = s 
+            
+                while t >= 0:
+                    revCountQ.append(self.countQ[s])
+                    t -= 1
+        
+            revCountQ.reverse()
+            
+            
+        
+        
+        
         
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
