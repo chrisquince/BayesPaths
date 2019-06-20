@@ -186,12 +186,15 @@ class AssemblyPathSVA():
                 uniqSeqs[assemblyGraph.sequences[unitig]].append((gene,unitig))
         
         maskMatrix = np.ones((self.V,self.S))
+        self.degenSeq = {}
         for uniqSeq, hits in uniqSeqs.items():
             if len(hits) > 1:
                 for hit in hits[1:]:
                     vmask = self.mapGeneIdx[hit[0]][hit[1]]
                     maskMatrix[vmask,:] = 0.
-                
+                    self.degenSeq[vmask] =  self.mapGeneIdx[hits[0][0]][hits[0][1]]
+        self.M = maskMatrix
+           
         self.X = np.zeros((self.V,self.S))
         self.XN = np.zeros((self.V,self.S))
         self.lengths = np.zeros(self.V)
@@ -224,17 +227,24 @@ class AssemblyPathSVA():
         sumSinkCovsS = defaultdict(lambda:np.zeros(self.S))
         
         self.geneCovs = {}
-        
+        self.geneDegenerate = {}
         for gene, sources in source_maps.items():
             for source in sources:
                 sunitig = source[0]
                 sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
                 sumSourceCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
+                
+                if sunitig in self.degenSeq: 
+                    self.geneDegenerate[gene] = True
+                     
         for gene, sinks in sink_maps.items():
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
                 sumSinkCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
+            
+                if sunitig in self.degenSeq: 
+                    self.geneDegenerate[gene] = True
         
         for gene, sinkCovs in sumSinkCovs.items():
             tempMatrix = np.zeros((2,self.S))
