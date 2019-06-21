@@ -1408,7 +1408,7 @@ class AssemblyPathSVA():
     
     def get_outlier_cogs_sample(self, mCogFilter = 2.0, cogSampleFrac=0.95):
     
-        uniquegenes = list(self.geneCovs.keys())
+        uniquegenes = list(set(self.geneCovs.keys()) ^ set(self.geneDegenerate.keys()))
         
         nGenes = len(uniquegenes)
         
@@ -1426,7 +1426,11 @@ class AssemblyPathSVA():
         filterGenes = outlierGeneSample.sum(axis=1) < (self.S*cogSampleFrac)
         filteredGenes = [i for (i, v) in zip(uniquegenes, filterGenes) if v]
         
-        return filteredGenes
+        addGenes = []
+        for gene in filteredGenes:
+            addGenes.add(self.gene_map[gene])
+        
+        return filteredGenes + addGenes
     
     def updateGammaFixed(self, maxIter, drop_strain=None, relax_path=False):
         
