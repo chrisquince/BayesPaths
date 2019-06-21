@@ -174,26 +174,8 @@ class AssemblyPathSVA():
                 
                 self.V += 1
 
-        #First test for unitig  overlaps
-        uniqSeqs = defaultdict(list)
-        for gene in sorted(assemblyGraphs):
-            
-            assemblyGraph = assemblyGraphs[gene]
-      
-            unitigs = self.mapUnitigs[gene]
-            
-            for unitig in unitigs:
-                uniqSeqs[assemblyGraph.sequences[unitig]].append((gene,unitig))
-        
-        maskMatrix = np.ones((self.V,self.S))
-        self.degenSeq = {}
-        for uniqSeq, hits in uniqSeqs.items():
-            if len(hits) > 1:
-                for hit in hits[1:]:
-                    vmask = self.mapGeneIdx[hit[0]][hit[1]]
-                    maskMatrix[vmask,:] = 0.
-                    self.degenSeq[vmask] =  self.mapGeneIdx[hits[0][0]][hits[0][1]]
-        self.M = maskMatrix
+        #find degenerate unitig sequences
+        self.flag_degenerate_sequences()
            
         self.X = np.zeros((self.V,self.S))
         self.XN = np.zeros((self.V,self.S))
@@ -227,7 +209,10 @@ class AssemblyPathSVA():
         sumSinkCovsS = defaultdict(lambda:np.zeros(self.S))
         
         self.geneCovs = {}
+
         self.geneDegenerate = {}
+        self.gene_maps = defaultdict(set)
+        
         for gene, sources in source_maps.items():
             for source in sources:
                 sunitig = source[0]
@@ -236,6 +221,9 @@ class AssemblyPathSVA():
                 vunitig = self.mapGeneIdx[gene][sunitig] 
                 if vunitig in self.degenSeq: 
                     self.geneDegenerate[gene] = True
+                    mapv = self.degenSeq[vunitig]
+                    mapGene = self.unitigs[mapv].split('_')[0]
+                    self.gene_maps[mapGene].add(gene)
                      
         for gene, sinks in sink_maps.items():
             for sink in sinks:
@@ -245,13 +233,18 @@ class AssemblyPathSVA():
                 vunitig = self.mapGeneIdx[gene][sunitig]
                 if vunitig in self.degenSeq: 
                     self.geneDegenerate[gene] = True
+                    mapv = self.degenSeq[vunitig]
+                    mapGene = self.unitigs[mapv].split('_')[0]
+                    self.gene_maps[mapGene].add(gene)
         
         for gene, sinkCovs in sumSinkCovs.items():
             tempMatrix = np.zeros((2,self.S))
             tempMatrix[0,:] = sumSinkCovsS[gene]
             tempMatrix[1,:] = sumSourceCovsS[gene]
             self.geneCovs[gene] = np.mean(tempMatrix,axis=0)        
+        
         self.maxSampleCov = 0.
+        
         if minSumCov is not None:
             self.minSumCov = minSumCov
             self.fracCov = 0.0
@@ -580,70 +573,13 @@ class AssemblyPathSVA():
             self.eL[0] = 0.5*self.countQ[0]
         
             self.bAdaptivePrior = True
-        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-        self.sampleDiv = np.zeros((self.nQuant,self.S))
-        for v in range(self.V):
-            for s in range(self.S):
-                start = 0
-                while self.X[v,s] > self.countQ[start]:
-                    start+=1
-                self.tauMap[v,s] = start
-                self.tauFreq[start] += 1        
-                self.sampleDiv[start,s] +=1
         
-        self.sampleEntropy = np.zeros(self.S)
-        
-        for t in range(self.nQuant):
-            if np.sum(self.sampleDiv[t,:]) > 0:
-                relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
-                self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
-        
+        #assign variables to precision categories
+        self.set_tau_map()
+      
+        #collapse precision categories if not enough dispersion over samples
         if self.nQuant > 3:
-            mapT = defaultdict(list)
-            revCountQ = []
-            t = self.nQuant - 1
-            while t > 2:
-                if self.tauFreq[t] > 0:
-                    s = t - 1
-                    revCountQ.append(self.countQ[t])
-                    while self.sampleEntropy[t] < 2.0 and s > -1:
-                        self.sampleDiv[t,:] += self.sampleDiv[s,:]
-                        relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
-                        self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
-                        
-                        s = s - 1
-                    if t - s > 1:
-                        revCountQ.append(self.countQ[s+1])
-                    
-                    t = s 
-                else:
-                    t -= 1
- 
-            while t >= 0:
-                revCountQ.append(self.countQ[t])
-                t -= 1
-        
-            revCountQ.reverse()
-            self.countQ = np.asarray(revCountQ)    
-            self.nQuant = len(self.countQ)
-            self.tauFreq = np.zeros(self.nQuant) 
-            self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-            self.sampleDiv = np.zeros((self.nQuant,self.S))
-            for v in range(self.V):
-                for s in range(self.S):
-                    start = 0
-                    while self.X[v,s] > self.countQ[start]:
-                        start+=1
-                    self.tauMap[v,s] = start
-                    self.tauFreq[start] += 1
-                    self.sampleDiv[start,s] +=1
-            
-            if  self.bAdaptivePrior == True:
-                self.eL = np.zeros(self.nQuant)
-
-                self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
-
-                self.eL[0] = 0.5*self.countQ[0]
+            self.collapse_tau_sample_div()
 
         
         self.expTau = np.full((self.V,self.S),0.01)
@@ -658,7 +594,101 @@ class AssemblyPathSVA():
         else:
             self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
             self.betaTauCat = self.beta/self.eL        
+    
+    def collapse_tau_sample_div(self):
+        mapT = defaultdict(list)
+        revCountQ = [1.0e10]
+        t = self.nQuant - 1
+        while t > 2:
+            if self.tauFreq[t] > 0:
+                s = t - 1
+                revCountQ.append(self.countQ[t])
+                while self.sampleEntropy[t] < 2.0 and s > -1:
+                    self.sampleDiv[t,:] += self.sampleDiv[s,:]
+                    relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
+                    self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
+                        
+                    s = s - 1
+                if t - s > 1:
+                    revCountQ.append(self.countQ[s+1])
+                    
+                t = s 
+                
+            else:
+                t -= 1
+ 
+        while t >= 0:
+            revCountQ.append(self.countQ[t])
+            t -= 1
+        
+        revCountQ.reverse()
+        self.countQ = np.asarray(revCountQ)    
+        self.nQuant = len(self.countQ)
+        self.tauFreq = np.zeros(self.nQuant) 
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+        self.sampleDiv = np.zeros((self.nQuant,self.S))
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while self.X[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1
+                self.sampleDiv[start,s] +=1
             
+        if  self.bAdaptivePrior == True:
+            self.eL = np.zeros(self.nQuant)
+
+            self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
+
+            self.eL[0] = 0.5*self.countQ[0]
+    
+    def flag_degenerate_sequences(self):
+        #First test for unitig  overlaps
+        uniqSeqs = defaultdict(list)
+        for gene in sorted(assemblyGraphs):
+            
+            assemblyGraph = assemblyGraphs[gene]
+      
+            unitigs = self.mapUnitigs[gene]
+            
+            for unitig in unitigs:
+                uniqSeqs[assemblyGraph.sequences[unitig]].append((gene,unitig))
+        
+        maskMatrix = np.ones((self.V,self.S))
+        self.degenSeq = {}
+        for uniqSeq, hits in uniqSeqs.items():
+            if len(hits) > 1:
+                for hit in hits[1:]:
+                    vmask = self.mapGeneIdx[hit[0]][hit[1]]
+                    maskMatrix[vmask,:] = 0.
+                    self.degenSeq[vmask] =  self.mapGeneIdx[hits[0][0]][hits[0][1]]
+        self.M = maskMatrix
+    
+    
+    
+    def set_tau_map(self):
+        
+        self.sampleEntropy = np.zeros(self.S)
+        
+        for t in range(self.nQuant):
+            if np.sum(self.sampleDiv[t,:]) > 0:
+                relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
+                self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
+    
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+        self.sampleDiv = np.zeros((self.nQuant,self.S))
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while self.X[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1        
+                self.sampleDiv[start,s] +=1
+
+
+    
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
