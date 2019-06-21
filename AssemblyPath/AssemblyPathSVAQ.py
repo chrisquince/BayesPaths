@@ -220,10 +220,10 @@ class AssemblyPathSVA():
                 sumSourceCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
                 vunitig = self.mapGeneIdx[gene][sunitig] 
                 if vunitig in self.degenSeq: 
-                    self.geneDegenerate[gene] = True
                     mapv = self.degenSeq[vunitig]
                     mapGene = self.unitigs[mapv].split('_')[0]
                     self.gene_maps[mapGene].add(gene)
+                    self.geneDegenerate[gene] = mapGene
                      
         for gene, sinks in sink_maps.items():
             for sink in sinks:
@@ -232,11 +232,11 @@ class AssemblyPathSVA():
                 sumSinkCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
                 vunitig = self.mapGeneIdx[gene][sunitig]
                 if vunitig in self.degenSeq: 
-                    self.geneDegenerate[gene] = True
                     mapv = self.degenSeq[vunitig]
                     mapGene = self.unitigs[mapv].split('_')[0]
                     self.gene_maps[mapGene].add(gene)
-        
+                    self.geneDegenerate[gene] = mapGene       
+ 
         for gene, sinkCovs in sumSinkCovs.items():
             tempMatrix = np.zeros((2,self.S))
             tempMatrix[0,:] = sumSinkCovsS[gene]
@@ -581,6 +581,7 @@ class AssemblyPathSVA():
         if self.nQuant > 3:
             self.collapse_tau_sample_div()
 
+            self.set_tau_map()
         
         self.expTau = np.full((self.V,self.S),0.01)
         self.expLogTau = np.full((self.V,self.S),-4.60517)
@@ -667,7 +668,19 @@ class AssemblyPathSVA():
         return (degenSeq, maskMatrix)
     
     def set_tau_map(self):
-        
+       
+        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
+        self.sampleDiv = np.zeros((self.nQuant,self.S))
+    
+        for v in range(self.V):
+            for s in range(self.S):
+                start = 0
+                while self.X[v,s] > self.countQ[start]:
+                    start+=1
+                self.tauMap[v,s] = start
+                self.tauFreq[start] += 1  
+                self.sampleDiv[start,s] +=1
+ 
         self.sampleEntropy = np.zeros(self.S)
         
         for t in range(self.nQuant):
@@ -675,18 +688,6 @@ class AssemblyPathSVA():
                 relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
                 self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
     
-        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-        self.sampleDiv = np.zeros((self.nQuant,self.S))
-        for v in range(self.V):
-            for s in range(self.S):
-                start = 0
-                while self.X[v,s] > self.countQ[start]:
-                    start+=1
-                self.tauMap[v,s] = start
-                self.tauFreq[start] += 1        
-                self.sampleDiv[start,s] +=1
-
-
     
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
