@@ -175,7 +175,7 @@ class AssemblyPathSVA():
                 self.V += 1
 
         #find degenerate unitig sequences
-        self.flag_degenerate_sequences()
+        (self.degenSeq, self.M) = self.flag_degenerate_sequences()
            
         self.X = np.zeros((self.V,self.S))
         self.XN = np.zeros((self.V,self.S))
@@ -646,9 +646,9 @@ class AssemblyPathSVA():
     def flag_degenerate_sequences(self):
         #First test for unitig  overlaps
         uniqSeqs = defaultdict(list)
-        for gene in sorted(assemblyGraphs):
+        for gene in sorted(self.assemblyGraphs):
             
-            assemblyGraph = assemblyGraphs[gene]
+            assemblyGraph = self.assemblyGraphs[gene]
       
             unitigs = self.mapUnitigs[gene]
             
@@ -656,16 +656,15 @@ class AssemblyPathSVA():
                 uniqSeqs[assemblyGraph.sequences[unitig]].append((gene,unitig))
         
         maskMatrix = np.ones((self.V,self.S))
-        self.degenSeq = {}
+        degenSeq = {}
         for uniqSeq, hits in uniqSeqs.items():
             if len(hits) > 1:
                 for hit in hits[1:]:
                     vmask = self.mapGeneIdx[hit[0]][hit[1]]
                     maskMatrix[vmask,:] = 0.
-                    self.degenSeq[vmask] =  self.mapGeneIdx[hits[0][0]][hits[0][1]]
-        self.M = maskMatrix
+                    degenSeq[vmask] =  self.mapGeneIdx[hits[0][0]][hits[0][1]]
     
-    
+        return (degenSeq, maskMatrix)
     
     def set_tau_map(self):
         
