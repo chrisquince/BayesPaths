@@ -1426,11 +1426,10 @@ class AssemblyPathSVA():
         filterGenes = outlierGeneSample.sum(axis=1) < (self.S*cogSampleFrac)
         filteredGenes = [i for (i, v) in zip(uniquegenes, filterGenes) if v]
         
-        addGenes = []
         for gene in filteredGenes:
-            addGenes.add(self.gene_map[gene])
+            filteredGenes.expand(self.gene_maps[gene])
         
-        return filteredGenes + addGenes
+        return filteredGenes 
     
     def updateGammaFixed(self, maxIter, drop_strain=None, relax_path=False):
         
