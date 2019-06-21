@@ -1427,7 +1427,7 @@ class AssemblyPathSVA():
         filteredGenes = [i for (i, v) in zip(uniquegenes, filterGenes) if v]
         
         for gene in filteredGenes:
-            filteredGenes.expand(self.gene_maps[gene])
+            filteredGenes.extend(self.gene_maps[gene])
         
         return filteredGenes 
     
