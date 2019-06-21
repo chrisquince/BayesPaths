@@ -1089,6 +1089,14 @@ class UnitigGraph():
         else:
             return None
             
+    def selectSamples(self, selectedSamples):
+    
+        if self.covMap is None:
+            raise ValueError()
+        
+        for unitig in self.unitigs:
+            self.covMap[unitig] = self.covMap[unitig][selectedSamples]
+            
 
     def computePathCoverage(self, path):
         

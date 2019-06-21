@@ -52,7 +52,7 @@ def selectSamples(assGraph, genesSelect):
         g = g + 1    
             
         
-    return np.mean(geneSampleCovArray,axis=1) > SAMPLE_MIN_COV
+    return np.mean(geneSampleCovArray,axis=0) > SAMPLE_MIN_COV
 
 
 def main(argv):
@@ -255,6 +255,9 @@ def main(argv):
     assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
     sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
+    
+    for gene, graph in assemblyGraphsFilter.items():
+        graph.selectSamples(selectedSamples)
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
