@@ -12,6 +12,9 @@ from AssemblyPath.AssemblyPathSVAQ import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
+COG_COV_DEV = 2.5
+SAMPLE_MIN_COV = 1.0
+
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
@@ -31,12 +34,26 @@ def filterGenes(assGraph):
 
     genesSelect = []
     for gidx, gene in enumerate(genes):
-        if devArray[gidx] > 2.5*medianDevError and error_array[gidx] > medianErr:
+        if devArray[gidx] > COG_COV_DEV*medianDevError and error_array[gidx] > medianErr:
             print("Removing: " + str(gene))
         else:
             genesSelect.append(gene)
 
     return genesSelect 
+
+def selectSamples(assGraph, genesSelect):
+        
+    nGenes = len(genesSelect)
+        
+    g = 0
+    geneSampleCovArray = np.zeros((nGenes,assGraph.S))
+    for gene in genesSelect:
+        geneSampleCovArray[g,:] = assGraph.geneCovs[gene]
+        g = g + 1    
+            
+        
+    return np.mean(geneSampleCovArray,axis=1) > SAMPLE_MIN_COV
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -232,6 +249,8 @@ def main(argv):
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
     genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
+
+    selectedSamples = selectSamples(assGraph, genesFilter)
 
     assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
