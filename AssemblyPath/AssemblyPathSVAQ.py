@@ -226,10 +226,12 @@ class AssemblyPathSVA():
                     self.geneDegenerate[gene] = mapGene
                      
         for gene, sinks in sink_maps.items():
+            print(gene)
             for sink in sinks:
                 sunitig = sink[0]
                 sumSinkCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
                 sumSinkCovsS[gene] += self.assemblyGraphs[gene].covMap[sunitig]
+                print(str(sunitig))
                 vunitig = self.mapGeneIdx[gene][sunitig]
                 if vunitig in self.degenSeq: 
                     mapv = self.degenSeq[vunitig]
@@ -573,7 +575,32 @@ class AssemblyPathSVA():
             self.eL[0] = 0.5*self.countQ[0]
         
             self.bAdaptivePrior = True
-        
+
+        elif self.tauType == 'Adaptive4':
+
+            X1_Mean = np.mean(self.X[self.X > 1])
+
+            print('X1_mean = ' + str(X1_Mean))
+
+            minX = self.noiseFrac*X1_Mean
+
+            self.nQuant = 16
+
+            self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
+
+            self.countQ = np.asarray([minX,10.0,20.0,50.,100.,150.,200.,250.,500.,750.,1000.,2000.,3000,5000,10e4,1.0e6],dtype=np.float)
+
+            self.dQuant = 1.0/self.nQuant
+
+            self.eL = np.zeros(self.nQuant)
+
+            self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
+
+            self.eL[0] = 0.5*self.countQ[0]
+
+            self.bAdaptivePrior = True        
+
+
         #assign variables to precision categories
         self.set_tau_map()
       
@@ -671,7 +698,8 @@ class AssemblyPathSVA():
        
         self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
         self.sampleDiv = np.zeros((self.nQuant,self.S))
-    
+        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)    
+
         for v in range(self.V):
             for s in range(self.S):
                 start = 0
@@ -2182,8 +2210,9 @@ class AssemblyPathSVA():
         dTemp2 = np.zeros(self.nQuant)
 
         for d in range(self.nQuant):
-            dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
-            dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+            if self.tauFreq[d] > 0:
+                dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
+                dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
 
         total_elbo += - np.sum(dTemp1) 
         total_elbo += - np.sum(dTemp2)
