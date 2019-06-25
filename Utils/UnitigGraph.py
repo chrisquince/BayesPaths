@@ -712,8 +712,13 @@ class UnitigGraph():
         
         for sourceSink in sourceSinks:
             if sourceSink in stopMap:
-                sinks.append(convertNodeToName(stopMap[sourceSink]))
-                sinkUnitigs.add(sourceSink)
+                if self.isIsolated(sourceSink) == False:
+                    sinks.append(convertNodeToName(stopMap[sourceSink]))
+                    sinkUnitigs.add(sourceSink)
+                else:
+                    if self.lengths[sourceSink] > minLength:
+                        sinks.append(convertNodeToName(stopMap[sourceSink]))
+                        sinkUnitigs.add(sourceSink)
             else:
                 hit = self.isReachable(sourceSink,stopNames,allSSDict)
                 if hit is not None:
