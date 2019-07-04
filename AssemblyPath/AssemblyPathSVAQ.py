@@ -709,7 +709,7 @@ class AssemblyPathSVA():
                 self.tauFreq[start] += 1  
                 self.sampleDiv[start,s] +=1
  
-        self.sampleEntropy = np.zeros(self.S)
+        self.sampleEntropy = np.zeros(self.nQuant)
         
         for t in range(self.nQuant):
             if np.sum(self.sampleDiv[t,:]) > 0:
