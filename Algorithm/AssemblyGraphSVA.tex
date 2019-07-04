@@ -102,12 +102,13 @@
 
 \section{The model}
 
-Define the joint distribution of: 
+We consider an assembly graph comprised of unitig sequennce nodes $v = 1,\ldots,V$  and directed edges 
+${u,v}$ defining overlaps. We define: 
 \begin{itemize}
 
 \item Counts $x_{v,s}$ for each unitig $v = 1,\ldots,V$ in sample $s = 1,\ldots,S$
 
-\item Paths for strain $g = 1,\ldots,G$ defined by $\eta^g_{u,v}$
+\item Paths for strain $g = 1,\ldots,G$ defined by $\eta^g_{u,v} \in {0,1}$
 
 \item Flow of strain $g$ through $v$, $\phi^{g+}_v = \sum_{u \in A(v)} \eta^g_{u,v}$ 
 and $\phi^{g-}_v = \sum_{u \in D(v)} \eta^g_{v,u}$ where $A(v)$ is set of ancestors of $v$ 
@@ -125,12 +126,12 @@ and $D(v)$ descendants in the assembly graph
 
 \end{itemize}
 
-Then assume normally distributed counts for each node in each sample giving a joint density for observations and latent variables: 
+\noindent Then assume normally distributed counts for each node in each sample giving a joint density for observations and latent variables: 
 \begin{multline}
 P(\mathbf{X},\mathbf{\Gamma},\mathbf{H},\mathbf{\Theta})  = \prod_{v=1}^V \prod_{s=1}^S \mathcal{N}(x_{v,s}|L_v \theta_v [\sum_{h=1}^G \phi^h_v \gamma_{h,s}],\tau^{-1}) 
-\prod_{h=1}^G \prod_{s=1}^S P(\gamma_{g,s} | \lambda_g) \\
-.\prod_{h=1}^G \prod_{v=1}^V \left[ \phi^{g+}_v = \phi^{g-}_v \right]
- \left[ \phi^{g-}_s = 1\right]  \left[\phi^{g+}_t = 1\right] P(\tau) \\ .\prod_{g=1}^G P(\lambda_g | \alpha_0, \beta_0) 
+\prod_{h=1}^G \prod_{s=1}^S P(\gamma_{h,s} | \lambda_h) \\
+.\prod_{h=1}^G \prod_{v=1}^V \left[ \phi^{h+}_v = \phi^{h-}_v \right]
+ \left[ \phi^{h-}_s = 1\right]  \left[\phi^{h+}_t = 1\right] P(\tau) \\ .\prod_{h=1}^G P(\lambda_h | \alpha_0, \beta_0) 
  \prod_{v=1}^V P(\theta_v | \mu_0, \tau_0)
 \end{multline}
 where $\left[\right]$ indicates the Iverson bracket evaluating to 1 if the condition is true and zero otherwise. We assume an exponential prior for the $\gamma_{g,s}$ with a rate parameter that is strain dependent, 
@@ -154,7 +155,7 @@ P(\tau | \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} \tau^{\alpha - 1} 
 P(\theta_v | \mu_0, \tau_0) & = & \frac{\sqrt{\frac{\tau_0}{2 \pi}}  \exp(- \frac{\tau_0}{2} (\theta_v - \mu_0)^2)  }{1 - \Psi(-\mu_0 \sqrt \tau_0 )}  \;\;\; \theta_v >= 0 \\
                             & = & 0 \;\;\; \theta_v < 0 \\
 \end{align*}
-
+where $\Psi$ is the standard normal cumulative distribution. 
 %
 
 \section{Variational Approximation}
