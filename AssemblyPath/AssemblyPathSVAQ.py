@@ -138,6 +138,7 @@ class AssemblyPathSVA():
         self.genes = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
+        
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
@@ -161,12 +162,13 @@ class AssemblyPathSVA():
                     self.adjLengths[unitigNew] = 0.0
                 else:
                     #self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + 2.0*self.readLength
-                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - assemblyGraph.overlapLength + self.readLength
+                    self.adjLengths[unitigNew] = assemblyGraph.lengths[unitig] - 2.0*assemblyGraph.overlapLength + self.readLength
                     assert self.adjLengths[unitigNew] > 0
                 
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
-                self.covMapAdj[unitigNew] = (assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew]))/self.readLength
+                kFactor = 1.0/(self.readLength - assemblyGraph.overlapLength + 1.)
+                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*kFactor
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
