@@ -2544,6 +2544,37 @@ class AssemblyPathSVA():
 
                         margFile.write(gene + "_" + unitig + "\t" + vString + "\n")
 
+    def writePredictions(self, fileName, drop_strain=None):
+        
+        if drop_strain is None:
+            drop_strain = {gene:[False]*self.G for gene in self.genes}
+
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        
+        R = self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        Div_matrix = self.exp_square_diff_matrix()
+        
+        with open(fileName, "w") as predictFile:
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+
+                for unitig in unitigs:
+                    if unitig in self.margG[gene][0]:
+                        vals = []
+                        for g in range(self.G):
+                            if not drop_strain[gene][g]:
+                                if self.MAPs[gene][g][unitig] == 1:
+                                    vals.append(g)                  
+                        vString = "_".join([str(x) for x in vals])
+
+
+                        v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                        for s in range(self.S):
+                            predictFile.write(str(v) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v,s]) + "," + str(R[v,s]) + "," + str(Div_matrix[v,s]))
+
+
+
     def writeOutput(self, outFileStub, relax_path_out):
         
         self.writeGeneError(outFileStub + "geneError.csv")
@@ -2563,6 +2594,8 @@ class AssemblyPathSVA():
         self.writeTau(outFileStub + "Tau.csv")
 
         self.writePathDivergence(outFileStub + "Diver.csv",relax_path=relax_path_out)
+
+        self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None):
 
 
     def runFGMaximal(self, factorGraph, g):
