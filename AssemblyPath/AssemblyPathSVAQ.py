@@ -798,17 +798,39 @@ class AssemblyPathSVA():
         
         bubble_list = []
         
+        bidx = 0
         node = 'source+'
         while node != 'sink+':
             (visited,sink) = findSuperBubble(tempGraph,node,tempGraph.neighbors,tempGraph.predecessors)
             if sink is not None:
                 bubble_list.append((node,sink,visited))
+                
                 node = sink
             else:
                 break
     
         (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
+    
+        unitigsDash = list(unitigFactorNodes.keys())
+                
+        bubble_map = {}
+        map_bubble = defaultdict(list)
+        for (node,sink,visited) in bubble_list:
+            for visit in visited:
+                if visit != node and visit in unitigsDash:
+                    bubble_map[visit] = bidx
+                    map_bubble[bidx].append(visit)
+                if len(map_bubble[bidx]) > 0:
+                    bidx += 1
+                    
+        for unitig in unitigsDash:
+            if unitig not in bubble_map:
+                bubble_map[unitig] = bidx
+                map_bubble[bidx].append(visit)
+            
+        if len(map_bubble[bidx]) > 0:
+            bidx += 1
         return (factorGraph, unitigFactorNodes, unitigFluxNodes, tempGraph)
     
     def generateFactorGraph(self, factorGraph, unitigs):
