@@ -18,15 +18,17 @@ SAMPLE_MIN_COV = 1.0
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
-
+    gene_mean_elbo = assGraph.gene_mean_deviance()
     errors = []
     genes = []
-    
+    devs = []
     for (gene, error) in gene_mean_error.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
         errors.append(error)
         genes.append(gene)
+        devs.append(gene)
     
+    dev_array = np.array(devs)
     error_array = np.array(errors)
     medianErr = np.median(error_array)
     devArray = np.absolute(error_array - medianErr)
