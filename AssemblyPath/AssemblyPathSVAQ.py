@@ -213,7 +213,7 @@ class AssemblyPathSVA():
                     self.S = assemblyGraph.covMap[unitig].shape[0]
                     bFirst = False
                 
-                self.mapBubbles[v] = bubble_map[unitig]
+                self.mapBubbles[self.V] = bubble_map[unitig]
                 
                 self.V += 1
 
