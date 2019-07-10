@@ -796,7 +796,18 @@ class AssemblyPathSVA():
         self.writeNetworkGraph(tempGraph,"temp.graphml")
         
         
-        (visited,sink) = findSuperBubble(tempGraph, 'source+', tempGraph.neighbors, tempGraph.predecessors)
+        bubble_list = []
+        
+        node = 'source+'
+        while node != 'sink+':
+            (visited,sink) = findSuperBubble(forwardGraph,node,forwardGraph.neighbors,forwardGraph.predecessors)
+            if sink is not None:
+                out_bubbles.append((node,sink,visited))
+                node = sink
+            else:
+                break
+        
+        
     
         (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
