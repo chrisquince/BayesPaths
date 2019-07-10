@@ -63,6 +63,44 @@ def call_proc(cmd):
     out, err = p.communicate()
     return (out, err)
 
+def findSuperBubble(directedGraph, source, descendents, parents):
+
+    queue = deque([source])
+    
+    seen = set()
+    visited = set()
+    
+    sink = None
+    
+    while queue:
+        node = queue.popleft()
+        
+        visited.add(node)
+        if node in seen:
+            seen.remove(node)
+            
+        nList = list(descendents(node))
+        
+        if len(nList) > 0:
+            for child in nList:
+                if child == source:
+                    break
+                
+                seen.add(child)
+                         
+                childVisited = set(parents(child))
+
+                if childVisited.issubset(visited): 
+                    queue.append(child)
+        
+        if len(queue) == 1 and len(seen) < 2:
+            if len(seen) == 0 or queue[0] in seen:
+                if not directedGraph.has_edge(queue[0],source):
+                    sink = queue[0]
+                    break
+                
+    return (visited, sink)
+
 
 class AssemblyPathSVA():
     """ Class for structured variational approximation on Assembly Graph"""    
@@ -756,6 +794,9 @@ class AssemblyPathSVA():
                     tempGraph.remove_node(node)
         
         self.writeNetworkGraph(tempGraph,"temp.graphml")
+        
+        
+        (visited,sink) = findSuperBubble(tempGraph, 'source+', tempGraph.neighbors, tempGraph.predecessors)
     
         (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
