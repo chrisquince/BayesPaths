@@ -176,11 +176,12 @@ class AssemblyPathSVA():
         self.genes = []
         self.mapGeneIdx = collections.defaultdict(dict)
         bFirst = True
-        
+        self.nBubbles = 0
+        self.mapBubbles = {}
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
-            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
+            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
             unitigsDash.sort(key=int) 
@@ -211,6 +212,8 @@ class AssemblyPathSVA():
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
                     bFirst = False
+                
+                self.mapBubbles[v] = bubble_map[unitig]
                 
                 self.V += 1
 
@@ -798,7 +801,7 @@ class AssemblyPathSVA():
         
         bubble_list = []
         
-        bidx = 0
+        bidx = self.nBubbles
         node = 'source+'
         while node != 'sink+':
             (visited,sink) = findSuperBubble(tempGraph,node,tempGraph.neighbors,tempGraph.predecessors)
@@ -832,7 +835,9 @@ class AssemblyPathSVA():
             
         if len(map_bubble[bidx]) > 0:
             bidx += 1
-        return (factorGraph, unitigFactorNodes, unitigFluxNodes, tempGraph)
+            
+        self.nBubbles = bidx
+        return (factorGraph, unitigFactorNodes, unitigFluxNodes, tempGraph,bubble_map)
     
     def generateFactorGraph(self, factorGraph, unitigs):
         probGraph = Graph()
