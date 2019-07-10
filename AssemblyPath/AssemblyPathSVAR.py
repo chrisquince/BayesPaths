@@ -1248,11 +1248,11 @@ class AssemblyPathSVA():
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        denom = np.sum(self.expTau*self.exp_square_lambda_matrix(),axis=1)*self.lengths*self.lengths + self.tauTheta0 
+        denom = np.sum(self.expTau*self.exp_square_lambda_matrix(),axis=1)*self.lengths*self.lengths  
         
-        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau,axis=1) + self.muTheta0*self.tauTheta0 
+        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau,axis=1) 
         
-        self.muThetaCat.fill(self.muTheta0)
+        self.muThetaCat.fill(self.muTheta0*self.tauTheta0)
         self.tauThetaCat.fill(self.tauTheta0)
          
         for v in range(self.V):
@@ -1275,11 +1275,11 @@ class AssemblyPathSVA():
         
             self.muTheta[v] = self.muThetaCat[b]
             
-            self.expTheta =  self.expThetaCat[b]
+            self.expTheta[v] =  self.expThetaCat[b]
         
-            self.varTheta = self.varThetaCat[b]
+            self.varTheta[v] = self.varThetaCat[b]
 
-            self.expTheta2 = self.expTheta2Cat[b]
+            self.expTheta2[v] = self.expTheta2Cat[b]
 
     def updateGamma(self,g_idx):
         

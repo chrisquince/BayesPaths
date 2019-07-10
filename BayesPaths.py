@@ -13,7 +13,7 @@ from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
 COG_COV_DEV = 2.5
-SAMPLE_MIN_COV = 50.0
+SAMPLE_MIN_COV = 1.0
 
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
@@ -50,9 +50,12 @@ def selectSamples(assGraph, genesSelect):
     for gene in genesSelect:
         geneSampleCovArray[g,:] = assGraph.geneCovs[gene]
         g = g + 1    
-            
+    
+    sampleMean = np.mean(geneSampleCovArray,axis=0)
         
-    return np.mean(geneSampleCovArray,axis=0) > SAMPLE_MIN_COV
+    minCov = max(SAMPLE_MIN_COV,0.05*np.max(sampleMean))
+
+    return sampleMean > minCov
 
 
 def main(argv):
