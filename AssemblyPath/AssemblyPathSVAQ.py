@@ -2551,7 +2551,11 @@ class AssemblyPathSVA():
 
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        R = self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        if self.BIAS:
+            R = self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        else:
+            R = self.lengths[:,np.newaxis]*self.eLambda
+
         Div_matrix = self.exp_square_diff_matrix()
         
         with open(fileName, "w") as predictFile:
@@ -2571,7 +2575,7 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v,s]) + "," + str(R[v,s]) + "," + str(Div_matrix[v,s]))
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "\n")
 
 
 
@@ -2589,13 +2593,14 @@ class AssemblyPathSVA():
 
         self.writeGammaVarMatrix(outFileStub + "varGamma.csv") 
     
-        self.writeTheta(outFileStub + "Theta.csv") 
+        if self.BIAS:
+            self.writeTheta(outFileStub + "Theta.csv") 
 
         self.writeTau(outFileStub + "Tau.csv")
 
         self.writePathDivergence(outFileStub + "Diver.csv",relax_path=relax_path_out)
 
-        self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None):
+        self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None)
 
 
     def runFGMaximal(self, factorGraph, g):

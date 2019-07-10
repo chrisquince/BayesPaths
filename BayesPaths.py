@@ -13,7 +13,7 @@ from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
 COG_COV_DEV = 2.5
-SAMPLE_MIN_COV = 1.0
+SAMPLE_MIN_COV = 50.0
 
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
@@ -101,9 +101,11 @@ def main(argv):
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
+    parser.add_argument('--nobias', dest='bias', action='store_false')
+
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -230,7 +232,7 @@ def main(argv):
         sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
         assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
-                                ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         
@@ -243,7 +245,7 @@ def main(argv):
         
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
@@ -260,7 +262,7 @@ def main(argv):
         graph.selectSamples(selectedSamples)
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=True, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
     maxGIter = 4
@@ -284,7 +286,7 @@ def main(argv):
         sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
         assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                    ARD=True,BIAS=True, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                    ARD=True,BIAS=args.bias, fgExePath=args.executable_path,tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                     fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         gIter += 1
