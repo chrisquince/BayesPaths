@@ -800,14 +800,12 @@ class AssemblyPathSVA():
         
         node = 'source+'
         while node != 'sink+':
-            (visited,sink) = findSuperBubble(forwardGraph,node,forwardGraph.neighbors,forwardGraph.predecessors)
+            (visited,sink) = findSuperBubble(tempGraph,node,tempGraph.neighbors,tempGraph.predecessors)
             if sink is not None:
-                out_bubbles.append((node,sink,visited))
+                bubble_list.append((node,sink,visited))
                 node = sink
             else:
                 break
-        
-        
     
         (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
     
