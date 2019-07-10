@@ -818,16 +818,17 @@ class AssemblyPathSVA():
         map_bubble = defaultdict(list)
         for (node,sink,visited) in bubble_list:
             for visit in visited:
-                if visit != node and visit in unitigsDash:
-                    bubble_map[visit] = bidx
-                    map_bubble[bidx].append(visit)
-                if len(map_bubble[bidx]) > 0:
-                    bidx += 1
+                uvisit = visit[:-1]
+                if uvisit in unitigsDash:
+                    bubble_map[uvisit] = bidx
+                    map_bubble[bidx].append(uvisit)
+            if len(map_bubble[bidx]) > 0:
+                bidx += 1
                     
         for unitig in unitigsDash:
             if unitig not in bubble_map:
                 bubble_map[unitig] = bidx
-                map_bubble[bidx].append(visit)
+                map_bubble[bidx].append(unitig)
             
         if len(map_bubble[bidx]) > 0:
             bidx += 1
