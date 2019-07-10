@@ -2072,6 +2072,26 @@ class AssemblyPathSVA():
             gene_means[gene] = gene_mean_elbo
                 
         return gene_means
+     
+    def gene_mean_deviance(self):
+    
+        deviance_matrix = self.calc_expdeviance_matrix()
+    
+        gene_means = {}
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            mean_dev = 0.
+            for unitig in unitigs:
+                v_idx = self.mapGeneIdx[gene][unitig]
+                mean_dev += np.sum(deviance_matrix[v_idx,:])
+            
+            gene_means[gene] = mean_dev/len(unitigs)
+                
+        return gene_means
+        
+        
     
         
     def exp_square_diff_matrix_unitigs(self,unitig_idxs): 
@@ -2246,6 +2266,13 @@ class AssemblyPathSVA():
         total_elbo += np.sum(self.HPhi[unitig_idxs])
         return total_elbo
 
+    def calc_expdeviance_matrix(self):
+                # Log likelihood               
+        deviance_matrix = 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
+        
+        deviance_matrix -=  0.5*self.expLogTau 
+        
+        return deviance_matrix
 
     def calc_elbo(self):
         ''' Compute the ELBO. '''
