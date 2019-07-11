@@ -18,17 +18,15 @@ SAMPLE_MIN_COV = 1.0
 def filterGenes(assGraph):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
-    gene_mean_elbo = assGraph.gene_mean_deviance()
+    gene_mean_dev = assGraph.gene_mean_deviance()
     errors = []
     genes = []
-    devs = []
-    for (gene, error) in gene_mean_error.items():
+    
+    for (gene, error) in gene_mean_dev.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
         errors.append(error)
         genes.append(gene)
-        devs.append(gene)
     
-    dev_array = np.array(devs)
     error_array = np.array(errors)
     medianErr = np.median(error_array)
     devArray = np.absolute(error_array - medianErr)
@@ -101,7 +99,7 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.1, type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
@@ -110,7 +108,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
