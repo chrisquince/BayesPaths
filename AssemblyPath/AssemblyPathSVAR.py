@@ -2769,13 +2769,31 @@ class AssemblyPathSVA():
              
         p.wait()
 
-        with open (outFileName, "r") as myfile:
-            outString=myfile.readlines()
-       
-        os.remove(graphFileName)
-        os.remove(outFileName)
-        
-        return self.parseFGString(factorGraph, outString)
+
+        maximals = None
+
+        try:
+            inHandle = open(outFileNam, 'r')
+            
+            outString = inHandle.readlines()
+            
+            maximals = self.parseFGString(factorGraph, outString)
+    
+            inHandle.close()
+
+            if os.path.exists(outFileName):
+                os.remove(outFileName)
+
+            if os.path.exists(graphFileName):
+                os.remove(graphFileName)
+            
+        except FileNotFoundError:
+            print("Failed to find maximal path for haplotype " + str(g))
+            
+            if os.path.exists(graphFileName):
+                os.remove(graphFileName)
+            
+        return maximals
                     
 
 
@@ -2809,19 +2827,24 @@ class AssemblyPathSVA():
                     
                     maximals = self.runFGMaximal(factorGraph, g)
                     
-                    self.MAPs[gene].append(maximals) 
+                    if maximals is not None:
                     
-                    biGraph = self.factorDiGraphs[gene]
+                        self.MAPs[gene].append(maximals) 
+                    
+                        biGraph = self.factorDiGraphs[gene]
                 
-                    pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
-                    pathG.pop(0)
-                    self.paths[gene].append(pathG)
-                    if len(pathG) > 0:
-                        unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
-                        haplotypes[gene].append(unitig)
+                        pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                        pathG.pop(0)
+                        self.paths[gene].append(pathG)
+                        if len(pathG) > 0:
+                            unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+                            haplotypes[gene].append(unitig)
+                        else:
+                            haplotypes[gene].append("")
                     else:
                         haplotypes[gene].append("")
-                        
+                        self.MAPs[gene].append(None)                           
+                    
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
