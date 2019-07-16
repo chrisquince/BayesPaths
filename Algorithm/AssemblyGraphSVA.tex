@@ -11,7 +11,7 @@
 \usepackage{graphicx}
 
 % cite package, to clean up citations in the main text. Do not remove.
-\usepackage{cite}
+%\usepackage{cite}
 
 \usepackage{color} 
 
@@ -160,20 +160,23 @@ where $\Psi$ is the standard normal cumulative distribution.
 
 \section{Variational Approximation}
 
-\noindent Assume the following factorisation for the variational approximation:
+We use variational inference to obtain an approximate solution to the posterior distribution of this model \cite{blei17}. In 
+particular because all the distributions are conjugate we can employ CAVI, coordinate ascent variational inference. Our starting 
+point is to assume the following factorisation for the variational approximation:
 \begin{equation}
-q(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  =  \prod_{h=1}^G q_h(\{ \eta^h_{v,u} \} _{u,v \in A}) \prod_{h=1}^G \prod_{s=1}^S q_g(\gamma_{h,s})
+q(\mathbf{X},\mathbf{\Gamma},\mathbf{H})  =  \prod_{h=1}^G q_h(\{ \eta^h_{v,u} \} _{u,v \in A}) \prod_{h=1}^G \prod_{s=1}^S q_h(\gamma_{h,s})  \prod_{h=1}^G q_h(\lambda_{h}) \prod_{v=1}^V q_v(\theta_v) q(\tau)
 \end{equation}
-where $A$ are all pairs of nodes in assembly graph.
+where $A$ are all pairs of nodes in assembly graph. Note that we assumed a fully factorised approximation except for the $\eta^h_{v,u}$, the paths for each strain through the graph.  There 
+we assume that the path for each strain forms a separate factor allowing strong correlations between the different elements of the path.
 
 \noindent Then the mean field update for each set of $ \{\eta^h_{v,u}\}_{u,v \in A}$ is derived as:
 \begin{align*}
-\ln q^*( \{ \eta^h_{v,u} \} _{u,v \in A}) & =  \left\langle \ln P \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}} \\
+\ln q_h^*( \{ \eta^h_{v,u} \} _{u,v \in A}) & =  \left\langle \ln P \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}, \theta_v, \lambda_g}  \\
 & =  \ln \left( \prod_{v=1}^V \delta_{ \phi^{g+}_v, \phi^{g-}_v} \delta_{\phi^{g-}_s,1}  \delta_{\phi^{g+}_t,1} \right) \\
 & - \left\langle \sum_{v=1}^V \sum_{s=1}^S \frac{\tau}{2} \left( x_{v,s} - \theta_v L_v[\sum_{h=1}^G \phi^h_v \gamma_{h,s}] \right)^2 \right\rangle _{ \phi^{h \neq g}_{v \in A},\gamma_{g,s}}
 \end{align*}
 
-\noindent Consider second term only:
+\noindent Consider the second term only:
 \begin{equation*}
  - \frac{\langle \tau \rangle}{2}  \left ( 
 - \sum_{v=1}^V \sum_{s=1}^S 2 x_{v,s} L_v \langle \theta_v \rangle \langle \gamma_{g,s} \rangle \phi^{g}_v
@@ -183,12 +186,15 @@ where $A$ are all pairs of nodes in assembly graph.
 
 \begin{equation*}
  - \frac{\langle \tau \rangle}{2} \left ( 
- \sum_{v=1}^V \sum_{s=1}^S \left [ -2 x_{v,s} L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
-+ 2 L_v^ 2 \sum_{h \neq g }^G \langle \phi^h_v \rangle \langle \gamma_{h,s} \rangle \langle \gamma_{g,s} \rangle \phi^{g}_v
+ \sum_{v=1}^V \sum_{s=1}^S \left [ -2 x_{v,s} \langle \theta_v \rangle L_v \langle \gamma_{g,s} \rangle \phi^{g}_v
++ 2 L_v^ 2 \langle {\theta_v}^2 \rangle \sum_{h \neq g }^G \langle \phi^h_v \rangle \langle \gamma_{h,s} \rangle \langle \gamma_{g,s} \rangle \phi^{g}_v
 + L_v^2  \langle {\theta_v}^2 \rangle \langle \gamma_{g,s}^2 \rangle (\phi^{g}_v)^2
 \right]
 \right )
 \end{equation*}
+This gives a posterior distribution for the  $q_h(\{ \eta^h_{v,u} \}$ that is discrete. 
+We solve this together with the constraints  
+
 
 \noindent Next we consider the mean field update for the $\gamma_{g,s}$
 \begin{align*}
@@ -210,6 +216,12 @@ With mean:
 \mu_{g,s}  & = \frac{\sum_v x_{v,s} \theta_v L_v \langle \phi_v^g \rangle  - \langle \phi_v^g \rangle \sum_{h \neq g} \langle \gamma_{h,s} \rangle \langle \phi^h_v\rangle \langle \theta_v^2 \rangle L_v^2}{\sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle} - \frac{1}{\epsilon \tau_{g,s} }\\
 \tau_{g,s} & = \langle \tau \rangle \sum_{v} L_v^2  \langle [\phi^g_{v}]^2  \rangle  \\
 \end{align}
+
+% if your bibliography is in bibtex format, use those commands:
+\bibliographystyle{bmc-mathphys} % Style BST file (bmc-mathphys, vancouver, spbasic).
+%% BioMed_Central_Bib_Style_v1.01
+
+\bibliography{StrainResolution}      % Bibliography file (usually '*.bib' )
 
 
 \end{document}
