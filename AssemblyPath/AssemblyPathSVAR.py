@@ -2773,7 +2773,7 @@ class AssemblyPathSVA():
         maximals = None
 
         try:
-            inHandle = open(outFileNam, 'r')
+            inHandle = open(outFileName, 'r')
             
             outString = inHandle.readlines()
             
