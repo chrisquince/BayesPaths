@@ -2413,19 +2413,23 @@ class AssemblyPathSVA():
                 
                 self.MAPs[gene].append(maximals)
                 biGraph = self.factorDiGraphs[gene]
-
-                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
-                pathG.pop(0)
-                pathsg[g][gene] = pathG
-        
+                
+                if maximals is not None:
+                    pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                    pathG.pop(0)
+                    pathsg[g][gene] = pathG
+                else:
+                    pathsg[g][gene] = None
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
                 comp = 0
                 for gene in self.genes:
-                    if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
-                        comp += 1 
-                        diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
+                    if pathsg[g][gene] is not None and pathsg[h][gene] is not None:
+
+                        if len(set(pathsg[g][gene])) > 0 and len(set(pathsg[h][gene])) > 0:
+                            comp += 1 
+                            diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
                 dist[g,h] = diff
                 dist[h,g] = diff    
 
@@ -2596,17 +2600,22 @@ class AssemblyPathSVA():
                 factorGraph.var['sink+infty+'].condition(1)
 
                 maximals = self.runFGMaximal(factorGraph, g)
-
+                
                 self.MAPs[gene].append(maximals)
+                if self.MAPs[gene][g] is not None:
+                    pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
+                    pathG.pop(0)
+                else:
+                    pathG = None
 
-                pathG = self.convertMAPToPath(self.MAPs[gene][g],biGraph)
-                pathG.pop(0)
                 pathsg[g][gene] = pathG
+
         for g in range(self.G):
             for h in range(g+1,self.G):
                 diff = 0
                 for gene in self.genes:
-                    diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
+                    if pathsg[g][gene] is not None and pathsg[h][gene] is not None:
+                        diff += len(set(pathsg[g][gene]) ^ set(pathsg[h][gene]))
                 dist[g,h] = diff 
         
         
@@ -2686,7 +2695,7 @@ class AssemblyPathSVA():
                     if unitig in self.margG[gene][0]:
                         vals = []
                         for g in range(self.G):
-                            if not drop_strain[gene][g]:
+                            if not drop_strain[gene][g] and self.MAPs[gene][g] is not None:
                                 if self.MAPs[gene][g][unitig] == 1:
                                     vals.append(g)                  
                         vString = "\t".join([str(x) for x in vals])
@@ -2715,7 +2724,7 @@ class AssemblyPathSVA():
                     if unitig in self.margG[gene][0]:
                         vals = []
                         for g in range(self.G):
-                            if not drop_strain[gene][g]:
+                            if not drop_strain[gene][g] and self.MAPs[gene][g] is not None:
                                 if self.MAPs[gene][g][unitig] == 1:
                                     vals.append(g)                  
                         vString = "_".join([str(x) for x in vals])
@@ -2844,7 +2853,7 @@ class AssemblyPathSVA():
                     else:
                         haplotypes[gene].append("")
                         self.MAPs[gene].append(None)                           
-                    
+                        self.paths[gene].append([])
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
