@@ -22,7 +22,7 @@ def filterGenes(assGraph):
     errors = []
     genes = []
     
-    for (gene, error) in gene_mean_dev.items():
+    for (gene, error) in gene_mean_error.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
         errors.append(error)
         genes.append(gene)
