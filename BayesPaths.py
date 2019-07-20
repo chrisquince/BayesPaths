@@ -256,7 +256,19 @@ def main(argv):
     genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
 
     selectedSamples = selectSamples(assGraph, genesFilter)
-
+    
+    if  np.sum(selectedSamples) < assGraph.nS:
+        print('Selecting samples:')
+        
+        selectedIndices = np.where(selectedSamples)
+    
+        sString = ','.join([str(s) for s in selectedIndices])
+    
+        print(sString)
+        logFile=args.outFileStub + "_log1.txt"
+        with open(logFile,'w') as f:
+            f.write(sString + '\n')
+    
     assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
     sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
