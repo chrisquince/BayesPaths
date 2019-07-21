@@ -403,7 +403,7 @@ class AssemblyPathSVA():
         
         self.logX = np.log(self.X + 0.5)
         self.expTau = np.full((self.V,self.S),self.alpha/self.beta)
-        self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- log(self.beta))
+        self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- math.log(self.beta))
         
       
     
