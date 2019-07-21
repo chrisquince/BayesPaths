@@ -464,55 +464,6 @@ class AssemblyPathSVA():
         self.expTau = np.full((self.V,self.S),self.alpha/self.beta)
         self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- math.log(self.beta))
         
-      
-    
-    def collapse_tau_sample_div(self):
-        mapT = defaultdict(list)
-        revCountQ = [1.0e10]
-        t = self.nQuant - 1
-        while t > 2:
-            if self.tauFreq[t] > 0:
-                s = t - 1
-                revCountQ.append(self.countQ[t])
-                while self.sampleEntropy[t] < 2.0 and s > -1:
-                    self.sampleDiv[t,:] += self.sampleDiv[s,:]
-                    relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
-                    self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
-                        
-                    s = s - 1
-                if t - s > 1:
-                    revCountQ.append(self.countQ[s+1])
-                    
-                t = s 
-                
-            else:
-                t -= 1
- 
-        while t >= 0:
-            revCountQ.append(self.countQ[t])
-            t -= 1
-        
-        revCountQ.reverse()
-        self.countQ = np.asarray(revCountQ)    
-        self.nQuant = len(self.countQ)
-        self.tauFreq = np.zeros(self.nQuant) 
-        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-        self.sampleDiv = np.zeros((self.nQuant,self.S))
-        for v in range(self.V):
-            for s in range(self.S):
-                start = 0
-                while self.X[v,s] > self.countQ[start]:
-                    start+=1
-                self.tauMap[v,s] = start
-                self.tauFreq[start] += 1
-                self.sampleDiv[start,s] +=1
-            
-        if  self.bAdaptivePrior == True:
-            self.eL = np.zeros(self.nQuant)
-
-            self.eL[1:self.nQuant] = 0.5*self.countQ[1:self.nQuant] + 0.5*self.countQ[0:self.nQuant-1]
-
-            self.eL[0] = 0.5*self.countQ[0]
     
     def flag_degenerate_sequences(self):
         #First test for unitig  overlaps
@@ -537,29 +488,7 @@ class AssemblyPathSVA():
     
         return (degenSeq, maskMatrix)
     
-    def set_tau_map(self):
        
-        self.tauMap = np.zeros((self.V,self.S),dtype=np.int)
-        self.sampleDiv = np.zeros((self.nQuant,self.S))
-        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)    
-
-        for v in range(self.V):
-            for s in range(self.S):
-                start = 0
-                while self.X[v,s] > self.countQ[start]:
-                    start+=1
-                self.tauMap[v,s] = start
-                self.tauFreq[start] += 1  
-                self.sampleDiv[start,s] +=1
- 
-        self.sampleEntropy = np.zeros(self.nQuant)
-        
-        for t in range(self.nQuant):
-            if np.sum(self.sampleDiv[t,:]) > 0:
-                relP = self.sampleDiv[t,:]/np.sum(self.sampleDiv[t,:])
-                self.sampleEntropy[t] = math.exp(-np.sum(relP[relP > 0.]*np.log(relP[relP > 0.])))
-    
-    
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
         self.alphak_s[k] = self.alpha0 + self.S
@@ -1116,34 +1045,14 @@ class AssemblyPathSVA():
         self.muGamma[g_idx,:]   = muGammaG
         self.varGamma[g_idx,:]  = varGammaG
     
-    def reassignTau(self):
-        self.tauFreq = np.zeros(self.nQuant,dtype=np.int)
-           
-        self.tauMap = np.zeros((self.V,self.S),dtype=np.int) 
-    
-        P = self.eLambda*self.lengths[:,np.newaxis]
-            
-        if self.BIAS:
-            P = P*self.expTheta[:,np.newaxis]
-    
-        for v in range(self.V):
-            for s in range(self.S):
-                start = 0
-                while P[v,s] > self.countQ[start]:
-                    start+=1
-                self.tauMap[v,s] = start
-                self.tauFreq[start] += 1
-        
-        if self.bAdaptivePrior == True:
-            self.alphaTauCat = self.alpha/(self.eL*self.eL) + 0.5*self.tauFreq
-        else:
-            self.alphaTauCat = self.alpha + 0.5*self.tauFreq
         
     def updateTau(self):
 
         square_diff_matrix = self.exp_square_diff_matrix()  
 
-        logExpTau = np.log((self.alpha + 0.5)/(self.beta + 0.5*square_diff_matrix))
+        self.betaTau = self.beta + 0.5*square_diff_matrix
+
+        logExpTau = np.log((self.alpha + 0.5)/(self.betaTau))
         
         logExpTau1D = np.ravel(logExpTau)
         
@@ -1162,7 +1071,7 @@ class AssemblyPathSVA():
         
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
-        self.expTau = np.log(self.expTau)
+        self.expTau = np.exp(self.expLogTau)
         
         
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
@@ -1319,14 +1228,6 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             self.updateTau()
-            
-            if self.bReassign:
-                if iter > 0 and iter < 100:
-                    if iter % 10 == 0:
-                        self.reassignTau()
-                else:
-                    if iter % 50 == 0:
-                        self.reassignTau()
                         
             if self.BIAS:
                 self.updateTheta()
@@ -2034,8 +1935,8 @@ class AssemblyPathSVA():
         total_elbo += self.G*np.sum(self.logPhiPrior[unitig_idxs])
         
         #add tau prior
-        total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
+        total_elbo += nU*self.S*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau[unitig_idxs,:] - self.beta*self.expTau[unitig_idxs,:)
 
         
         if self.BIAS:            
@@ -2045,15 +1946,13 @@ class AssemblyPathSVA():
         
             total_elbo += qTheta
         # q for tau
-        dTemp1 = np.zeros(self.nQuant)
-        dTemp2 = np.zeros(self.nQuant)
 
-        for d in range(self.nQuant):
-            dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
-            dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+        dTemp1 = np.sum((self.alpha + 0.5)*np.log(self.betaTau[unitig_idxs,:]) +  sps.gammaln(self.alpha + 0.5))
+        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau[unitig_idxs,:] + self.betaTau[unitig_idxs,:]*self.expTau[unitig_idxs,:])
 
-        total_elbo += - np.sum(dTemp1) 
-        total_elbo += - np.sum(dTemp2)
+        
+        total_elbo += - dTemp1 
+        total_elbo += - dTemp2
         # q for phi
         total_elbo += np.sum(self.HPhi[unitig_idxs])
         return total_elbo
@@ -2121,7 +2020,7 @@ class AssemblyPathSVA():
         #add tau prior
 
         total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
 
         # q for lambdak, if using ARD
         if self.ARD:
@@ -2147,17 +2046,15 @@ class AssemblyPathSVA():
         
             total_elbo += qTheta
         # q for tau
-        dTemp1 = np.zeros(self.nQuant)
-        dTemp2 = np.zeros(self.nQuant)
+        
+        dTemp1 = np.sum((self.alpha + 0.5)*np.log(self.betaTau) +  sps.gammaln(self.alpha + 0.5))
+        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau + self.betaTau*self.expTau)
 
-        for d in range(self.nQuant):
-            if self.tauFreq[d] > 0:
-                dTemp1[d] = self.alphaTauCat[d] * math.log(self.betaTauCat[d]) + sps.gammaln(self.alphaTauCat[d])
-                dTemp2[d] = (self.alphaTauCat[d] - 1.)*self.expLogTauCat[d] + self.betaTauCat[d] * self.expTauCat[d]
+        
+        total_elbo += - dTemp1 
+        total_elbo += - dTemp2
 
-        total_elbo += - np.sum(dTemp1) 
-        total_elbo += - np.sum(dTemp2)
-        # q for phi
+         # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo
 
@@ -2448,11 +2345,8 @@ class AssemblyPathSVA():
 
     def writeTau(self,fileName):
 
-        with open(fileName, "w") as tauFile:
+        np.savetxt(fileName, self.expTau, delimiter=',') 
         
-            for n in range(self.nQuant):
-                tauFile.write(str(n) + "," + str(self.tauFreq[n]) + "," + str(self.countQ[n]) + "," + str(self.expTauCat[n]) + "\n")
-                
             
     def writeGeneError(self,fileName):
         
