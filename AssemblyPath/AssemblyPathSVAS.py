@@ -19,6 +19,7 @@ from scipy.special import erf
 
 from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
+from sklearn.preprocessing import PolynomialFeatures
 
 from copy import deepcopy
 from copy import copy
@@ -172,7 +173,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauType = 'None', nTauCats = 1, tauThresh = 0.1, bReassign = False,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -454,11 +455,9 @@ class AssemblyPathSVA():
             
         self.elbo = 0.
         
-        self.bReassign = bReassign
-        self.tauType   = tauType
+        self.bLoess = bLoess
+
         self.tauThresh = tauThresh 
-        self.bAdaptivePrior = False
- 
         
         self.logX = np.log(self.X + 0.5)
         self.expTau = np.full((self.V,self.S),self.alpha/self.beta)
@@ -1058,21 +1057,39 @@ class AssemblyPathSVA():
         
         logX1D = np.ravel(self.logX)
         
-        try:
-            print("Attemptimg Loess smooth")
-            yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+        if sel.bLoess:
         
-        except ValueError:
+            try:
+                print("Attemptimg Loess smooth")
+                yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+        
+            except ValueError:
+                model = LinearRegression()
+            
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D)
+            
+                model.fit(X_poly, logExpTau1D)
+            
+                yest_sm  = model.predict(X_ploy)
+        
+            
+        else:
             model = LinearRegression()
             
-            model.fit(logX1D, logExpTau1D)
+            poly_reg = PolynomialFeatures(degree=2)
             
-            yest_sm  = model.predict(logX1D)
-        
+            X_poly = poly_reg.fit_transform(logX1D)
+            
+            model.fit(X_poly, logExpTau1D)
+            
+            yest_sm  = model.predict(X_ploy)
+
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
         self.expTau = np.exp(self.expLogTau)
-        
+
         
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
     
