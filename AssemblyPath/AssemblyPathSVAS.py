@@ -16,6 +16,8 @@ from scipy.stats import truncnorm
 from scipy.special import erfc
 from scipy.special import erf
 
+
+from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 
 from copy import deepcopy
@@ -1146,8 +1148,17 @@ class AssemblyPathSVA():
         logExpTau1D = np.ravel(logExpTau)
         
         logX1D = np.ravel(self.logX)
+        
+        try:
+        
+            yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+        
+        except ValueError:
+            model = LinearRegression()
             
-        yest_sm = lowess(logX1D,logExpTau1D, f=0.25, iter=3)
+            model.fit(logX1D, logExpTau1D)
+            
+            yest_sm  = model.predict(logX1D)
         
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
@@ -2024,7 +2035,7 @@ class AssemblyPathSVA():
         
         #add tau prior
         total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTauCat - self.beta*self.expTauCat)
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
 
         
         if self.BIAS:            
