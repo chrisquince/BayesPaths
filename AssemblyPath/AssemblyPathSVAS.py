@@ -1082,7 +1082,7 @@ class AssemblyPathSVA():
         else:
             if self.bGam:
             
-                gam = LinearGAM(s(0)).fit(logX1D, logExpTau1D)
+                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
             
                 yest_sm = gam.predict(logX1D)
             
