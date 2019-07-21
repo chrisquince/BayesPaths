@@ -1059,7 +1059,7 @@ class AssemblyPathSVA():
         logX1D = np.ravel(self.logX)
         
         try:
-        
+            print("Attemptimg Loess smooth")
             yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
         
         except ValueError:
@@ -1936,7 +1936,7 @@ class AssemblyPathSVA():
         
         #add tau prior
         total_elbo += nU*self.S*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau[unitig_idxs,:] - self.beta*self.expTau[unitig_idxs,:)
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau[unitig_idxs,:] - self.beta*self.expTau[unitig_idxs,:])
 
         
         if self.BIAS:            
@@ -2019,7 +2019,7 @@ class AssemblyPathSVA():
         
         #add tau prior
 
-        total_elbo += self.nQuant*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += self.V*self.S*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
         total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
 
         # q for lambdak, if using ARD
