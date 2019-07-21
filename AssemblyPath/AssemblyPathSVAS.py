@@ -16,6 +16,8 @@ from scipy.stats import truncnorm
 from scipy.special import erfc
 from scipy.special import erf
 
+from pygam import LinearGAM, s, f
+
 
 from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
@@ -173,7 +175,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -456,6 +458,8 @@ class AssemblyPathSVA():
         self.elbo = 0.
         
         self.bLoess = bLoess
+        
+        self.bGam = bGam
 
         self.tauThresh = tauThresh 
         
@@ -1076,15 +1080,23 @@ class AssemblyPathSVA():
         
             
         else:
-            model = LinearRegression()
+            if bGam:
             
-            poly_reg = PolynomialFeatures(degree=2)
+                gam = LinearGAM(s(0)).fit(logX1D, logExpTau1D)
             
-            X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+                yest_sm = gam.predict(logX1D)
             
-            model.fit(X_poly, logExpTau1D)
+            else:
+        
+                model = LinearRegression()
             
-            yest_sm  = model.predict(X_poly)
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+            
+                model.fit(X_poly, logExpTau1D)
+            
+                yest_sm  = model.predict(X_poly)
 
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
