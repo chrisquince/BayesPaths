@@ -108,7 +108,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -257,7 +257,7 @@ def main(argv):
 
     selectedSamples = selectSamples(assGraph, genesFilter)
     
-    if  np.sum(selectedSamples) < assGraph.nS:
+    if  np.sum(selectedSamples) < assGraph.S:
         print('Selecting samples:')
         
         selectedIndices = np.where(selectedSamples)
