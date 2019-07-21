@@ -1057,7 +1057,7 @@ class AssemblyPathSVA():
         
         logX1D = np.ravel(self.logX)
         
-        if sel.bLoess:
+        if self.bLoess:
         
             try:
                 print("Attemptimg Loess smooth")
@@ -1068,11 +1068,11 @@ class AssemblyPathSVA():
             
                 poly_reg = PolynomialFeatures(degree=2)
             
-                X_poly = poly_reg.fit_transform(logX1D)
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
             
                 model.fit(X_poly, logExpTau1D)
             
-                yest_sm  = model.predict(X_ploy)
+                yest_sm  = model.predict(X_poly)
         
             
         else:
@@ -1080,11 +1080,11 @@ class AssemblyPathSVA():
             
             poly_reg = PolynomialFeatures(degree=2)
             
-            X_poly = poly_reg.fit_transform(logX1D)
+            X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
             
             model.fit(X_poly, logExpTau1D)
             
-            yest_sm  = model.predict(X_ploy)
+            yest_sm  = model.predict(X_poly)
 
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
@@ -2434,7 +2434,7 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "\n")
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v,s])+"\n")
 
 
 
