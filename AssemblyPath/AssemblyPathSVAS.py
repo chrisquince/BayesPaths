@@ -1080,7 +1080,7 @@ class AssemblyPathSVA():
         
             
         else:
-            if bGam:
+            if self.bGam:
             
                 gam = LinearGAM(s(0)).fit(logX1D, logExpTau1D)
             
@@ -2446,7 +2446,7 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v,s])+"\n")
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
 
 
 
