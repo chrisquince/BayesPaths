@@ -1147,7 +1147,7 @@ class AssemblyPathSVA():
         
         logX1D = np.ravel(self.logX)
             
-        yest_sm = lowess(logX1D,ogExpTau1D, f=0.25, iter=3)
+        yest_sm = lowess(logX1D,logExpTau1D, f=0.25, iter=3)
         
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
