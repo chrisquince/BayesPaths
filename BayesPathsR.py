@@ -247,14 +247,10 @@ def main(argv):
                 graph.selectSamples(selectedSamples)            
             
             assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                ARD=True,BIAS=args.bias, NOISE=False, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
             
             assGraph.initNMFGamma(gammaFixed)
-
-            assGraph.expGamma = np.copy(gammaFixed)
-            
-            assGraph.expGamma2 = gammaFixed*gammaFixed
             
             assGraph.updateGammaFixed(100)
     

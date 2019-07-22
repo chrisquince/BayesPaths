@@ -2014,6 +2014,58 @@ class AssemblyPathSVA():
         print("-1,"+ str(self.div())) 
 
 
+    def initNMFGammaFixed(self,gamma):
+        
+        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 10, prng = self.prng)
+        covNMF.random_initialize() 
+        covNMF.H = np.copy(gamma[0:self.G,:])
+        covNMF.factorizeW()
+        self.eLambda = np.zeros((self.V,self.S))
+        initEta = covNMF.W
+        
+        self.expGamma = gamma  #expectation of gamma
+        self.expGamma2 = np.copy(gamma*gamma)
+        
+        for g in range(self.G):
+            
+            for gene, factorGraph in self.factorGraphs.items():
+                unitigs = self.assemblyGraphs[gene].unitigs
+                    
+                self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
+                  
+                factorGraph.reset()
+        
+                factorGraph.var['zero+source+'].condition(1)
+
+                factorGraph.var['sink+infty+'].condition(1)
+                    
+                graphString = str(factorGraph)
+                outFileStub = str(uuid.uuid4()) + 'graph_'+ str(g)
+                graphFileName = self.working_dir + '/' + outFileStub + '.fg'                
+                outFileName = self.working_dir + '/' + outFileStub + '.out'
+                with open(graphFileName, "w") as text_file:
+                    print(graphString, file=text_file)
+                      
+                cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'   
+               
+                #subprocess.run('./runfg_marg_old ' + graphFileName + ' 0 > ' + outFileName, shell=True,check=True)
+ 
+                subprocess.run(cmd, shell=True,check=True)
+
+                #p = Popen(cmd, stdout=PIPE,shell=True)
+                
+                with open (outFileName, "r") as myfile:
+                    outLines=myfile.readlines()
+                
+                self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
+                self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
+                os.remove(graphFileName)
+                os.remove(outFileName)
+                             
+            self.addGamma(g)    
+        print("-1,"+ str(self.div()))
+
+
     def exp_square_lambda(self):
         ''' Compute: sum_s E_q(phi,gamma) [ sum ( Phi_v Gamma_s )^2 ]. '''
         
