@@ -212,6 +212,16 @@ def main(argv):
         with open(args.gamma_file,'r') as g:
             gidx = 0
             mapG = {}
+        
+            header = next(g)
+
+            toks = header.split(',')
+
+            toks.pop(0)
+
+            selectIndices = np.asarray([int(x) for x in toks])
+
+
             for line in g:
                 line = line.rstrip()
                 
@@ -226,12 +236,22 @@ def main(argv):
             gammaFixed = np.zeros((G,S))
             for gidx in range(G):
                 gammaFixed[gidx,:] = mapG[gidx]
-            
+
+            graphDash = next(iter(assemblyGraphs.values()))
+            SDash = next(iter(graphDash.covMap.values())).shape[0]
+
+            selectedSamples = np.zeros(SDash,dtype=np.bool)
+            selectedSamples[selectIndices] = True             
+
+            for gene, graph in assemblyGraphs.items():
+                graph.selectSamples(selectedSamples)            
             
             assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
             
+            assGraph.initNMFGamma(gammaFixed)
+
             assGraph.expGamma = np.copy(gammaFixed)
             
             assGraph.expGamma2 = gammaFixed*gammaFixed
