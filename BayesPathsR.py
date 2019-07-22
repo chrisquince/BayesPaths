@@ -85,6 +85,8 @@ def main(argv):
 
     parser.add_argument('-p','--paths_file',nargs='?', default=None)
 
+    parser.add_argument('-gf','--gamma_file',nargs='?', default=None)
+
     parser.add_argument('-y','--tautype',nargs='?', default='Adaptive', type=str,
         help=("type of variance model"))
         
@@ -198,6 +200,37 @@ def main(argv):
             assemblyGraphs[gene] = unitigGraph
     
     #import ipdb; ipdb.set_trace() 
+    
+    if args.gamma_file != None:
+        
+        with open(args.gamma_file,'r') as g:
+            gidx = 0
+            mapG = {}
+            for line in g:
+                line = line.rstrip()
+                
+                toks = line.split(',')
+            
+                mapG[int(gidx)] = np.asarray([float(x) for x in toks[1:]])
+            
+                gidx += 1
+            
+            S = mapG[0].shape[0]
+            G = gidx
+            gammaFixed = np.zeros((G,S))
+            for gidx in range(G):
+                gammaFixed[gidx,:] = mapG[g]
+            
+            
+            assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
+                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+            
+            assGraph.expGamma = np.copy(gammaFixed)
+            
+            assGraph.expGamma2 = gammaFixed*gammaFixed
+            
+            assGraph.updateGammaFixed(100)
     
     if  args.paths_file != None:
     
