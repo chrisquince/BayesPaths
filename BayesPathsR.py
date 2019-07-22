@@ -91,6 +91,8 @@ def main(argv):
         help=("type of variance model"))
         
     parser.add_argument('--noreassign', dest='reassign', action='store_false')
+
+    parser.add_argument('--nocogs', dest='cogs', action='store_false')
     
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
@@ -138,15 +140,19 @@ def main(argv):
     for gfaFile in gfaFiles:
         fileName = os.path.basename(gfaFile)
 
-        p = re.compile('COG[0-9]+')
+        if args.cogs:
+            p = re.compile('COG[0-9]+')
 
-        m = p.search(gfaFile)
+            m = p.search(gfaFile)
         
-        if m is None:
-            raise ValueError
+            if m is None:
+                raise ValueError
 
-        gene = m.group()
-        
+            gene = m.group()
+        else:
+            base=os.path.basename(gfaFile)
+            gene = base[:-4]
+
         covFile = gfaFile[:-3] + "tsv"
         
         try:
@@ -219,7 +225,7 @@ def main(argv):
             G = gidx
             gammaFixed = np.zeros((G,S))
             for gidx in range(G):
-                gammaFixed[gidx,:] = mapG[g]
+                gammaFixed[gidx,:] = mapG[gidx]
             
             
             assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
