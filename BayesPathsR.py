@@ -112,7 +112,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -250,9 +250,11 @@ def main(argv):
                                 ARD=True,BIAS=args.bias, NOISE=False, fgExePath=args.executable_path, tauType = args.tautype, nTauCats=args.ncat,bReassign=args.reassign,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
             
-            assGraph.initNMFGamma(gammaFixed)
+            assGraph.initNMFGammaFixed(gammaFixed)
             
-            assGraph.updateGammaFixed(100)
+            assGraph.updateGammaFixed(100,relax_path=True)
+
+            print("Dummy")
     
     if  args.paths_file != None:
     
