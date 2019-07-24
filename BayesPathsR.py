@@ -112,7 +112,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -194,7 +194,7 @@ def main(argv):
         if gene in cogLengths:
             (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
         else:
-            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
+            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds,400)
         
 
         source_names = [convertNodeToName(source) for source in source_list] 
@@ -252,9 +252,26 @@ def main(argv):
             
             assGraph.initNMFGammaFixed(gammaFixed)
             
-            assGraph.updateGammaFixed(100,relax_path=True)
+            assGraph.updateGammaFixed(25,relax_path=True)
 
-            print("Dummy")
+            assGraph.writeGeneError(args.outFileStub + "geneError.csv")
+
+            assGraph.writeMarginals(args.outFileStub + "margFile.csv")
+   
+            assGraph.getMaximalUnitigs(args.outFileStub + "Haplo_" + str(assGraph.G),drop_strain=None, relax_path=True)
+    
+            assGraph.writeMaximals(args.outFileStub + "maxFile.tsv",drop_strain=None)
+   
+            if assGraph.BIAS:
+                assGraph.writeTheta(args.outFileStub + "Theta.csv") 
+
+            assGraph.writeTau(args.outFileStub + "Tau.csv")
+
+            #assGraph.writePathDivergence(args.outFileStub + "Diver.csv",relax_path=relax_path_out)
+
+            assGraph.writePredictions(args.outFileStub + "Pred.csv" , drop_strain=None)
+
+            sys.exit(0)
     
     if  args.paths_file != None:
     
