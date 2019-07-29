@@ -175,7 +175,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -228,7 +228,7 @@ class AssemblyPathSVA():
             self.muTheta0 = muTheta0
             self.tauTheta0 = tauTheta0
 
-
+        self.bLogTau = bLogTau
 
         self.V = 0
         self.mapIdx = {}
@@ -1050,6 +1050,14 @@ class AssemblyPathSVA():
     
         
     def updateTau(self):
+    
+        if self.bLogTau:
+            self.updateLogTau()
+        else:
+            self.updateTauBeta()
+        
+    def updateLogTau(self):
+
 
         square_diff_matrix = self.exp_square_diff_matrix()  
 
@@ -1277,7 +1285,8 @@ class AssemblyPathSVA():
             
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
-        self.updateTauBeta() 
+        
+        self.updateTau() 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):
@@ -1325,7 +1334,7 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
             
-            self.updateTauBeta()
+            self.updateTau()
                         
             if self.BIAS:
                 self.updateTheta()
@@ -2275,7 +2284,7 @@ class AssemblyPathSVA():
                 for g in range(self.GDash):
                     self.addGamma(g)
             
-                self.updateTauBeta()
+                self.updateTau()
             
                 iter += 1
         
