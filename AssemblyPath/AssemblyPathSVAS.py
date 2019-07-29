@@ -1165,7 +1165,7 @@ class AssemblyPathSVA():
 
         logRSmooth = np.reshape(yest_sm ,(self.V,self.S))
 
-        self.betaTau =  self.beta*R + np.exp(logRSmooth)
+        self.betaTau =  self.beta + 0.5*np.exp(logRSmooth)
         
         self.expLogTau =  digamma(self.alpha + 0.5) - np.log(self.betaTau)
         
