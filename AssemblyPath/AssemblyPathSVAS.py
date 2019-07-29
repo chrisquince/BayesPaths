@@ -1109,6 +1109,68 @@ class AssemblyPathSVA():
         
         self.expTau = np.exp(self.expLogTau)
 
+    def updateTauBeta(self):
+
+        square_diff_matrix = self.exp_square_diff_matrix()  
+
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R = self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        else:
+            R = self.lengths[:,np.newaxis]*self.eLambda
+        
+        self.betaTau = self.beta*R + 0.5*square_diff_matrix
+
+        betaTau1D = np.ravel(np.log(self.betaTau))
+
+        logX1D = np.ravel(np.log(R))
+        
+        if self.bLoess:
+        
+            try:
+                print("Attemptimg Loess smooth")
+                yest_sm = lowess(logX1D,betaTau1D, f=0.75, iter=3)
+        
+            except ValueError:
+                model = LinearRegression()
+            
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+            
+                model.fit(X_poly, betaTau1D)
+            
+                yest_sm  = model.predict(X_poly)
+        
+            
+        else:
+            if self.bGam:
+            
+                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, betaTau1D)
+            
+                yest_sm = gam.predict(logX1D)
+            
+            else:
+        
+                model = LinearRegression()
+            
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+            
+                model.fit(X_poly, betaTau1D)
+            
+                yest_sm  = model.predict(X_poly)
+
+        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
+        
+        self.betaTau =  np.exp(np.reshape(yest_sm ,(self.V,self.S)))
+
+        self.expLogTau =  digamma(self.alpha + 0.5) - np.log(self.betaTau)
+        
+        self.expTau = (self.alpha + 0.5)/self.betaTau
+
         
     def updateExpPhi(self,unitigs,mapUnitig,marg,g_idx):
     
@@ -1215,7 +1277,7 @@ class AssemblyPathSVA():
             
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
-        self.updateTau() 
+        self.updateTauBeta() 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):
@@ -1263,7 +1325,7 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
             
-            self.updateTau()
+            self.updateTauBeta()
                         
             if self.BIAS:
                 self.updateTheta()
@@ -2213,7 +2275,7 @@ class AssemblyPathSVA():
                 for g in range(self.GDash):
                     self.addGamma(g)
             
-                self.updateTau()
+                self.updateTauBeta()
             
                 iter += 1
         
