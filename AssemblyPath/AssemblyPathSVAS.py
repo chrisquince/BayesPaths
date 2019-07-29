@@ -1120,9 +1120,9 @@ class AssemblyPathSVA():
         else:
             R = self.lengths[:,np.newaxis]*self.eLambda
         
-        self.betaTau = self.beta*R + 0.5*square_diff_matrix
+        logDiff = np.log(square_diff_matrix)
 
-        betaTau1D = np.ravel(np.log(self.betaTau))
+        logDiff1D = np.ravel(logDiff)
 
         logX1D = np.ravel(np.log(R))
         
@@ -1130,7 +1130,7 @@ class AssemblyPathSVA():
         
             try:
                 print("Attemptimg Loess smooth")
-                yest_sm = lowess(logX1D,betaTau1D, f=0.75, iter=3)
+                yest_sm = lowess(logX1D, logDiff1D, f=0.75, iter=3)
         
             except ValueError:
                 model = LinearRegression()
@@ -1139,7 +1139,7 @@ class AssemblyPathSVA():
             
                 X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
             
-                model.fit(X_poly, betaTau1D)
+                model.fit(X_poly, logDiff1D)
             
                 yest_sm  = model.predict(X_poly)
         
@@ -1147,7 +1147,7 @@ class AssemblyPathSVA():
         else:
             if self.bGam:
             
-                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, betaTau1D)
+                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logDiff1D)
             
                 yest_sm = gam.predict(logX1D)
             
@@ -1159,14 +1159,14 @@ class AssemblyPathSVA():
             
                 X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
             
-                model.fit(X_poly, betaTau1D)
+                model.fit(X_poly, logDiff1D)
             
                 yest_sm  = model.predict(X_poly)
 
-        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
-        
-        self.betaTau =  np.exp(np.reshape(yest_sm ,(self.V,self.S)))
+        logRSmooth = np.reshape(yest_sm ,(self.V,self.S))
 
+        self.betaTau =  self.beta*R + np.exp(logRSmooth)
+        
         self.expLogTau =  digamma(self.alpha + 0.5) - np.log(self.betaTau)
         
         self.expTau = (self.alpha + 0.5)/self.betaTau
