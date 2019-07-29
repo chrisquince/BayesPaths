@@ -1053,13 +1053,20 @@ class AssemblyPathSVA():
 
         square_diff_matrix = self.exp_square_diff_matrix()  
 
-        self.betaTau = self.beta + 0.5*square_diff_matrix
+        self.eLambda = np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R = self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
+        else:
+            R = self.lengths[:,np.newaxis]*self.eLambda
+        
+        self.betaTau = self.beta*R + 0.5*square_diff_matrix
 
-        logExpTau = np.log((self.alpha + 0.5)/(self.betaTau))
+        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
         
         logExpTau1D = np.ravel(logExpTau)
         
-        logX1D = np.ravel(self.logX)
+        logX1D = np.ravel(R)
         
         if self.bLoess:
         

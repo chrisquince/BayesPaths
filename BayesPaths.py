@@ -84,7 +84,7 @@ def main(argv):
         
     parser.add_argument('--loess', dest='loess', action='store_true')
     
-    parser.add_argument('--gam', dest='usegam', action='store_false')
+    parser.add_argument('--no_gam', dest='usegam', action='store_false')
     
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
