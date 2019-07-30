@@ -2718,9 +2718,9 @@ class AssemblyPathSVA():
                 r = r + 1
 
     def writeGammaMatrix(self, gammaFile, selectedIndices):
-        sString = ",".join([str(x) for x in selectedIndices.tolist()])
+        sString = ",".join([str(x) for x in selectedIndices[0].tolist()])
         with open(gammaFile, "w") as gammaFile:
-            gammaFile.write(sString + "\n")
+            gammaFile.write("Haplo," + sString + "\n")
             
             for g in range(self.G):
                 gammaVals = self.expGamma[g,:].tolist()
@@ -2730,9 +2730,9 @@ class AssemblyPathSVA():
                 gammaFile.write(str(g) + "," + gString + "\n")
     
     def writeGammaVarMatrix(self, gammaFile, selectedIndices):
-        sString = ",".join([str(x) for x in selectedIndices.tolist()])
+        sString = ",".join([str(x) for x in selectedIndices[0].tolist()])
         with open(gammaFile, "w") as gammaFile:
-            gammaFile.write(sString + "\n")
+            gammaFile.write("Haplo," + sString + "\n")
             
             for g in range(self.G):
                 gammaVals = self.varGamma[g,:].tolist()
