@@ -47,7 +47,7 @@ def filterGenes(assGraph, bGeneDev):
 
     return genesSelect 
 
-def selectSamples(assGraph, genesSelect):
+def selectSamples(assGraph, genesSelect, readLength,kLength):
         
     nGenes = len(genesSelect)
         
@@ -57,7 +57,9 @@ def selectSamples(assGraph, genesSelect):
         geneSampleCovArray[g,:] = assGraph.geneCovs[gene]
         g = g + 1    
     
-    sampleMean = np.mean(geneSampleCovArray,axis=0)
+    kFactor = readLength/(readLength - kLength + 1.)
+    
+    sampleMean = np.mean(geneSampleCovArray,axis=0)*kFactor
         
     minCov = max(SAMPLE_MIN_COV,0.05*np.max(sampleMean))
 
@@ -261,7 +263,7 @@ def main(argv):
     
     genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
 
-    selectedSamples = selectSamples(assGraph, genesFilter)
+    selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length))
     
     if  np.sum(selectedSamples) < assGraph.S:
         print('Selecting samples:')
@@ -297,7 +299,7 @@ def main(argv):
 
         assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
-        assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False)
+        assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples)
 
         genesSelect = filterGenes(assGraph,args.bGeneDev)
         nChange = -len(genesSelect) + len(assGraph.genes)
@@ -319,13 +321,13 @@ def main(argv):
 
     assGraph.update(250, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.writeOutput(args.outFileStub, False)
+    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
     assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
     assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeOutput(args.outFileStub + "_P", False)
+    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

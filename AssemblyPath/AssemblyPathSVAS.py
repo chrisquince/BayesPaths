@@ -2532,7 +2532,7 @@ class AssemblyPathSVA():
 
 
 
-    def writeOutput(self, outFileStub, relax_path_out):
+    def writeOutput(self, outFileStub, relax_path_out, selectedSamples):
         
         self.writeGeneError(outFileStub + "geneError.csv")
 
@@ -2542,9 +2542,11 @@ class AssemblyPathSVA():
     
         self.writeMaximals(outFileStub + "maxFile.tsv",drop_strain=None)
    
-        self.writeGammaMatrix(outFileStub + "Gamma.csv") 
+        selectedIndices = np.where(selectedSamples)
+   
+        self.writeGammaMatrix(outFileStub + "Gamma.csv", selectedIndices) 
 
-        self.writeGammaVarMatrix(outFileStub + "varGamma.csv") 
+        self.writeGammaVarMatrix(outFileStub + "varGamma.csv", selectedIndices) 
     
         if self.BIAS:
             self.writeTheta(outFileStub + "Theta.csv") 
@@ -2715,9 +2717,11 @@ class AssemblyPathSVA():
                 fastaFile.write(refs[r]+"\n")
                 r = r + 1
 
-    def writeGammaMatrix(self, gammaFile):
-
+    def writeGammaMatrix(self, gammaFile, selectedIndices):
+        sString = ",".join([str(x) for x in selectedIndices.tolist()])
         with open(gammaFile, "w") as gammaFile:
+            gammaFile.write(sString + "\n")
+            
             for g in range(self.G):
                 gammaVals = self.expGamma[g,:].tolist()
                 
@@ -2725,9 +2729,11 @@ class AssemblyPathSVA():
 
                 gammaFile.write(str(g) + "," + gString + "\n")
     
-    def writeGammaVarMatrix(self, gammaFile):
-
+    def writeGammaVarMatrix(self, gammaFile, selectedIndices):
+        sString = ",".join([str(x) for x in selectedIndices.tolist()])
         with open(gammaFile, "w") as gammaFile:
+            gammaFile.write(sString + "\n")
+            
             for g in range(self.G):
                 gammaVals = self.varGamma[g,:].tolist()
                 
