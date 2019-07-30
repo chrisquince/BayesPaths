@@ -15,14 +15,20 @@ from numpy.random import RandomState
 COG_COV_DEV = 2.5
 SAMPLE_MIN_COV = 1.0
 
-def filterGenes(assGraph):
+def filterGenes(assGraph, bGeneDev):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
     gene_mean_dev = assGraph.gene_mean_deviance()
+    
+    if bGeneDev:
+        eval_error = gene_mean_dev
+    else
+        eval_error = gene_mean_error
+    
     errors = []
     genes = []
     
-    for (gene, error) in gene_mean_error.items():
+    for (gene, error) in eval_error.items():
         print(gene + "," + str(error) + "," + str(gene_mean_elbo[gene]))
         errors.append(error)
         genes.append(gene)
@@ -103,6 +109,8 @@ def main(argv):
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
     parser.add_argument('--nologtau', dest='bLogTau', action='store_false')
+
+    parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
     args = parser.parse_args()
 
@@ -291,7 +299,7 @@ def main(argv):
         
         assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False)
 
-        genesSelect = filterGenes(assGraph)
+        genesSelect = filterGenes(assGraph,args.bGeneDev)
         nChange = -len(genesSelect) + len(assGraph.genes)
         print("Removed: " + str(nChange) + " genes")
         assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}

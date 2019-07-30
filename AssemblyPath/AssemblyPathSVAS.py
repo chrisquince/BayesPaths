@@ -171,6 +171,8 @@ class AssemblyPathSVA():
     minW = 1.0e-3
     
     minLogQGamma = 1.0e-100
+    
+    minBeta = 1.0e-100
         
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
@@ -1069,6 +1071,8 @@ class AssemblyPathSVA():
             R = self.lengths[:,np.newaxis]*self.eLambda
         
         self.betaTau = self.beta*R + 0.5*square_diff_matrix
+
+        self.betaTau[self.betaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
 
         logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
         
