@@ -1106,33 +1106,19 @@ class AssemblyPathSVA():
         
         logX1D = np.ravel(R)
         
-        if self.bLoess:
         
-            try:
+        try:
+            
+            if self.bLoess:
                 print("Attemptimg Loess smooth")
                 yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
-        
-            except ValueError:
-                model = LinearRegression()
-            
-                poly_reg = PolynomialFeatures(degree=2)
-            
-                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
-            
-                model.fit(X_poly, logExpTau1D)
-            
-                yest_sm  = model.predict(X_poly)
-        
-            
-        else:
-            if self.bGam:
-            
+            elif self.bGam:
                 gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
             
                 yest_sm = gam.predict(logX1D)
-            
             else:
-        
+                print("Attemptimg linear regression")
+                    
                 model = LinearRegression()
             
                 poly_reg = PolynomialFeatures(degree=2)
@@ -1142,7 +1128,14 @@ class AssemblyPathSVA():
                 model.fit(X_poly, logExpTau1D)
             
                 yest_sm  = model.predict(X_poly)
-
+        except ValueError:
+            print("Performing fixed tau")
+                    
+            self.updateFixedTau()
+                    
+            return
+            
+        
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
         self.expTau = np.exp(self.expLogTau)
@@ -1164,33 +1157,18 @@ class AssemblyPathSVA():
 
         logX1D = np.ravel(np.log(R))
         
-        if self.bLoess:
-        
-            try:
+        try:
+            
+            if self.bLoess:
                 print("Attemptimg Loess smooth")
-                yest_sm = lowess(logX1D, logDiff1D, f=0.75, iter=3)
-        
-            except ValueError:
-                model = LinearRegression()
-            
-                poly_reg = PolynomialFeatures(degree=2)
-            
-                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
-            
-                model.fit(X_poly, logDiff1D)
-            
-                yest_sm  = model.predict(X_poly)
-        
-            
-        else:
-            if self.bGam:
-            
-                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logDiff1D)
+                yest_sm = lowess(logX1D,logDiff1D, f=0.75, iter=3)
+            elif self.bGam:
+                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
             
                 yest_sm = gam.predict(logX1D)
-            
             else:
-        
+                print("Attemptimg linear regression")
+                    
                 model = LinearRegression()
             
                 poly_reg = PolynomialFeatures(degree=2)
@@ -1200,6 +1178,13 @@ class AssemblyPathSVA():
                 model.fit(X_poly, logDiff1D)
             
                 yest_sm  = model.predict(X_poly)
+        except ValueError:
+            print("Performing fixed tau")
+                    
+            self.updateFixedTau()
+                    
+            return
+        
 
         logRSmooth = np.reshape(yest_sm ,(self.V,self.S))
 
