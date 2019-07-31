@@ -469,8 +469,8 @@ class AssemblyPathSVA():
         self.logX = np.log(self.X + 0.5)
         self.expTau = np.full((self.V,self.S),self.alpha/self.beta)
         self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- math.log(self.beta))
-        
-    
+        self.betaTau = np.full((self.V,self.S),self.beta)
+        self.alphaTau = np.full((self.V,self.S),self.alpha)
     def flag_degenerate_sequences(self):
         #First test for unitig  overlaps
         uniqSeqs = defaultdict(list)
@@ -1075,9 +1075,13 @@ class AssemblyPathSVA():
         
         tempLogTau = digamma(alphaTemp) - np.log(betaTemp)
 
-        self.expTau = np.fill((self.V,self.S),tempTau)
+        self.betaTau.fill(betaTemp/(self.V*self.S))
+
+        self.alphaTau.fill(alphaTemp/(self.V*self.S))
+
+        self.expTau.fill(tempTau)
         
-        self.expLogTau = np.fill((self.V,self.S),tempLogTau)
+        self.expLogTau.fill(tempLogTau)
 
     
     def updateLogTau(self):
