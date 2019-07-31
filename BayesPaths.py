@@ -113,6 +113,8 @@ def main(argv):
     parser.add_argument('--nologtau', dest='bLogTau', action='store_false')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
+    
+    parser.add_argument('--fixedtau', dest='bFixedTau', action='store_true')
 
     args = parser.parse_args()
 
@@ -243,7 +245,7 @@ def main(argv):
         sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
         assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         
@@ -256,7 +258,7 @@ def main(argv):
         
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
@@ -285,7 +287,7 @@ def main(argv):
         graph.selectSamples(selectedSamples)
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
     maxGIter = 4
@@ -309,7 +311,7 @@ def main(argv):
         sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
         assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                    ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau,
+                                    ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                     fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         gIter += 1

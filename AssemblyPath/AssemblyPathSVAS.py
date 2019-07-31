@@ -177,7 +177,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -230,7 +230,8 @@ class AssemblyPathSVA():
             self.muTheta0 = muTheta0
             self.tauTheta0 = tauTheta0
 
-        self.bLogTau = bLogTau
+        self.bLogTau   = bLogTau
+        self.bFixedTau = bFixedTau 
 
         self.V = 0
         self.mapIdx = {}
@@ -1052,12 +1053,33 @@ class AssemblyPathSVA():
     
         
     def updateTau(self):
-    
-        if self.bLogTau:
-            self.updateLogTau()
-        else:
-            self.updateTauBeta()
         
+        if self.bFixedTau:
+            self.updateFixedTau()
+        else:
+    
+            if self.bLogTau:
+                self.updateLogTau()
+            else:
+                self.updateTauBeta()
+    
+    
+    def updateFixedTau(self):
+        square_diff_matrix = self.exp_square_diff_matrix()  
+
+        betaTemp = self.beta + 0.5*np.sum(square_diff_matrix)
+        
+        alphaTemp = self.alpha + 0.5*self.V*self.S
+
+        tempTau = alphaTemp/betaTemp
+        
+        tempLogTau = digamma(alphaTemp) - np.log(betaTemp)
+
+        self.expTau = np.fill((self.V,self.S),tempTau)
+        
+        self.expLogTau = np.fill((self.V,self.S),tempLogTau)
+
+    
     def updateLogTau(self):
 
 
