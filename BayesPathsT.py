@@ -12,6 +12,8 @@ from AssemblyPath.AssemblyPathSVAT import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 
+from Utils.mask import compute_folds_attempts
+
 COG_COV_DEV = 2.5
 SAMPLE_MIN_COV = 1.0
 
@@ -339,7 +341,25 @@ def main(argv):
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
     
     
-    
+    ''' Generate matrices M - one list of M's for each value of K. '''
+    M_attempts = 1000
+    M = np.ones((assGraph.V,assGraph.S))
+    Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+        
+    fold = 0
+    for M_train_M_test in Ms_training_and_test:
+        M_train = M_train_M_test[0]
+        M_test = M_train_M_test[1]
+        
+        assGraph.initNMF(M_train)
+
+        assGraph.update(200, True, M_train, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+        
+        train_elbo = assGraph.calc_elbo(M_test)
+        train_err  = assGraph.predict(M_test)
+            
+        print(str(fold) +","+str(train_elbo) + "," + str(train_err))
+        fold += 1
 
 if __name__ == "__main__":
     main(sys.argv[1:])
