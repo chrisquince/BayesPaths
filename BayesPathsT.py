@@ -308,7 +308,7 @@ def main(argv):
 
             assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
-            assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples)
+            assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples,M_all)
 
             genesSelect = filterGenes(assGraph,args.bGeneDev)
             nChange = -len(genesSelect) + len(assGraph.genes)
@@ -323,22 +323,21 @@ def main(argv):
         
             gIter += 1
     
+    M_all = np.ones((assGraph.V,assGraph.S))
 
-    assGraph.initNMF()
-
-    M_all = np.identity((assGraph.V,assGraph.S),dtype=np.int)
+    assGraph.initNMF(M_all)
 
     assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
 
     assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub, False, selectedSamples,M_all)
 
     assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
     assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples,M_all)
     
     
     ''' Generate matrices M - one list of M's for each value of K. '''

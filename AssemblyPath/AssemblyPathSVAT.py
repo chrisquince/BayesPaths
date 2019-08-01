@@ -2482,10 +2482,10 @@ class AssemblyPathSVA():
         np.savetxt(fileName, self.expTau, delimiter=',') 
         
             
-    def writeGeneError(self,fileName):
+    def writeGeneError(self,fileName,M_train):
         
-        gene_mean_error = self.gene_mean_diff()
-        gene_mean_elbo = self.gene_mean_elbo()
+        gene_mean_error = self.gene_mean_diff(M_train)
+        gene_mean_elbo = self.gene_mean_elbo(M_train)
 
         with open(fileName, "w") as errorFile:
             for (gene, error) in gene_mean_error.items():
@@ -2555,9 +2555,9 @@ class AssemblyPathSVA():
 
 
 
-    def writeOutput(self, outFileStub, relax_path_out, selectedSamples):
+    def writeOutput(self, outFileStub, relax_path_out, selectedSamples,M_train):
         
-        self.writeGeneError(outFileStub + "geneError.csv")
+        self.writeGeneError(outFileStub + "geneError.csv",M_train)
 
         self.writeMarginals(outFileStub + "margFile.csv")
    
