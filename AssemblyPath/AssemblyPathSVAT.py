@@ -1006,7 +1006,7 @@ class AssemblyPathSVA():
 
             self.expTheta2[v] = self.expTheta2Cat[b]
 
-   def updateGamma(self, g_idx, M_train):
+    def updateGamma(self, g_idx, M_train):
         
         temp = np.delete(self.expGamma,g_idx,0)
         temp2 = np.delete(self.expPhi,g_idx,1)
@@ -1105,7 +1105,7 @@ class AssemblyPathSVA():
         mDiff = np.ma.masked_where(M_train==0, square_diff_matrix)
         
         logX1D = np.ma.compressed(mR)
-        mBetaTau = self.beta*logX1D + 0.5*mDiff
+        mBetaTau = self.beta*logX1D + 0.5*np.ma.compressed(mDiff)
         
         mBetaTau[mBetaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
 
@@ -2075,9 +2075,9 @@ class AssemblyPathSVA():
         
             total_elbo += qTheta
        
-       dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau[unitig_idxs,:])*M_train[unitig_idxs,:]) - nTOmega*sps.gammaln(self.alpha + 0.5)
+        dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau[unitig_idxs,:])*M_train[unitig_idxs,:]) - nTOmega*sps.gammaln(self.alpha + 0.5)
        
-       dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau[unitig_idxs,:]*M_train[unitig_idxs,:]) + np.sum(self.betaTau[unitig_idxs,:]*self.expTau[unitig_idxs,:]*M_train[unitig_idxs,:])
+        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau[unitig_idxs,:]*M_train[unitig_idxs,:]) + np.sum(self.betaTau[unitig_idxs,:]*self.expTau[unitig_idxs,:]*M_train[unitig_idxs,:])
 
         total_elbo += - np.sum(dTemp1) 
         total_elbo += - np.sum(dTemp2)

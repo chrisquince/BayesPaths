@@ -120,7 +120,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -298,10 +298,10 @@ def main(argv):
         gIter = 0
 
         while nChange > 0 and gIter < maxGIter:
-            assGraph.initNMF()
+            M_all = np.ones((assGraph.V,assGraph.S))
+            assGraph.initNMF(M_all)
             print("Round " + str(gIter) + " of gene filtering")
             
-            M_all = np.identity((assGraph.V,assGraph.S),dtype=np.int)
             assGraph.update(500, True, M_all, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
             assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
