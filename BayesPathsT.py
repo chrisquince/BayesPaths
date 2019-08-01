@@ -341,22 +341,56 @@ def main(argv):
     
     
     ''' Generate matrices M - one list of M's for each value of K. '''
-    M_attempts = 1000
-    M = np.ones((assGraph.V,assGraph.S))
-    Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
-    no_folds=10 
-    for f in range(no_folds):
-        M_train = Ms_training_and_test[0][f]
-        M_test = Ms_training_and_test[1][f]
+    
+    Gopt = assGraph.G
+    no_folds=10
+    
+    elbos = defaultdict(lambda: np.zeros(no_folds))
+    errs = defaultdict(lambda: np.zeros(no_folds))
+    divs = defaultdict(lambda: np.zeros(no_folds))
+    divFs = defaultdict(lambda: np.zeros(no_folds))
+    Hs = defaultdict(lambda: np.zeros(no_folds))    
         
-        assGraph.initNMF(M_train)
+    for g in range(1,Gopt + 1):
+        
+        M_attempts = 1000
+        M = np.ones((assGraph.V,assGraph.S))
+        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+         
+        for f in range(no_folds):
+            M_train = Ms_training_and_test[0][f]
+            M_test = Ms_training_and_test[1][f]
+        
+            assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = g, readLength=args.readLength,
+                                    ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                    fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+        
+            assGraph.initNMF(M_train)
 
-        assGraph.update(200, True, M_train, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+            assGraph.update(200, True, M_train, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
         
-        train_elbo = assGraph.calc_elbo(M_test)
-        train_err  = assGraph.predict(M_test)
+            train_elbo = assGraph.calc_elbo(M_test)
+            train_err  = assGraph.predict(M_test)
             
-        print(str(f) +","+str(train_elbo) + "," + str(train_err))
+            train_div = assGraph.div(M_test)
+            train_divF = assGraph.divF(M_test)
+            
+            elbos[g][f] = train_elbo
+            errs[g][f]  = train_err 
+            divs[g][f]  = train_div 
+            divFs[g][f] = train_divF 
+            Hs[g][f] = assGraph.G
+            
+            print(str(g) + ","" + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
 
+    for g in range(1,Gopt + 1):
+        mean_elbo = np.mean(elbos[g])        
+        mean_err = np.mean(elbos[g])   
+        mean_div = np.mean(elbos[g]) 
+        mean_divF = np.mean(elbos[g])     
+        median_h = np.median(Hs[g]) 
+        
+        print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
+        
 if __name__ == "__main__":
     main(sys.argv[1:])
