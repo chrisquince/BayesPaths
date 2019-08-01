@@ -344,7 +344,7 @@ def main(argv):
     M_attempts = 1000
     M = np.ones((assGraph.V,assGraph.S))
     Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
-    
+    no_folds=10 
     for f in range(no_folds):
         M_train = Ms_training_and_test[0][f]
         M_test = Ms_training_and_test[1][f]
@@ -356,8 +356,7 @@ def main(argv):
         train_elbo = assGraph.calc_elbo(M_test)
         train_err  = assGraph.predict(M_test)
             
-        print(str(fold) +","+str(train_elbo) + "," + str(train_err))
-        fold += 1
+        print(str(f) +","+str(train_elbo) + "," + str(train_err))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
