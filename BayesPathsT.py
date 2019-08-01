@@ -344,11 +344,10 @@ def main(argv):
     M_attempts = 1000
     M = np.ones((assGraph.V,assGraph.S))
     Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
-        
-    fold = 0
-    for M_train_M_test in Ms_training_and_test:
-        M_train = M_train_M_test[0]
-        M_test = M_train_M_test[1]
+    
+    for f in range(no_folds):
+        M_train = Ms_training_and_test[0][f]
+        M_test = Ms_training_and_test[1][f]
         
         assGraph.initNMF(M_train)
 
