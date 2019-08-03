@@ -17,10 +17,10 @@ from Utils.mask import compute_folds_attempts
 COG_COV_DEV = 2.5
 SAMPLE_MIN_COV = 1.0
 
-def filterGenes(assGraph, bGeneDev):
-    gene_mean_error = assGraph.gene_mean_diff()
-    gene_mean_elbo = assGraph.gene_mean_elbo()
-    gene_mean_dev = assGraph.gene_mean_deviance()
+def filterGenes(assGraph, bGeneDev, M_train):
+    gene_mean_error = assGraph.gene_mean_diff(M_train)
+    gene_mean_elbo = assGraph.gene_mean_elbo(M_train)
+    gene_mean_dev = assGraph.gene_mean_deviance(M_train)
     
     if bGeneDev:
         eval_error = gene_mean_dev
@@ -122,7 +122,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -293,7 +293,10 @@ def main(argv):
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
-
+    
+    assemblyGraphs = assemblyGraphsFilter
+    source_maps = source_maps_filter
+    sink_maps = sink_maps_filter
     if args.filter:
         maxGIter = 4
         nChange = 1
@@ -304,13 +307,13 @@ def main(argv):
             assGraph.initNMF(M_all)
             print("Round " + str(gIter) + " of gene filtering")
             
-            assGraph.update(500, True, M_all, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+            assGraph.update(100, True, M_all, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
-            assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
+            assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv",M_all)
         
             assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples,M_all)
 
-            genesSelect = filterGenes(assGraph,args.bGeneDev)
+            genesSelect = filterGenes(assGraph,args.bGeneDev,M_all)
             nChange = -len(genesSelect) + len(assGraph.genes)
             print("Removed: " + str(nChange) + " genes")
             assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
@@ -321,21 +324,25 @@ def main(argv):
                                     ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                     fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
+            assemblyGraphs = assemblyGraphsSelect
+            source_maps = source_maps_select
+            sink_maps = sink_maps_select
+
             gIter += 1
     
     M_all = np.ones((assGraph.V,assGraph.S))
 
     assGraph.initNMF(M_all)
 
-    assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
+    assGraph.update(100, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
 
-    assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(100, True, M_all, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
     assGraph.writeOutput(args.outFileStub, False, selectedSamples,M_all)
 
-    assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(100, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(250, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(100, True, M_all, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples,M_all)
     
@@ -361,13 +368,13 @@ def main(argv):
             M_train = Ms_training_and_test[0][f]
             M_test = Ms_training_and_test[1][f]
         
-            assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = g, readLength=args.readLength,
+            assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = g, readLength=args.readLength,
                                     ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                     fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
             assGraph.initNMF(M_train)
 
-            assGraph.update(200, True, M_train, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+            assGraph.update(100, True, M_train, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
         
             train_elbo = assGraph.calc_elbo(M_test)
             train_err  = assGraph.predict(M_test)
@@ -381,16 +388,17 @@ def main(argv):
             divFs[g][f] = train_divF 
             Hs[g][f] = assGraph.G
             
-            print(str(g) + ","" + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
+            print(str(g) + "," + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
 
-    for g in range(1,Gopt + 1):
-        mean_elbo = np.mean(elbos[g])        
-        mean_err = np.mean(elbos[g])   
-        mean_div = np.mean(elbos[g]) 
-        mean_divF = np.mean(elbos[g])     
-        median_h = np.median(Hs[g]) 
-        
-        print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
+    with open(args.outFileStub + "_CV.csv",'w') as f:
+        for g in range(1,Gopt + 1):
+            mean_elbo = np.mean(elbos[g])        
+            mean_err = np.mean(elbos[g])   
+            mean_div = np.mean(elbos[g]) 
+            mean_divF = np.mean(elbos[g])     
+            median_h = np.median(Hs[g]) 
+            f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h) + '\n')
+            print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
         
 if __name__ == "__main__":
     main(sys.argv[1:])
