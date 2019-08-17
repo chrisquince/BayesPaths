@@ -531,7 +531,7 @@ class AssemblyPathSVA():
                 if node not in largestFactor:
                     tempGraph.remove_node(node)
         
-        self.writeNetworkGraph(tempGraph,"temp.graphml")
+        #self.writeNetworkGraph(tempGraph,"temp.graphml")
         
         
         bubble_list = []
@@ -2329,7 +2329,7 @@ class AssemblyPathSVA():
     def removeRedundant(self, minIntensity, gammaIter, relax_path, uncertainFactor=None):
     
         if uncertainFactor is not None:
-            self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
+            self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path,writeSeq=False)
  
             mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
     
@@ -2614,7 +2614,7 @@ class AssemblyPathSVA():
                     
 
 
-    def getMaximalUnitigs(self, fileStub, drop_strain=None,relax_path=False):
+    def getMaximalUnitigs(self, fileStub, drop_strain=None,relax_path=False,writeSeq=True):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -2665,25 +2665,25 @@ class AssemblyPathSVA():
                 else:
                     haplotypes[gene].append("")
                     self.MAPs[gene].append(None)            
-        
-        fileName = fileStub + ".fa"
-        with open(fileName, "w") as fastaFile:
-            for g in range(self.G):
+        if writeSeq:
+            fileName = fileStub + ".fa"
+            with open(fileName, "w") as fastaFile:
+                for g in range(self.G):
 
-                for gene, factorGraph in self.factorGraphs.items():
-                    if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
-                        fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                        fastaFile.write(haplotypes[gene][g]+"\n")
+                    for gene, factorGraph in self.factorGraphs.items():
+                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
+                            fastaFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                            fastaFile.write(haplotypes[gene][g]+"\n")
 
-        fileName = fileStub + "_path.txt"
-        with open(fileName, "w") as pathFile:
-            for g in range(self.G):
+            fileName = fileStub + "_path.txt"
+            with open(fileName, "w") as pathFile:
+                for g in range(self.G):
 
-                for gene, factorGraph in self.factorGraphs.items():
-                    if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
-                        pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
-                        pathString = ",".join(self.paths[gene][g])
-                        pathFile.write(pathString+"\n")
+                    for gene, factorGraph in self.factorGraphs.items():
+                        if not drop_strain[gene][g] and len(haplotypes[gene][g]) > 0:
+                            pathFile.write(">" + str(gene) + "_" + str(g) + "\n")
+                            pathString = ",".join(self.paths[gene][g])
+                            pathFile.write(pathString+"\n")
         return haplotypes
         
     def outputOptimalRefPaths(self, ref_hit_file):
