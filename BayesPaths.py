@@ -379,7 +379,7 @@ def main(argv):
                 print(str(g) + "," + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
 
 
-         with open(args.outFileStub + "_CV.csv",'w') as f:
+        with open(args.outFileStub + "_CV.csv",'w') as f:
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
                 mean_err = np.mean(errs[g])   
