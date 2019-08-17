@@ -106,6 +106,8 @@ def main(argv):
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.1, type=float,
         help=("penalisation on uncertain strains"))
 
+    parser.add_argument('--run_elbow', dest='run_elbow', action='store_true')
+
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
@@ -334,6 +336,62 @@ def main(argv):
     assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+
+    Gopt = assGraph.G
+
+    if args.run_elbow or Gopt > 5:
+        no_folds=10
+    
+        elbos = defaultdict(lambda: np.zeros(no_folds))
+        errs = defaultdict(lambda: np.zeros(no_folds))
+        divs = defaultdict(lambda: np.zeros(no_folds))
+        divFs = defaultdict(lambda: np.zeros(no_folds))
+        Hs = defaultdict(lambda: np.zeros(no_folds))    
+        
+        
+        M = np.ones((assGraph.V,assGraph.S))
+        
+        for g in range(1,Gopt + 1):
+                
+            for f in range(no_folds):
+
+        
+                assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = g, readLength=args.readLength,
+                                            ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                            fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+        
+                assGraph.initNMF()
+
+                assGraph.update(200, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+        
+                train_elbo = assGraph.calc_elbo()
+                train_err  = assGraph.predict(M)
+            
+                train_div = assGraph.div()
+                train_divF = assGraph.divF()
+            
+                elbos[g][f] = train_elbo
+                errs[g][f]  = train_err 
+                divs[g][f]  = train_div 
+                divFs[g][f] = train_divF 
+                Hs[g][f] = assGraph.G
+            
+                print(str(g) + ","" + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
+
+
+         with open(args.outFileStub + "_CV.csv",'w') as f:
+            for g in range(1,Gopt + 1):
+                mean_elbo = np.mean(elbos[g])        
+                mean_err = np.mean(errs[g])   
+                mean_div = np.mean(divs[g]) 
+                mean_divF = np.mean(divFs[g])     
+                median_h = np.median(Hs[g]) 
+                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h) + '\n')
+                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
+  
+
+
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
