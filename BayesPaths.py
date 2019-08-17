@@ -368,7 +368,7 @@ def main(argv):
         
                 assGraph.initNMF()
 
-                assGraph.update(200, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+                assGraph.update(args.iter, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
         
                 train_elbo = assGraph.calc_elbo()
                 train_err  = assGraph.predict(M)
