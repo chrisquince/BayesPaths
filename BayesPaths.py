@@ -93,6 +93,9 @@ def main(argv):
     parser.add_argument('--loess', dest='loess', action='store_true')
     
     parser.add_argument('--no_gam', dest='usegam', action='store_false')
+
+    parser.add_argument('-i', '--iters', default=250, type=int,
+        help="number of iterations for the variational inference")
     
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
@@ -105,6 +108,8 @@ def main(argv):
 
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.1, type=float,
         help=("penalisation on uncertain strains"))
+
+    parser.add_argument('--nofilter', dest='filter', action='store_false')
 
     parser.add_argument('--run_elbow', dest='run_elbow', action='store_true')
 
@@ -300,40 +305,41 @@ def main(argv):
     nChange = 1
     gIter = 0
 
-    while nChange > 0 and gIter < maxGIter:
-        assGraph.initNMF()
-        print("Round " + str(gIter) + " of gene filtering")
-        assGraph.update(500, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+    if args.filter:
+        while nChange > 0 and gIter < maxGIter:
+            assGraph.initNMF()
+            print("Round " + str(gIter) + " of gene filtering")
+            assGraph.update(args.iters*2, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
 
-        assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
+            assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
-        assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples)
+            assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples)
 
-        genesSelect = filterGenes(assGraph,args.bGeneDev)
-        nChange = -len(genesSelect) + len(assGraph.genes)
-        print("Removed: " + str(nChange) + " genes")
-        assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
-        source_maps_select = {s:source_maps[s] for s in genesSelect} 
-        sink_maps_select = {s:sink_maps[s] for s in genesSelect}
+            genesSelect = filterGenes(assGraph,args.bGeneDev)
+            nChange = -len(genesSelect) + len(assGraph.genes)
+            print("Removed: " + str(nChange) + " genes")
+            assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
+            source_maps_select = {s:source_maps[s] for s in genesSelect} 
+            sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                    ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
-                                    fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+            assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
+                                        ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                        fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
-        gIter += 1
+            gIter += 1
     
 
     assGraph.initNMF()
 
-    assGraph.update(250, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
 
-    assGraph.update(250, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
     assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(250, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
