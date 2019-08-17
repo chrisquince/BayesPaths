@@ -268,8 +268,12 @@ def main(argv):
     selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length))
     
     if  np.sum(selectedSamples) < assGraph.S:
-        print('Selecting samples:')
+        print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
+        if np.sum(selectedSamples) < 3:
+            print("Not recommended to run BayesPaths.py with fewer than 3 samples exiting...")
+            sys.exit(0)
+
         selectedIndices = np.where(selectedSamples)
     
         sString = ','.join([str(s) for s in selectedIndices])
