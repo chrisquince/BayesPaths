@@ -376,7 +376,7 @@ def main(argv):
                 divFs[g][f] = train_divF 
                 Hs[g][f] = assGraph.G
             
-                print(str(g) + ","" + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
+                print(str(g) + "," + str(f) +"," + str(assGraph.G) +"," + str(train_elbo) + "," + str(train_err) + "," + str(train_div) + "," + str(train_divF))
 
 
          with open(args.outFileStub + "_CV.csv",'w') as f:
