@@ -301,11 +301,16 @@ def main(argv):
                                 ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
-    maxGIter = 4
-    nChange = 1
-    gIter = 0
+
+    assemblyGraphs = assemblyGraphsFilter
+    source_maps = source_maps_filter
+    sink_maps = sink_maps_filter
 
     if args.filter:
+        maxGIter = 4
+        nChange = 1
+        gIter = 0
+
         while nChange > 0 and gIter < maxGIter:
             assGraph.initNMF()
             print("Round " + str(gIter) + " of gene filtering")
@@ -325,7 +330,12 @@ def main(argv):
             assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                         fracCov = args.frac_cov, noiseFrac = args.noise_frac)
-        
+
+
+            assemblyGraphs = assemblyGraphsSelect
+            source_maps = source_maps_select
+            sink_maps = sink_maps_select
+
             gIter += 1
     
 
@@ -362,13 +372,13 @@ def main(argv):
             for f in range(no_folds):
 
         
-                assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = g, readLength=args.readLength,
+                assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = g, readLength=args.readLength,
                                             ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                             fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
                 assGraph.initNMF()
 
-                assGraph.update(args.iter, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+                assGraph.update(args.iters, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
         
                 train_elbo = assGraph.calc_elbo()
                 train_err  = assGraph.predict(M)
