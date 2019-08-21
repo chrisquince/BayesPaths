@@ -1052,14 +1052,14 @@ class AssemblyPathSVA():
         self.varGamma[g_idx,:]  = varGammaG
     
         
-    def updateTau(self):
+    def updateTau(self,bFit=True):
         
         if self.bFixedTau:
             self.updateFixedTau()
         else:
     
             if self.bLogTau:
-                self.updateLogTau()
+                self.updateLogTau(bFit)
             else:
                 self.updateTauBeta()
     
@@ -1084,7 +1084,7 @@ class AssemblyPathSVA():
         self.expLogTau.fill(tempLogTau)
 
     
-    def updateLogTau(self):
+    def updateLogTau(self,bFit = True):
 
 
         square_diff_matrix = self.exp_square_diff_matrix()  
@@ -1113,9 +1113,10 @@ class AssemblyPathSVA():
                 print("Attemptimg Loess smooth")
                 yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
             elif self.bGam:
-                gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
+                if bFit:
+                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
             
-                yest_sm = gam.predict(logX1D)
+                yest_sm = self.gam.predict(logX1D)
             else:
                 print("Attemptimg linear regression")
                     
@@ -1349,7 +1350,12 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
             
-            self.updateTau()
+            if iter % 10 == 0
+                bFit = True
+            else:
+                bFit = False
+                
+            self.updateTau(bFit)
                         
             if self.BIAS:
                 self.updateTheta()
