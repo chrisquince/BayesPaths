@@ -54,7 +54,7 @@ import subprocess
 import shlex
 
 import multiprocessing as mp
-from  multiprocessing import ThreadPool
+from  multiprocessing.pool import ThreadPool
 
 def reject_outliers(data, m = 2.):
     d = np.abs(data - np.median(data))
