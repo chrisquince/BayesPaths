@@ -1057,7 +1057,6 @@ class AssemblyPathSVA():
         if self.bFixedTau:
             self.updateFixedTau()
         else:
-    
             if self.bLogTau:
                 self.updateLogTau(bFit)
             else:
@@ -1350,13 +1349,10 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
             
-            if iter % 10 == 0
-                bFit = True
+            if iter % 10 == 0:
+                self.updateTau(bFit = True)
             else:
-                bFit = False
-                
-            self.updateTau(bFit)
-                        
+                       
             if self.BIAS:
                 self.updateTheta()
             
