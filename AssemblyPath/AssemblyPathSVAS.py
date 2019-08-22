@@ -50,12 +50,10 @@ from Utils.UtilsFunctions import readRefAssign
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.NMFM import NMF
  
-import multiprocessing
 import subprocess
 import shlex
 
-from multiprocessing.pool import ThreadPool
-
+import multiprocessing as mp
 
 def reject_outliers(data, m = 2.):
     d = np.abs(data - np.median(data))
@@ -1319,7 +1317,7 @@ class AssemblyPathSVA():
                 
                 fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
                 
-                pool = ThreadPool(len(self.genes))
+                pool = mp.Pool(len(self.genes))
                 results = []
                 for gene, graphFileStub in fgFileStubs.items():
                     graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
