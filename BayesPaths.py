@@ -341,7 +341,7 @@ def main(argv):
 
     assGraph.initNMF()
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=False)
 
     #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
