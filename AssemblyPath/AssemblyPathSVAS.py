@@ -1081,9 +1081,7 @@ class AssemblyPathSVA():
         
         self.expLogTau.fill(tempLogTau)
 
-   def updateLogTauX(self,bFit = True):
-
-
+    def updateLogTauX(self,bFit = True):
         square_diff_matrix = self.exp_square_diff_matrix()  
         
         self.betaTau = self.beta*self.X + 0.5*square_diff_matrix
