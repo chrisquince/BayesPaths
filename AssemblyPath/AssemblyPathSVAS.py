@@ -54,6 +54,7 @@ import subprocess
 import shlex
 
 import multiprocessing as mp
+from  multiprocessing import ThreadPool
 
 def reject_outliers(data, m = 2.):
     d = np.abs(data - np.median(data))
@@ -1291,7 +1292,7 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3):
+    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -1316,20 +1317,30 @@ class AssemblyPathSVA():
                 threads = []
                 
                 fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
-                
-                pool = mp.Pool(len(self.genes))
-                results = []
-                for gene, graphFileStub in fgFileStubs.items():
-                    graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
-                    outFileName = self.working_dir + '/' + graphFileStub + '.out'
+            
+                if bMulti:
+                    pool = ThreadPool(len(self.genes))
+                    results = []
+                    for gene, graphFileStub in fgFileStubs.items():
+                        graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
+                        outFileName = self.working_dir + '/' + graphFileStub + '.out'
                     
-                    cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
-                    results.append(pool.apply_async(call_proc, (cmd,)))
-                pool.close()
-                pool.join()
-                for result in results:
-                    out, err = result.get()
+                        cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
+                        results.append(pool.apply_async(call_proc, (cmd,)))
+                    pool.close()
+                    pool.join()
+                    for result in results:
+                        out, err = result.get()
         #            print("out: {} err: {}".format(out, err))
+                else:
+                    
+                    results = []
+                    for gene, graphFileStub in fgFileStubs.items():
+                        graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
+                        outFileName = self.working_dir + '/' + graphFileStub + '.out'
+                    
+                        cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
+                        results.append(call_proc, (cmd,))    
                 
                 self.readMarginals(fgFileStubs, g, drop_strain)
                            
