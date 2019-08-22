@@ -1057,7 +1057,7 @@ class AssemblyPathSVA():
             self.updateFixedTau()
         else:
             if self.bLogTau:
-                self.updateLogTau(bFit)
+                self.updateLogTauX(bFit)
             else:
                 self.updateTauBeta()
     
@@ -1080,6 +1080,56 @@ class AssemblyPathSVA():
         self.expTau.fill(tempTau)
         
         self.expLogTau.fill(tempLogTau)
+
+   def updateLogTauX(self,bFit = True):
+
+
+        square_diff_matrix = self.exp_square_diff_matrix()  
+        
+        self.betaTau = self.beta*self.X + 0.5*square_diff_matrix
+
+        self.betaTau[self.betaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
+
+        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
+        
+        logExpTau1D = np.ravel(logExpTau)
+        
+        logX1D = np.ravel(self.X)
+        
+        try:
+            
+            if self.bLoess:
+                print("Attemptimg Loess smooth")
+                yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+            elif self.bGam:
+                if bFit:
+                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
+            
+                yest_sm = self.gam.predict(logX1D)
+            else:
+                print("Attemptimg linear regression")
+                    
+                model = LinearRegression()
+            
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+            
+                model.fit(X_poly, logExpTau1D)
+            
+                yest_sm  = model.predict(X_poly)
+        except ValueError:
+            print("Performing fixed tau")
+                    
+            self.updateFixedTau()
+                    
+            return
+            
+        
+        self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
+        
+        self.expTau = np.exp(self.expLogTau)
+
 
     
     def updateLogTau(self,bFit = True):
@@ -1358,8 +1408,8 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
             
-            if iter % 10 == 0:
-                self.updateTau(bFit = True)
+            #if iter % 10 == 0:
+            self.updateTau(bFit = True)
                        
             if self.BIAS:
                 self.updateTheta()
