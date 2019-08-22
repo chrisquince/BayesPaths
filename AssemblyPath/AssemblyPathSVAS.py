@@ -1351,7 +1351,6 @@ class AssemblyPathSVA():
             
             if iter % 10 == 0:
                 self.updateTau(bFit = True)
-            else:
                        
             if self.BIAS:
                 self.updateTheta()
