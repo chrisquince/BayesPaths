@@ -343,19 +343,19 @@ def main(argv):
 
     assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
     assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
 
-    if args.run_elbow or Gopt > 5:
+    if args.run_elbow or Gopt > 10:
         no_folds=10
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
