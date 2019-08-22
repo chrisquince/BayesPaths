@@ -55,6 +55,7 @@ import shlex
 
 import multiprocessing as mp
 from  multiprocessing.pool import ThreadPool
+from  multiprocessing import Pool
 
 def reject_outliers(data, m = 2.):
     d = np.abs(data - np.median(data))
@@ -1367,7 +1368,7 @@ class AssemblyPathSVA():
                 fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
             
                 if bMulti:
-                    pool = ThreadPool(len(self.genes))
+                    pool = Pool(len(self.genes))
                     results = []
                     for gene, graphFileStub in fgFileStubs.items():
                         graphFileName = self.working_dir + '/' + graphFileStub + '.fg'
