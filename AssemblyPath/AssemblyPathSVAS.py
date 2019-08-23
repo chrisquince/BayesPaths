@@ -336,7 +336,7 @@ class AssemblyPathSVA():
                     self.geneDegenerate[gene] = mapGene
                      
         for gene, sinks in sink_maps.items():
-            print(gene)
+            #print(gene)
             for sink in sinks:
                 sunitig = sink[0]
                 if sunitig in self.mapGeneIdx[gene]:
@@ -375,7 +375,7 @@ class AssemblyPathSVA():
             self.minSumCov = 0.0
             self.fracCov = 0.0
 
-        print("Minimum coverage: " + str(self.minSumCov)) 
+       # print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
             self.minIntensity = self.maxSampleCov/self.readLength
             self.adjUncertain = np.max(self.meanSampleCov)/self.readLength
@@ -1421,7 +1421,7 @@ class AssemblyPathSVA():
             currElbo = total_elbo   
             DivF = self.divF()
             Div  = self.div()
-            print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
+            #print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
@@ -1504,7 +1504,7 @@ class AssemblyPathSVA():
             total_elbo = self.calc_elbo()    
             DivF = self.divF()
             Div  = self.div()
-            print(str(iter)+ "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
+            #print(str(iter)+ "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo))
 
             iter += 1
     
@@ -1523,7 +1523,7 @@ class AssemblyPathSVA():
             for g in range(self.GDash):
                 self.addGamma(g)
 
-            print(str(iter)+","+ str(self.divF()))  
+            #print(str(iter)+","+ str(self.divF()))  
             iter += 1
     
     def div(self):

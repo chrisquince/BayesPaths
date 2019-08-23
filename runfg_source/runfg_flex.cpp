@@ -63,13 +63,13 @@ int main( int argc, char *argv[] )
         BigInt tState;
         try {
             std::pair< size_t, BigInt > p = boundTreewidth(fg, &eliminationCost_MinFill, maxstates );
-            cout << "Running junction tree width " << p.first << " " << p.second << endl;
+            //cout << "Running junction tree width " << p.first << " " << p.second << endl;
             tWidth = p.first;
             tState = p.second;
         } catch( Exception &e ) {
             if( e.getCode() == Exception::OUT_OF_MEMORY ) {
                 runJT = false;
-                cout << "Skipping junction tree (need more than " << maxstates << " states)." << endl;
+              //  cout << "Skipping junction tree (need more than " << maxstates << " states)." << endl;
             }
             else{
                 throw;
