@@ -80,7 +80,7 @@ def assGraphWorker(gargs):
     
     assGraph.initNMF()
                 
-    assGraph.update(args.iters, True, args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+    assGraph.update(args.iters, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
     assGraph.writeOutput(args.outFileStub + "/" + args.outFileStub + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
@@ -367,21 +367,21 @@ def main(argv):
             gIter += 1
     
 
-    #assGraph.initNMF()
+    assGraph.initNMF()
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    #assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = 10 #assGraph.G
+    Gopt = assGraph.G
 
     if args.run_elbow or Gopt > 5:
         no_folds=10
@@ -423,7 +423,7 @@ def main(argv):
                 divs[g][f]  = resultsa[f][2]
                 divFs[g][f] = resultsa[f][3]
                 Hs[g][f] = resultsa[f][4]
-            
+                
 
         with open(args.outFileStub + "_CV.csv",'w') as f:
             for g in range(1,Gopt + 1):
@@ -435,9 +435,6 @@ def main(argv):
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
   
-
-
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
