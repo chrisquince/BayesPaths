@@ -1389,7 +1389,7 @@ class AssemblyPathSVA():
                         outFileName = self.working_dir + '/' + graphFileStub + '.out'
                     
                         cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 0 -1'
-                        results.append(call_proc, (cmd,))    
+                        results.append(call_proc(cmd))    
                 
                 self.readMarginals(fgFileStubs, g, drop_strain)
                            

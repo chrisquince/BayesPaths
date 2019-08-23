@@ -11,8 +11,7 @@ from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
-from pathos.multiprocessing import ProcessingPool
- 
+from pathos.multiprocessing import ProcessingPool 
 COG_COV_DEV = 2.5
 SAMPLE_MIN_COV = 1.0
 
@@ -67,18 +66,21 @@ def selectSamples(assGraph, genesSelect, readLength,kLength):
     return sampleMean > minCov
 
 
-def assGraphWorker(prng, assemblyGraphs, source_maps, sink_maps, G, readLength,
-                    ARD, BIAS, fgExePath, bLoess, bGam, bLogTau, bFixedTau, fracCov, noiseFrac, iters, outFileStub, relax_path):
+def assGraphWorker(gargs):
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength,
-                                            ARD, BIAS, fgExePath, bLoess, bGam, bLogTau, bFixedTau,fracCov, noiseFrac)
+    (prng, assemblyGraphs, source_maps, sink_maps, G, args) = gargs 
+
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
+                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+
     
     
     M = np.ones((assGraph.V,assGraph.S))
     
     assGraph.initNMF()
                 
-    assGraph.update(iters, True, outFileStub + "_log3.txt",drop_strain=None,relax_path, bMulti = False)
+    assGraph.update(args.iters, True, args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
     train_elbo = assGraph.calc_elbo()
     train_err  = assGraph.predict(M)
@@ -86,7 +88,7 @@ def assGraphWorker(prng, assemblyGraphs, source_maps, sink_maps, G, readLength,
     train_div = assGraph.div()
     train_divF = assGraph.divF()
     
-    return(train_elbo, train_err, train_div, train_divF,assGraph.G)
+    return (train_elbo, train_err, train_div, train_divF,assGraph.G)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -115,6 +117,8 @@ def main(argv):
     parser.add_argument('--loess', dest='loess', action='store_true')
     
     parser.add_argument('--no_gam', dest='usegam', action='store_false')
+
+    parser.add_argument('--no_ard', dest='ARD', action='store_false')
 
     parser.add_argument('-i', '--iters', default=250, type=int,
         help="number of iterations for the variational inference")
@@ -147,7 +151,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -361,13 +365,13 @@ def main(argv):
             gIter += 1
     
 
-    assGraph.initNMF()
+    #assGraph.initNMF()
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=False)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
     #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
     #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
@@ -375,7 +379,7 @@ def main(argv):
   
     #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = assGraph.G
+    Gopt = 10 #assGraph.G
 
     if args.run_elbow or Gopt > 5:
         no_folds=10
@@ -394,16 +398,23 @@ def main(argv):
             fold_p = ProcessingPool(processes=no_folds)
             
             results = []
+            pargs = []
             for f in range(no_folds):
                 
-                prng.RandomState(args.random_seed + f) 
+                prng = RandomState(args.random_seed + f) 
                 
-                results.append(fold_p.apply_async(assGraphWorker,prng, assemblyGraphs, source_maps, sink_maps, G = g, readLength=args.readLength,
-                                            ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
-                                            fracCov = args.frac_cov, noiseFrac = args.noise_frac,args.iters,args.outFileStub,relax_paths=args.relax_path))
+                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, args])
+
+            test1 = assGraphWorker(pargs[0])
+
+
+            results = fold_p.amap(assGraphWorker,pargs)
+
+
+                #results.append(fold_p.apply_async(assGraphWorker,args=(prng, assemblyGraphs, source_maps, sink_maps, g, args)))
             
-            fold_p.close()
-            fold_.join()
+            #fold_p.close()
+            #fold_p.join()
 
             for f in range(no_folds):
                 elbos[g][f] = results[f][0]
