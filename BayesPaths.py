@@ -68,7 +68,7 @@ def selectSamples(assGraph, genesSelect, readLength,kLength):
 
 def assGraphWorker(gargs):
 
-    (prng, assemblyGraphs, source_maps, sink_maps, G, args) = gargs 
+    (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
                                 ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
@@ -82,6 +82,8 @@ def assGraphWorker(gargs):
                 
     assGraph.update(args.iters, True, args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
+    assGraph.writeOutput(args.outFileStub + "/" + args.outFileStub + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
+
     train_elbo = assGraph.calc_elbo()
     train_err  = assGraph.predict(M)
             
@@ -151,7 +153,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -393,6 +395,12 @@ def main(argv):
         
         M = np.ones((assGraph.V,assGraph.S))
         
+        try:
+            os.mkdir(args.outFileStub)
+        except FileExistsError:
+            print('Directory not created.')
+
+
         for g in range(1,Gopt + 1):
                         
             fold_p = ProcessingPool(processes=no_folds)
@@ -403,25 +411,18 @@ def main(argv):
                 
                 prng = RandomState(args.random_seed + f) 
                 
-                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, args])
-
-            test1 = assGraphWorker(pargs[0])
-
+                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples])            
 
             results = fold_p.amap(assGraphWorker,pargs)
 
-
-                #results.append(fold_p.apply_async(assGraphWorker,args=(prng, assemblyGraphs, source_maps, sink_maps, g, args)))
+            resultsa = list(results.get())
             
-            #fold_p.close()
-            #fold_p.join()
-
             for f in range(no_folds):
-                elbos[g][f] = results[f][0]
-                errs[g][f]  =  results[f][1]
-                divs[g][f]  = results[f][2]
-                divFs[g][f] = results[f][3]
-                Hs[g][f] = results[f][4]
+                elbos[g][f] = resultsa[f][0]
+                errs[g][f]  =  resultsa[f][1]
+                divs[g][f]  = resultsa[f][2]
+                divFs[g][f] = resultsa[f][3]
+                Hs[g][f] = resultsa[f][4]
             
 
         with open(args.outFileStub + "_CV.csv",'w') as f:

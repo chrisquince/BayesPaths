@@ -1421,7 +1421,9 @@ class AssemblyPathSVA():
             currElbo = total_elbo   
             DivF = self.divF()
             Div  = self.div()
-            #print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
+            
+            if iter % 10 == 0:
+                print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
 
             if logFile is not None:
                 with open(logFile, 'a') as logF:            
