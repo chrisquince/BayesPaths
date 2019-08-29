@@ -6,7 +6,6 @@ import os
 import re
 
 from collections import defaultdict
-from GraphProcess import getMaximumCoverageWalk
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
