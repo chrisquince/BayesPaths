@@ -67,7 +67,7 @@ def selectSamples(assGraph, genesSelect, readLength,kLength):
 
 def assGraphWorker(gargs):
 
-    (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples) = gargs 
+    (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
                                 ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
@@ -81,7 +81,7 @@ def assGraphWorker(gargs):
                 
     assGraph.update(args.iters, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
-    assGraph.writeOutput(args.outFileStub + "/" + args.outFileStub + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
+    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
     train_elbo = assGraph.calc_elbo()
     train_err  = assGraph.predict(M)
@@ -393,9 +393,10 @@ def main(argv):
         
         
         M = np.ones((assGraph.V,assGraph.S))
-        
+        outDir = os.path.dirname(args.outFileStub) + "/CVAnalysis"
         try:
-            os.mkdir(args.outFileStub)
+            os.mkdir(outDir)
+
         except FileExistsError:
             print('Directory not created.')
 
@@ -410,7 +411,7 @@ def main(argv):
                 
                 prng = RandomState(args.random_seed + f) 
                 
-                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples])            
+                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples,outDir])            
 
             results = fold_p.amap(assGraphWorker,pargs)
 
