@@ -1611,11 +1611,14 @@ class AssemblyPathSVA():
 
                 if inPath not in visited:
                     tempProb[idx] = np.sum(margP[inPath][1:]) 
+           
+            if np.sum(tempProb) > 0.: 
+                tempProb = tempProb/np.sum(tempProb)
             
-            tempProb = tempProb/np.sum(tempProb)
-            
-            selectIn = self.prng.choice(np.arange(NC), 1, p=tempProb)
-            
+                selectIn = self.prng.choice(np.arange(NC), 1, p=tempProb)
+            else:            
+                selectIn = self.prng.choice(np.arange(NC),1)
+
             path.append(current)
             
             current = list(biGraph.predecessors(inPaths[selectIn[0]]))[0]
