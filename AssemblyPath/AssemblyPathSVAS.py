@@ -1066,37 +1066,54 @@ class AssemblyPathSVA():
         self.varGamma[g_idx,:]  = varGammaG
     
         
-    def updateTau(self,bFit=True):
+    def updateTau(self,bFit=True, mask = None):
+        
+        if mask == None:
+            mask = np.ones((self.V, self.S))
         
         if self.bFixedTau:
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
         else:
             if self.bLogTau:
-                self.updateLogTauX(bFit)
+                self.updateLogTauX(bFit,mask)
             else:
-                self.updateTauBeta()
+                self.updateTauBeta(mask)
     
     
-    def updateFixedTau(self):
+    def updateFixedTau(self, mask = None):
+        
+        if mask == None:
+            mask = np.ones((self.V, self.S))
+    
+        Omega = float(np.sum(mask))
+    
         square_diff_matrix = self.exp_square_diff_matrix()  
 
-        betaTemp = self.beta + 0.5*np.sum(square_diff_matrix)
+        betaTemp = self.beta + 0.5*np.sum(square_diff_matrix*mask)
         
-        alphaTemp = self.alpha + 0.5*self.V*self.S
+        alphaTemp = self.alpha + 0.5*Omega
 
         tempTau = alphaTemp/betaTemp
         
         tempLogTau = digamma(alphaTemp) - np.log(betaTemp)
 
-        self.betaTau.fill(betaTemp/(self.V*self.S))
-
-        self.alphaTau.fill(alphaTemp/(self.V*self.S))
-
-        self.expTau.fill(tempTau)
+        self.betaTau.fill(betaTemp/Omega)
         
-        self.expLogTau.fill(tempLogTau)
+        self.betaTau = mask*self.betaTau
 
-    def updateLogTauX(self,bFit = True):
+        self.alphaTau.fill(alphaTemp/Omega)
+        
+        self.alphaTau = mask*self.alphaTau
+
+        self.expTau.fill(tempTau*mask)
+        
+        self.expLogTau.fill(tempLogTau*mask)
+
+    def updateLogTauX(self,bFit = True, mask = None):
+    
+        if mask == None:
+            mask = np.ones((self.V, self.S))
+    
         square_diff_matrix = self.exp_square_diff_matrix()  
         
         self.betaTau = self.beta*self.X + 0.5*square_diff_matrix
@@ -1202,7 +1219,10 @@ class AssemblyPathSVA():
         
         self.expTau = np.exp(self.expLogTau)
 
-    def updateTauBeta(self):
+    def updateTauBeta(self, mask = None):
+    
+        if mask == None:
+            mask = np.ones((self.V, self.S))
 
         square_diff_matrix = self.exp_square_diff_matrix()  
 
@@ -1243,7 +1263,7 @@ class AssemblyPathSVA():
         except ValueError:
             print("Performing fixed tau")
                     
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
                     
             return
         
@@ -1355,7 +1375,10 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
+    def update(self, maxIter, removeRedundant,mask=None,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
+
+        if mask == None:
+            mask = np.ones((self.V, self.S))
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -1363,7 +1386,7 @@ class AssemblyPathSVA():
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.updateTau() 
+        self.updateTau(mask) 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):
@@ -1415,17 +1438,17 @@ class AssemblyPathSVA():
                     self.update_exp_lambdak(g)
             
             for g in range(self.GDash):
-                self.updateGamma(g)
+                self.updateGamma(g, mask)
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.GDash):
                 self.addGamma(g)
             
             #if iter % 10 == 0:
-            self.updateTau(bFit = True)
+            self.updateTau(bFit = True, mask)
                        
             if self.BIAS:
-                self.updateTheta()
+                self.updateTheta(mask)
             
             total_elbo = self.calc_elbo()
             diffElbo = abs(total_elbo - currElbo) 
