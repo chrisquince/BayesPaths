@@ -847,7 +847,7 @@ class AssemblyPathSVA():
     
     def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, mask=None):
         
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
         
         mapGammaG = self.expGamma[gidx,:]
@@ -973,7 +973,7 @@ class AssemblyPathSVA():
 
     def updateTheta(self, mask = None):
         
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
@@ -1014,7 +1014,7 @@ class AssemblyPathSVA():
 
     def updateGamma(self, g_idx, mask = None):
         
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
     
         
@@ -1068,7 +1068,7 @@ class AssemblyPathSVA():
         
     def updateTau(self,bFit=True, mask = None):
         
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
         
         if self.bFixedTau:
@@ -1082,7 +1082,7 @@ class AssemblyPathSVA():
     
     def updateFixedTau(self, mask = None):
         
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
     
         Omega = float(np.sum(mask))
@@ -1105,13 +1105,15 @@ class AssemblyPathSVA():
         
         self.alphaTau = mask*self.alphaTau
 
-        self.expTau.fill(tempTau*mask)
+        self.expTau.fill(tempTau)
+        self.expTau = self.expTau*mask
         
-        self.expLogTau.fill(tempLogTau*mask)
+        self.expLogTau.fill(tempLogTau)
+        self.expLogTau = self.expLogTau*mask
 
     def updateLogTauX(self,bFit = True, mask = None):
     
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
     
         square_diff_matrix = self.exp_square_diff_matrix()  
@@ -1221,7 +1223,7 @@ class AssemblyPathSVA():
 
     def updateTauBeta(self, mask = None):
     
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
 
         square_diff_matrix = self.exp_square_diff_matrix()  
@@ -1377,7 +1379,7 @@ class AssemblyPathSVA():
 
     def update(self, maxIter, removeRedundant,mask=None,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
 
-        if mask == None:
+        if mask is None:
             mask = np.ones((self.V, self.S))
 
         if drop_strain is None:
@@ -1445,7 +1447,7 @@ class AssemblyPathSVA():
                 self.addGamma(g)
             
             #if iter % 10 == 0:
-            self.updateTau(bFit = True, mask)
+            self.updateTau(bFit = True, mask = mask)
                        
             if self.BIAS:
                 self.updateTheta(mask)
