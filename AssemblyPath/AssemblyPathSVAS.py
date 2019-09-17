@@ -1003,10 +1003,10 @@ class AssemblyPathSVA():
 
             self.expTheta2[v] = self.expTheta2Cat[b]
 
-    def updateGamma(self, g_idx, M_train = None):
+    def updateGamma(self, g_idx, mask = None):
         
-        if M_train == None:
-            M_train = np.ones((self.V, self.S))
+        if mask == None:
+            mask = np.ones((self.V, self.S))
     
         
         temp = np.delete(self.expGamma,g_idx,0)
@@ -1026,7 +1026,7 @@ class AssemblyPathSVA():
         if self.BIAS:
             denom *= self.expTheta2
                 
-        dSum = np.dot((self.expTau*M_train).transpose(),denom)
+        dSum = np.dot((self.expTau*mask).transpose(),denom)
         
         numer=numer*self.expTau*M_train
         nSum = np.sum(numer,0)
