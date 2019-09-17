@@ -845,7 +845,10 @@ class AssemblyPathSVA():
             bFirst = False 
         return mapVar
     
-    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx):
+    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, mask):
+        
+        if mask == None:
+            mask = np.ones((self.V, self.S))
         
         mapGammaG = self.expGamma[gidx,:]
         mapGammaG2 = self.expGamma2[gidx,:]
@@ -855,10 +858,11 @@ class AssemblyPathSVA():
             if unitig in unitigFacNodes:
                 unitigFacNode = unitigFacNodes[unitig]
                 v_idx = unitigMap[unitig]
+                v_mask = mask[v_idx,]
                 P = unitigFacNode.P
                 tempMatrix = np.zeros_like(P)
             
-                currELambda = self.eLambda[v_idx,:]
+                currELambda = self.eLambda[v_idx,:]*v_mask
                 
                 lengthNode = self.lengths[v_idx]
             
@@ -871,8 +875,8 @@ class AssemblyPathSVA():
                 else:
                     T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
                 
-                dVal1 = 2.0*T1
-                dVal2 = lengthNode*mapGammaG2
+                dVal1 = 2.0*T1*v_mask
+                dVal2 = lengthNode*mapGammaG2*v_mask
                 if self.BIAS:
                     dVal2 *= self.expTheta2[v_idx]
                     
@@ -966,13 +970,17 @@ class AssemblyPathSVA():
         
         self.eLambda += meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
-    def updateTheta(self):
+
+    def updateTheta(self, mask = None):
+        
+        if mask == None:
+            mask = np.ones((self.V, self.S))
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        denom = np.sum(self.expTau*self.exp_square_lambda_matrix(),axis=1)*self.lengths*self.lengths  
+        denom = np.sum(self.expTau*self.exp_square_lambda_matrix()*mask,axis=1)*self.lengths*self.lengths  
         
-        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau,axis=1) 
+        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau*mask,axis=1) 
         
         self.muThetaCat.fill(self.muTheta0*self.tauTheta0)
         self.tauThetaCat.fill(self.tauTheta0)
@@ -1003,6 +1011,7 @@ class AssemblyPathSVA():
 
             self.expTheta2[v] = self.expTheta2Cat[b]
 
+
     def updateGamma(self, g_idx, mask = None):
         
         if mask == None:
@@ -1028,7 +1037,7 @@ class AssemblyPathSVA():
                 
         dSum = np.dot((self.expTau*mask).transpose(),denom)
         
-        numer=numer*self.expTau*M_train
+        numer=numer*self.expTau*mask
         nSum = np.sum(numer,0)
         
         if self.NOISE and g_idx == self.G:
