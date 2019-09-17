@@ -1003,7 +1003,11 @@ class AssemblyPathSVA():
 
             self.expTheta2[v] = self.expTheta2Cat[b]
 
-    def updateGamma(self,g_idx):
+    def updateGamma(self, g_idx, M_train = None):
+        
+        if M_train == None:
+            M_train = np.ones((self.V, self.S))
+    
         
         temp = np.delete(self.expGamma,g_idx,0)
         temp2 = np.delete(self.expPhi,g_idx,1)
@@ -1013,6 +1017,7 @@ class AssemblyPathSVA():
         else:
             numer = (self.X*self.expTheta[:,np.newaxis] - np.dot(temp2,temp)*self.lengths[:,np.newaxis]*self.expTheta2[:,np.newaxis])   
         
+        
         gphi = self.expPhi[:,g_idx]*self.lengths
         
         numer = gphi[:,np.newaxis]*numer
@@ -1021,9 +1026,9 @@ class AssemblyPathSVA():
         if self.BIAS:
             denom *= self.expTheta2
                 
-        dSum = np.dot(self.expTau.transpose(),denom)
+        dSum = np.dot((self.expTau*M_train).transpose(),denom)
         
-        numer=numer*self.expTau
+        numer=numer*self.expTau*M_train
         nSum = np.sum(numer,0)
         
         if self.NOISE and g_idx == self.G:
