@@ -845,7 +845,7 @@ class AssemblyPathSVA():
             bFirst = False 
         return mapVar
     
-    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, mask):
+    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, mask=None):
         
         if mask == None:
             mask = np.ones((self.V, self.S))
