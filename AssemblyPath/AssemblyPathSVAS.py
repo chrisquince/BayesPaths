@@ -1793,9 +1793,12 @@ class AssemblyPathSVA():
                 marg[unitig] = tempMatrix
         return marg
 
-    def initNMF(self):
+    def initNMF(self, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
-        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 20, prng = self.prng)
+        covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
     
         covNMF.factorize()
         covNMF.factorizeH()
@@ -2286,6 +2289,10 @@ class AssemblyPathSVA():
     def predict(self, M_pred):
         ''' Predict missing values in R. '''
         R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
         MSE = self.compute_MSE(M_pred, self.X, R_pred)
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
