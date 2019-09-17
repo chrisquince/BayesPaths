@@ -152,7 +152,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -393,7 +393,9 @@ def main(argv):
         
         
         M = np.ones((assGraph.V,assGraph.S))
-        outDir = os.path.dirname(args.outFileStub) + "/CVAnalysis"
+
+
+        outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
             os.mkdir(outDir)
 
