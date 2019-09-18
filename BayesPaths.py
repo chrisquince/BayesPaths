@@ -5,6 +5,7 @@ import numpy as np
 import os
 import re
 
+from Utils.mask import compute_folds_attempts
 from collections import defaultdict
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
@@ -73,9 +74,9 @@ def assGraphWorker(gargs):
                                 ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
-    assGraph.initNMF()
+    assGraph.initNMF(M_train)
                 
-    assGraph.update(args.iters, True, mask = M_train, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+    assGraph.update(args.iters, True, M_train, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
@@ -148,7 +149,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -362,22 +363,22 @@ def main(argv):
             gIter += 1
     
 
-    assGraph.initNMF()
+    #assGraph.initNMF()
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
-
+    Gopt = 10
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
