@@ -1394,7 +1394,7 @@ class AssemblyPathSVA():
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.updateTau(mask) 
+        self.updateTau(bFit=True,mask=mask) 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):

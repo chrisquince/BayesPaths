@@ -238,7 +238,7 @@ def main(argv):
             source_maps[gene] = source_list
             assemblyGraphs[gene] = unitigGraph
     
-    #import ipdb; ipdb.set_trace() 
+    import ipdb; ipdb.set_trace() 
     
     if  args.paths_file != None:
     
@@ -392,6 +392,11 @@ def main(argv):
         M_attempts = 1000
         M = np.ones((assGraph.V,assGraph.S))
         Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+
+
+        M_train = Ms_training_and_test[0][0]
+        assGraph.initNMF(mask=M_train)
+        assGraph.update(args.iters, True,mask=M_train,logFile=args.outFileStub + "_tmp.txt",drop_strain=None,relax_path=False,bMulti=True)
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
