@@ -1117,27 +1117,32 @@ class AssemblyPathSVA():
             mask = np.ones((self.V, self.S))
     
         square_diff_matrix = self.exp_square_diff_matrix()  
-        
-        self.betaTau = self.beta*self.X + 0.5*square_diff_matrix
+           
 
-        self.betaTau[self.betaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
-
-        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
+        mX = np.ma.masked_where(mask==0, self.X)
         
-        logExpTau1D = np.ravel(logExpTau)
+        mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
         
-        logX1D = np.ravel(self.X)
+        
+        X1D = np.ma.compressed(mX)
+        
+        mBetaTau = self.beta*X1D + 0.5*np.ma.compressed(mSDM)
+        
+        mBetaTau[mBetaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
+            
+        mLogExpTau = digamma(self.alpha + 0.5) - np.log(mBetaTau)
+    
         
         try:
             
             if self.bLoess:
                 print("Attemptimg Loess smooth")
-                yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+                yest_sm = lowess(X1D,mLogExpTau, f=0.75, iter=3)
             elif self.bGam:
                 if bFit:
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
+                    self.gam = LinearGAM(s(0,n_splines=5)).fit(X1D, mLogExpTau)
             
-                yest_sm = self.gam.predict(logX1D)
+                yest_sm = self.gam.predict(X1D)
             else:
                 print("Attemptimg linear regression")
                     
@@ -1145,22 +1150,23 @@ class AssemblyPathSVA():
             
                 poly_reg = PolynomialFeatures(degree=2)
             
-                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+                X_poly = poly_reg.fit_transform(X1D.reshape(-1,1))
             
-                model.fit(X_poly, logExpTau1D)
+                model.fit(X_poly, mLogExpTau)
             
                 yest_sm  = model.predict(X_poly)
         except ValueError:
             print("Performing fixed tau")
                     
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
                     
             return
-            
         
-        self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
-        
-        self.expTau = np.exp(self.expLogTau)
+        np.place(self.expLogTau, mask == 1, yest_sm)
+         
+        np.place(self.expTau, mask == 1, np.exp(yest_sm))
+    
+        np.place(self.betaTau, mask == 1, mBetaTau)
 
 
     
