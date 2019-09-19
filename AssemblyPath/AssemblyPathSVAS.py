@@ -1298,7 +1298,11 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def writeFactorGraphs(self, g, drop_strain, relax_path):
+    def writeFactorGraphs(self, g, drop_strain, relax_path, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+
         fgFileStubs = {}
         for gene, factorGraph in self.factorGraphs.items():
             
@@ -1306,7 +1310,7 @@ class AssemblyPathSVA():
             
                 unitigs = self.assemblyGraphs[gene].unitigs
                    
-                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)
+                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, mask)
                     
                 factorGraph.reset()
         
@@ -1410,7 +1414,7 @@ class AssemblyPathSVA():
                 fgFileStubs = {}
                 threads = []
                 
-                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
+                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path, mask)
             
                 if bMulti:
                     pool = Pool(len(self.genes))
