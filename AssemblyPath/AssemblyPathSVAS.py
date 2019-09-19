@@ -1462,7 +1462,7 @@ class AssemblyPathSVA():
             if self.BIAS:
                 self.updateTheta(mask)
             
-            total_elbo = self.calc_elbo()
+            total_elbo = self.calc_elbo(mask)
             diffElbo = abs(total_elbo - currElbo) 
             if np.isnan(diffElbo) or math.isinf(diffElbo):
                 diffElbo = 1.
@@ -2203,15 +2203,21 @@ class AssemblyPathSVA():
         
         return deviance_matrix
 
-    def calc_elbo(self):
+
+    def calc_elbo(self, mask = None):
+    
+        if mask in None:
+            mask = np.ones((self.V,self.S))
+    
         ''' Compute the ELBO. '''
         total_elbo = 0.
         
-        # Log likelihood               
-        total_elbo += 0.5*(np.sum(self.expLogTau) - self.Omega*math.log(2*math.pi)) #first part likelihood
-        total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
-        
+        # Log likelihood
+        nTOmega = np.sum(M_train)               
+        total_elbo += 0.5*(np.sum(self.expLogTau*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
+
         if self.NOISE:
             if self.ARD:
             
@@ -2283,15 +2289,15 @@ class AssemblyPathSVA():
             qTheta += (0.5*self.tauTheta * ( self.varTheta + (self.expTheta - self.muTheta)**2 ) ).sum()
         
             total_elbo += qTheta
+        
         # q for tau
         
-        dTemp1 = np.sum((self.alpha + 0.5)*np.log(self.betaTau) +  sps.gammaln(self.alpha + 0.5))
-        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau + self.betaTau*self.expTau)
+        dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau)*mask) - nTOmega*sps.gammaln(self.alpha + 0.5)    
+        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau*mask) + np.sum(self.betaTau*self.expTau*mask)
 
-        
         total_elbo += - dTemp1 
         total_elbo += - dTemp2
-
+        
          # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo

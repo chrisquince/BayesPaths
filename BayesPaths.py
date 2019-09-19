@@ -378,7 +378,7 @@ def main(argv):
     #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
-    Gopt = 10
+    Gopt = 6
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
