@@ -2262,9 +2262,9 @@ class AssemblyPathSVA():
         total_elbo += self.G*np.sum(self.logPhiPrior)
         
         #add tau prior
-
-        total_elbo += self.V*self.S*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
+    
+        total_elbo += nTOmega*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau*mask - self.beta*self.expTau*mask)
 
         # q for lambdak, if using ARD
         if self.ARD:
