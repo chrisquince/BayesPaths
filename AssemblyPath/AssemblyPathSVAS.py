@@ -2206,7 +2206,7 @@ class AssemblyPathSVA():
 
     def calc_elbo(self, mask = None):
     
-        if mask in None:
+        if mask is None:
             mask = np.ones((self.V,self.S))
     
         ''' Compute the ELBO. '''
@@ -2214,7 +2214,7 @@ class AssemblyPathSVA():
         
 
         # Log likelihood
-        nTOmega = np.sum(M_train)               
+        nTOmega = np.sum(mask)               
         total_elbo += 0.5*(np.sum(self.expLogTau*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
         total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
