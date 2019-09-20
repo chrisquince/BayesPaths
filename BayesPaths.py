@@ -363,19 +363,19 @@ def main(argv):
             gIter += 1
     
 
-    #assGraph.initNMF()
+    assGraph.initNMF()
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    #assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    #assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
     Gopt = 8
@@ -393,10 +393,6 @@ def main(argv):
         M = np.ones((assGraph.V,assGraph.S))
         Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
 
-
-      #  M_train = Ms_training_and_test[0][0]
-    #    assGraph.initNMF(mask=M_train)
-     #   assGraph.update(args.iters, True,mask=M_train,logFile=args.outFileStub + "_tmp.txt",drop_strain=None,relax_path=False,bMulti=True)
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
