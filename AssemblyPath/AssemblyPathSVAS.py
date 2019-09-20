@@ -845,7 +845,10 @@ class AssemblyPathSVA():
             bFirst = False 
         return mapVar
     
-    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx):
+    def updateUnitigFactors(self, unitigs, unitigMap, unitigFacNodes, gidx, mask=None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
         mapGammaG = self.expGamma[gidx,:]
         mapGammaG2 = self.expGamma2[gidx,:]
@@ -855,10 +858,11 @@ class AssemblyPathSVA():
             if unitig in unitigFacNodes:
                 unitigFacNode = unitigFacNodes[unitig]
                 v_idx = unitigMap[unitig]
+                v_mask = mask[v_idx,]
                 P = unitigFacNode.P
                 tempMatrix = np.zeros_like(P)
             
-                currELambda = self.eLambda[v_idx,:]
+                currELambda = self.eLambda[v_idx,:]*v_mask
                 
                 lengthNode = self.lengths[v_idx]
             
@@ -871,8 +875,8 @@ class AssemblyPathSVA():
                 else:
                     T1 = mapGammaG*(lengthNode*currELambda*self.expTheta2[v_idx] - self.X[v_idx,:]*self.expTheta[v_idx])
                 
-                dVal1 = 2.0*T1
-                dVal2 = lengthNode*mapGammaG2
+                dVal1 = 2.0*T1*v_mask
+                dVal2 = lengthNode*mapGammaG2*v_mask
                 if self.BIAS:
                     dVal2 *= self.expTheta2[v_idx]
                     
@@ -966,13 +970,17 @@ class AssemblyPathSVA():
         
         self.eLambda += meanAss[:,np.newaxis]*gammaG[np.newaxis,:]
 
-    def updateTheta(self):
+
+    def updateTheta(self, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        denom = np.sum(self.expTau*self.exp_square_lambda_matrix(),axis=1)*self.lengths*self.lengths  
+        denom = np.sum(self.expTau*self.exp_square_lambda_matrix()*mask,axis=1)*self.lengths*self.lengths  
         
-        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau,axis=1) 
+        numer =  self.lengths*np.sum(self.X*self.eLambda*self.expTau*mask,axis=1) 
         
         self.muThetaCat.fill(self.muTheta0*self.tauTheta0)
         self.tauThetaCat.fill(self.tauTheta0)
@@ -1003,7 +1011,12 @@ class AssemblyPathSVA():
 
             self.expTheta2[v] = self.expTheta2Cat[b]
 
-    def updateGamma(self,g_idx):
+
+    def updateGamma(self, g_idx, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+    
         
         temp = np.delete(self.expGamma,g_idx,0)
         temp2 = np.delete(self.expPhi,g_idx,1)
@@ -1013,6 +1026,7 @@ class AssemblyPathSVA():
         else:
             numer = (self.X*self.expTheta[:,np.newaxis] - np.dot(temp2,temp)*self.lengths[:,np.newaxis]*self.expTheta2[:,np.newaxis])   
         
+        
         gphi = self.expPhi[:,g_idx]*self.lengths
         
         numer = gphi[:,np.newaxis]*numer
@@ -1021,9 +1035,9 @@ class AssemblyPathSVA():
         if self.BIAS:
             denom *= self.expTheta2
                 
-        dSum = np.dot(self.expTau.transpose(),denom)
+        dSum = np.dot((self.expTau*mask).transpose(),denom)
         
-        numer=numer*self.expTau
+        numer=numer*self.expTau*mask
         nSum = np.sum(numer,0)
         
         if self.NOISE and g_idx == self.G:
@@ -1052,59 +1066,83 @@ class AssemblyPathSVA():
         self.varGamma[g_idx,:]  = varGammaG
     
         
-    def updateTau(self,bFit=True):
+    def updateTau(self,bFit=True, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
         if self.bFixedTau:
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
         else:
             if self.bLogTau:
-                self.updateLogTauX(bFit)
+                self.updateLogTauX(bFit,mask)
             else:
-                self.updateTauBeta()
+                self.updateTauBeta(mask)
     
     
-    def updateFixedTau(self):
+    def updateFixedTau(self, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+    
+        Omega = float(np.sum(mask))
+    
         square_diff_matrix = self.exp_square_diff_matrix()  
 
-        betaTemp = self.beta + 0.5*np.sum(square_diff_matrix)
+        betaTemp = self.beta + 0.5*np.sum(square_diff_matrix*mask)
         
-        alphaTemp = self.alpha + 0.5*self.V*self.S
+        alphaTemp = self.alpha + 0.5*Omega
 
         tempTau = alphaTemp/betaTemp
         
         tempLogTau = digamma(alphaTemp) - np.log(betaTemp)
 
-        self.betaTau.fill(betaTemp/(self.V*self.S))
+        self.betaTau.fill(betaTemp/Omega)
+        
+        self.betaTau = mask*self.betaTau
 
-        self.alphaTau.fill(alphaTemp/(self.V*self.S))
+        self.alphaTau.fill(alphaTemp/Omega)
+        
+        self.alphaTau = mask*self.alphaTau
 
         self.expTau.fill(tempTau)
+        self.expTau = self.expTau*mask
         
         self.expLogTau.fill(tempLogTau)
+        self.expLogTau = self.expLogTau*mask
 
-    def updateLogTauX(self,bFit = True):
+    def updateLogTauX(self,bFit = True, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+    
         square_diff_matrix = self.exp_square_diff_matrix()  
-        
-        self.betaTau = self.beta*self.X + 0.5*square_diff_matrix
+           
 
-        self.betaTau[self.betaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
-
-        logExpTau = digamma(self.alpha + 0.5) - np.log(self.betaTau)
+        mX = np.ma.masked_where(mask==0, self.X)
         
-        logExpTau1D = np.ravel(logExpTau)
+        mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
         
-        logX1D = np.ravel(self.X)
+        
+        X1D = np.ma.compressed(mX)
+        
+        mBetaTau = self.beta*X1D + 0.5*np.ma.compressed(mSDM)
+        
+        mBetaTau[mBetaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
+            
+        mLogExpTau = digamma(self.alpha + 0.5) - np.log(mBetaTau)
+    
         
         try:
             
             if self.bLoess:
                 print("Attemptimg Loess smooth")
-                yest_sm = lowess(logX1D,logExpTau1D, f=0.75, iter=3)
+                yest_sm = lowess(X1D,mLogExpTau, f=0.75, iter=3)
             elif self.bGam:
                 if bFit:
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1D, logExpTau1D)
+                    self.gam = LinearGAM(s(0,n_splines=5)).fit(X1D, mLogExpTau)
             
-                yest_sm = self.gam.predict(logX1D)
+                yest_sm = self.gam.predict(X1D)
             else:
                 print("Attemptimg linear regression")
                     
@@ -1112,22 +1150,23 @@ class AssemblyPathSVA():
             
                 poly_reg = PolynomialFeatures(degree=2)
             
-                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+                X_poly = poly_reg.fit_transform(X1D.reshape(-1,1))
             
-                model.fit(X_poly, logExpTau1D)
+                model.fit(X_poly, mLogExpTau)
             
                 yest_sm  = model.predict(X_poly)
         except ValueError:
             print("Performing fixed tau")
                     
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
                     
             return
-            
         
-        self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
-        
-        self.expTau = np.exp(self.expLogTau)
+        np.place(self.expLogTau, mask == 1, yest_sm)
+         
+        np.place(self.expTau, mask == 1, np.exp(yest_sm))
+    
+        np.place(self.betaTau, mask == 1, mBetaTau)
 
 
     
@@ -1188,7 +1227,10 @@ class AssemblyPathSVA():
         
         self.expTau = np.exp(self.expLogTau)
 
-    def updateTauBeta(self):
+    def updateTauBeta(self, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
 
         square_diff_matrix = self.exp_square_diff_matrix()  
 
@@ -1229,7 +1271,7 @@ class AssemblyPathSVA():
         except ValueError:
             print("Performing fixed tau")
                     
-            self.updateFixedTau()
+            self.updateFixedTau(mask)
                     
             return
         
@@ -1256,7 +1298,11 @@ class AssemblyPathSVA():
                 
                 self.HPhi[v_idx,g_idx] = ss.entropy(marg[unitig])
                 
-    def writeFactorGraphs(self, g, drop_strain, relax_path):
+    def writeFactorGraphs(self, g, drop_strain, relax_path, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+
         fgFileStubs = {}
         for gene, factorGraph in self.factorGraphs.items():
             
@@ -1264,7 +1310,7 @@ class AssemblyPathSVA():
             
                 unitigs = self.assemblyGraphs[gene].unitigs
                    
-                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g)
+                self.updateUnitigFactors(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], g, mask)
                     
                 factorGraph.reset()
         
@@ -1341,7 +1387,10 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
 
-    def update(self, maxIter, removeRedundant,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
+    def update(self, maxIter, removeRedundant,mask=None,logFile=None,drop_strain=None,relax_path=False, uncertainFactor=None,minDiff=1.0e-3,bMulti=True):
+
+        if mask is None:
+            mask = np.ones((self.V, self.S))
 
         if drop_strain is None:
             drop_strain = {gene:[False]*self.G for gene in self.genes}
@@ -1349,7 +1398,7 @@ class AssemblyPathSVA():
         iter = 0
         self.eLambda = np.dot(self.expPhi, self.expGamma)
         
-        self.updateTau() 
+        self.updateTau(bFit=True,mask=mask) 
         diffElbo = 1.0
         currElbo=self.calc_elbo()
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):
@@ -1365,7 +1414,7 @@ class AssemblyPathSVA():
                 fgFileStubs = {}
                 threads = []
                 
-                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path)
+                fgFileStubs = self.writeFactorGraphs(g, drop_strain, relax_path, mask)
             
                 if bMulti:
                     pool = Pool(len(self.genes))
@@ -1401,26 +1450,26 @@ class AssemblyPathSVA():
                     self.update_exp_lambdak(g)
             
             for g in range(self.GDash):
-                self.updateGamma(g)
+                self.updateGamma(g, mask)
 
             self.eLambda = np.zeros((self.V,self.S))
             for g in range(self.GDash):
                 self.addGamma(g)
             
             #if iter % 10 == 0:
-            self.updateTau(bFit = True)
+            self.updateTau(bFit = True, mask = mask)
                        
             if self.BIAS:
-                self.updateTheta()
+                self.updateTheta(mask)
             
-            total_elbo = self.calc_elbo()
+            total_elbo = self.calc_elbo(mask)
             diffElbo = abs(total_elbo - currElbo) 
             if np.isnan(diffElbo) or math.isinf(diffElbo):
                 diffElbo = 1.
  
             currElbo = total_elbo   
-            DivF = self.divF()
-            Div  = self.div()
+            DivF = self.divF(mask)
+            Div  = self.div(mask)
             
             if iter % 10 == 0:
                 print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
@@ -1527,16 +1576,21 @@ class AssemblyPathSVA():
 
             #print(str(iter)+","+ str(self.divF()))  
             iter += 1
-    
-    def div(self):
+
+    def div(self,M=None):
+        if M is None:
+            M = np.ones((self.V,self.S))
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
         if self.BIAS:
             Va = self.expTheta[:,np.newaxis]*Va
             
-        return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN)).sum()
+        return (M*(np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN))).sum()
 
-    def divF(self):
+    def divF(self,M=None):
+        if M is None:
+            M = np.ones((self.V,self.S))
+
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         
         if self.BIAS:
@@ -1544,8 +1598,9 @@ class AssemblyPathSVA():
         else:
             R = self.eLambda - self.XN
             
-        return np.multiply(R, R).sum()/self.Omega
+        return (M*np.multiply(R, R)).sum()/np.sum(M)
 
+ 
     def divF_matrix(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
 
@@ -1754,9 +1809,12 @@ class AssemblyPathSVA():
                 marg[unitig] = tempMatrix
         return marg
 
-    def initNMF(self):
+    def initNMF(self, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
-        covNMF =  NMF(self.XN,self.Identity,self.G,n_run = 20, prng = self.prng)
+        covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
     
         covNMF.factorize()
         covNMF.factorizeH()
@@ -2151,15 +2209,21 @@ class AssemblyPathSVA():
         
         return deviance_matrix
 
-    def calc_elbo(self):
+
+    def calc_elbo(self, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
         ''' Compute the ELBO. '''
         total_elbo = 0.
         
-        # Log likelihood               
-        total_elbo += 0.5*(np.sum(self.expLogTau) - self.Omega*math.log(2*math.pi)) #first part likelihood
-        total_elbo -= 0.5*np.sum(self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
-        
+        # Log likelihood
+        nTOmega = np.sum(mask)               
+        total_elbo += 0.5*(np.sum(self.expLogTau*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
+
         if self.NOISE:
             if self.ARD:
             
@@ -2204,9 +2268,9 @@ class AssemblyPathSVA():
         total_elbo += self.G*np.sum(self.logPhiPrior)
         
         #add tau prior
-
-        total_elbo += self.V*self.S*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau - self.beta*self.expTau)
+    
+        total_elbo += nTOmega*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau*mask - self.beta*self.expTau*mask)
 
         # q for lambdak, if using ARD
         if self.ARD:
@@ -2231,15 +2295,15 @@ class AssemblyPathSVA():
             qTheta += (0.5*self.tauTheta * ( self.varTheta + (self.expTheta - self.muTheta)**2 ) ).sum()
         
             total_elbo += qTheta
+        
         # q for tau
         
-        dTemp1 = np.sum((self.alpha + 0.5)*np.log(self.betaTau) +  sps.gammaln(self.alpha + 0.5))
-        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau + self.betaTau*self.expTau)
+        dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau)*mask) - nTOmega*sps.gammaln(self.alpha + 0.5)    
+        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau*mask) + np.sum(self.betaTau*self.expTau*mask)
 
-        
         total_elbo += - dTemp1 
         total_elbo += - dTemp2
-
+        
          # q for phi
         total_elbo += np.sum(self.HPhi)
         return total_elbo
@@ -2247,6 +2311,10 @@ class AssemblyPathSVA():
     def predict(self, M_pred):
         ''' Predict missing values in R. '''
         R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
         MSE = self.compute_MSE(M_pred, self.X, R_pred)
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        

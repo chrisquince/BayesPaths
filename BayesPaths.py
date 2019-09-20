@@ -5,6 +5,7 @@ import numpy as np
 import os
 import re
 
+from Utils.mask import compute_folds_attempts
 from collections import defaultdict
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
@@ -67,27 +68,23 @@ def selectSamples(assGraph, genesSelect, readLength,kLength):
 
 def assGraphWorker(gargs):
 
-    (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir) = gargs 
+    (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
                                 ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
-
     
-    
-    M = np.ones((assGraph.V,assGraph.S))
-    
-    assGraph.initNMF()
+    assGraph.initNMF(M_train)
                 
-    assGraph.update(args.iters, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+    assGraph.update(args.iters, True, M_train, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
     
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
-    train_elbo = assGraph.calc_elbo()
-    train_err  = assGraph.predict(M)
+    train_elbo = assGraph.calc_elbo(M_test)
+    train_err  = assGraph.predict(M_test)
             
-    train_div = assGraph.div()
-    train_divF = assGraph.divF()
+    train_div = assGraph.div(M_test)
+    train_divF = assGraph.divF(M_test)
     
     return (train_elbo, train_err, train_div, train_divF,assGraph.G)
 
@@ -381,7 +378,7 @@ def main(argv):
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
-
+    Gopt = 8
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
@@ -392,8 +389,12 @@ def main(argv):
         Hs = defaultdict(lambda: np.zeros(no_folds))    
         
         
+        M_attempts = 1000
         M = np.ones((assGraph.V,assGraph.S))
-        outDir = os.path.dirname(args.outFileStub) + "/CVAnalysis"
+        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+
+
+        outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
             os.mkdir(outDir)
 
@@ -409,9 +410,12 @@ def main(argv):
             pargs = []
             for f in range(no_folds):
                 
+                M_train = Ms_training_and_test[0][f]
+                M_test = Ms_training_and_test[1][f]
+                
                 prng = RandomState(args.random_seed + f) 
                 
-                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples,outDir])            
+                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples, outDir, M_train, M_test])            
 
             results = fold_p.amap(assGraphWorker,pargs)
 
