@@ -80,11 +80,11 @@ def assGraphWorker(gargs):
     
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
-    train_elbo = assGraph.calc_elbo()
+    train_elbo = assGraph.calc_elbo(M_test)
     train_err  = assGraph.predict(M_test)
             
-    train_div = assGraph.div()
-    train_divF = assGraph.divF()
+    train_div = assGraph.div(M_test)
+    train_divF = assGraph.divF(M_test)
     
     return (train_elbo, train_err, train_div, train_divF,assGraph.G)
 
@@ -238,7 +238,7 @@ def main(argv):
             source_maps[gene] = source_list
             assemblyGraphs[gene] = unitigGraph
     
-    import ipdb; ipdb.set_trace() 
+    #import ipdb; ipdb.set_trace() 
     
     if  args.paths_file != None:
     
@@ -378,7 +378,7 @@ def main(argv):
     #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
-    Gopt = 6
+    Gopt = 8
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
@@ -394,9 +394,9 @@ def main(argv):
         Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
 
 
-        M_train = Ms_training_and_test[0][0]
-        assGraph.initNMF(mask=M_train)
-        assGraph.update(args.iters, True,mask=M_train,logFile=args.outFileStub + "_tmp.txt",drop_strain=None,relax_path=False,bMulti=True)
+      #  M_train = Ms_training_and_test[0][0]
+    #    assGraph.initNMF(mask=M_train)
+     #   assGraph.update(args.iters, True,mask=M_train,logFile=args.outFileStub + "_tmp.txt",drop_strain=None,relax_path=False,bMulti=True)
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:

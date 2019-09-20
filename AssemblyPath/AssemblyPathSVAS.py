@@ -1468,8 +1468,8 @@ class AssemblyPathSVA():
                 diffElbo = 1.
  
             currElbo = total_elbo   
-            DivF = self.divF()
-            Div  = self.div()
+            DivF = self.divF(mask)
+            Div  = self.div(mask)
             
             if iter % 10 == 0:
                 print(str(iter)+ "," + str(self.G) + "," + str(Div) + "," + str(DivF)+ "," + str(total_elbo) + "," + str(diffElbo))
@@ -1576,16 +1576,21 @@ class AssemblyPathSVA():
 
             #print(str(iter)+","+ str(self.divF()))  
             iter += 1
-    
-    def div(self):
+
+    def div(self,M=None):
+        if M is None:
+            M = np.ones((self.V,self.S))
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
         if self.BIAS:
             Va = self.expTheta[:,np.newaxis]*Va
             
-        return (np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN)).sum()
+        return (M*(np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN))).sum()
 
-    def divF(self):
+    def divF(self,M=None):
+        if M is None:
+            M = np.ones((self.V,self.S))
+
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         
         if self.BIAS:
@@ -1593,8 +1598,9 @@ class AssemblyPathSVA():
         else:
             R = self.eLambda - self.XN
             
-        return np.multiply(R, R).sum()/self.Omega
+        return (M*np.multiply(R, R)).sum()/np.sum(M)
 
+ 
     def divF_matrix(self):
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
 
