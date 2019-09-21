@@ -378,7 +378,7 @@ def main(argv):
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G
-    Gopt = 8
+
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
@@ -430,6 +430,7 @@ def main(argv):
                 
 
         with open(args.outFileStub + "_CV.csv",'w') as f:
+            f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
                 mean_err = np.mean(errs[g])   

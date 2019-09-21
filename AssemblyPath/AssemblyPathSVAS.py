@@ -1400,7 +1400,7 @@ class AssemblyPathSVA():
         
         self.updateTau(bFit=True,mask=mask) 
         diffElbo = 1.0
-        currElbo=self.calc_elbo()
+        currElbo=self.calc_elbo(mask)
         while iter < 100 or (iter < maxIter and diffElbo > minDiff):
             #update phi marginals
             if removeRedundant:
@@ -2269,8 +2269,9 @@ class AssemblyPathSVA():
         
         #add tau prior
     
-        total_elbo += nTOmega*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
-        total_elbo += np.sum((self.alpha - 1.)*self.expLogTau*mask - self.beta*self.expTau*mask)
+        if self.bFixedTau:
+            total_elbo += nTOmega*(self.alpha * math.log(self.beta) - sps.gammaln(self.alpha)) 
+            total_elbo += np.sum((self.alpha - 1.)*self.expLogTau*mask - self.beta*self.expTau*mask)
 
         # q for lambdak, if using ARD
         if self.ARD:
@@ -2283,6 +2284,7 @@ class AssemblyPathSVA():
         
         temp[temp < AssemblyPathSVA.minLogQGamma] = AssemblyPathSVA.minLogQGamma
         
+
         qGamma += np.log(0.5*temp).sum()
         qGamma += (0.5*self.tauGamma * ( self.varGamma + (self.expGamma - self.muGamma)**2 ) ).sum()
 
@@ -2297,12 +2299,12 @@ class AssemblyPathSVA():
             total_elbo += qTheta
         
         # q for tau
-        
-        dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau)*mask) - nTOmega*sps.gammaln(self.alpha + 0.5)    
-        dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau*mask) + np.sum(self.betaTau*self.expTau*mask)
+        if self.bFixedTau:
+            dTemp1 = (self.alpha + 0.5)*np.sum(np.log(self.betaTau)*mask) - nTOmega*sps.gammaln(self.alpha + 0.5)    
+            dTemp2 = np.sum((self.alpha - 0.5)*self.expLogTau*mask) + np.sum(self.betaTau*self.expTau*mask)
 
-        total_elbo += - dTemp1 
-        total_elbo += - dTemp2
+            total_elbo += - dTemp1 
+            total_elbo += - dTemp2
         
          # q for phi
         total_elbo += np.sum(self.HPhi)
