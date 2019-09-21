@@ -2443,7 +2443,7 @@ class AssemblyPathSVA():
     ''' Filters on uncertainty'''
     def filterUncertain(self, maxUncertainty,relax_path,gammaIter=10):
     
-        self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path)
+        self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path, writeSeq = False)
  
         mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
         
