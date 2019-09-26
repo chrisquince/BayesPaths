@@ -113,7 +113,7 @@ def main(argv):
     parser.add_argument('-m','--min_cov',nargs='?', default=1.0, type=float,
         help=("min. sample coverage"))
 
-    parser.add_argument('-mf','--min_frac_cov',nargs='?', default=0.0, type=float,
+    parser.add_argument('-mf','--min_frac_cov',nargs='?', default=0.05, type=float,
         help=("min. fractional sample coverage"))
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
