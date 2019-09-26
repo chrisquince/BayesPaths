@@ -80,13 +80,16 @@ def assGraphWorker(gargs):
     
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
+    if assGraph.bLogTau:
+        assGraph.updateLogTauX(False,M_test)
+
     train_elbo = assGraph.calc_elbo(M_test)
     train_err  = assGraph.predict(M_test)
             
     train_div = assGraph.div(M_test)
     train_divF = assGraph.divF(M_test)
-    
-    return (train_elbo, train_err, train_div, train_divF,assGraph.G)
+    train_ll = assGraph.calc_expll(M_test)
+    return (train_elbo, train_err, train_div, train_divF, train_ll, assGraph.G)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -394,6 +397,7 @@ def main(argv):
         errs = defaultdict(lambda: np.zeros(no_folds))
         divs = defaultdict(lambda: np.zeros(no_folds))
         divFs = defaultdict(lambda: np.zeros(no_folds))
+        expLLs = defaultdict(lambda: np.zeros(no_folds))
         Hs = defaultdict(lambda: np.zeros(no_folds))    
         
         
@@ -434,7 +438,8 @@ def main(argv):
                 errs[g][f]  =  resultsa[f][1]
                 divs[g][f]  = resultsa[f][2]
                 divFs[g][f] = resultsa[f][3]
-                Hs[g][f] = resultsa[f][4]
+                expLLs[g][f] = resultsa[f][4]
+                Hs[g][f] = resultsa[f][5]
                 
 
         with open(args.outFileStub + "_CV.csv",'w') as f:
@@ -445,8 +450,9 @@ def main(argv):
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
                 median_h = np.median(Hs[g]) 
-                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h) + '\n')
-                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
+                median_ll = np.median(expLLs[g]) 
+                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
+                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
   
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:

@@ -2209,6 +2209,15 @@ class AssemblyPathSVA():
         
         return deviance_matrix
 
+    def calc_expll(self, mask = None):
+        total_elbo = 0.
+        
+        # Log likelihood
+        nTOmega = np.sum(mask)               
+        total_elbo += 0.5*(np.sum(self.expLogTau*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
+
+        return total_elbo
 
     def calc_elbo(self, mask = None):
     
