@@ -13,7 +13,7 @@ from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 from pathos.multiprocessing import ProcessingPool 
 COG_COV_DEV = 2.5
-SAMPLE_MIN_COV = 1.0
+
 
 def filterGenes(assGraph, bGeneDev):
     gene_mean_error = assGraph.gene_mean_diff()
@@ -47,7 +47,7 @@ def filterGenes(assGraph, bGeneDev):
 
     return genesSelect 
 
-def selectSamples(assGraph, genesSelect, readLength,kLength):
+def selectSamples(assGraph, genesSelect, readLength,kLength,minCov,minFracCov):
         
     nGenes = len(genesSelect)
         
@@ -61,8 +61,8 @@ def selectSamples(assGraph, genesSelect, readLength,kLength):
     
     sampleMean = np.mean(geneSampleCovArray,axis=0)*kFactor
         
-    minCov = max(SAMPLE_MIN_COV,0.05*np.max(sampleMean))
-
+    minCov = max(minCov,minFracCov*np.max(sampleMean))
+    
     return sampleMean > minCov
 
 
@@ -106,6 +106,12 @@ def main(argv):
 
     parser.add_argument('-nf','--noise_frac',nargs='?', default=0.02, type=float,
         help=("fractional coverage for noise category"))
+
+    parser.add_argument('-m','--min_cov',nargs='?', default=1.0, type=float,
+        help=("min. sample coverage"))
+
+    parser.add_argument('-mf','--min_frac_cov',nargs='?', default=0.0, type=float,
+        help=("min. fractional sample coverage"))
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
@@ -296,23 +302,25 @@ def main(argv):
     
     genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
 
-    selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length))
+    selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length),float(args.min_cov),float(args.min_frac_cov))
     
-    if  np.sum(selectedSamples) < assGraph.S:
-        print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
+    print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
-        if np.sum(selectedSamples) < 3:
+    if np.sum(selectedSamples) < 3:
+        summaryFile=args.outFileStub + "_summary.txt"
+        with open(summaryFile,'w') as f:
             print("Not recommended to run BayesPaths.py with fewer than 3 samples exiting...")
-            sys.exit(0)
+            f.write('Not recommended to run BayesPaths.py with fewer than 3 samples exiting.. \n')
+        sys.exit(0)
 
-        selectedIndices = np.where(selectedSamples)
+    selectedIndices = np.where(selectedSamples)
     
-        sString = ','.join([str(s) for s in selectedIndices])
+    sString = ','.join([str(s) for s in selectedIndices])
     
-        print(sString)
-        logFile=args.outFileStub + "_log1.txt"
-        with open(logFile,'w') as f:
-            f.write(sString + '\n')
+    print(sString)
+    logFile=args.outFileStub + "_log1.txt"
+    with open(logFile,'w') as f:
+        f.write(sString + '\n')
     
     assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
@@ -440,6 +448,11 @@ def main(argv):
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_h))
   
+    summaryFile=args.outFileStub + "_summary.txt"
+    with open(summaryFile,'w') as f:
+        print("BayesPaths finished")
+        f.write("BayesPaths finished resolving " + str(Gopt) + " strains")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
