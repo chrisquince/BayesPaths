@@ -2039,7 +2039,7 @@ class AssemblyPathSVA():
         if self.BIAS:
             R = self.X[unitig_idxs,:] - self.lengths[unitig_idxs,np.newaxis]*self.expTheta[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
         else:
-            R = self.X - self.lengths[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
+            R = self.X[unitig_idxs,:] - self.lengths[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
             
         t1 = np.dot(self.expPhi[unitig_idxs,:]*self.expPhi[unitig_idxs,:], self.expGamma*self.expGamma)
         
