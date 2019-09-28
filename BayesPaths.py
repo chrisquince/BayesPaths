@@ -309,11 +309,15 @@ def main(argv):
     
     print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
-    if np.sum(selectedSamples) < 3:
+    if np.sum(selectedSamples) < 2:
+        print("Not recommended to use bias with fewer than 2 samples setting bias to false")
+        args.bias = False
+
+    if np.sum(selectedSamples) < 1:
         summaryFile=args.outFileStub + "_summary.txt"
         with open(summaryFile,'w') as f:
-            print("Not recommended to run BayesPaths.py with fewer than 3 samples exiting...")
-            f.write('Not recommended to run BayesPaths.py with fewer than 3 samples exiting.. \n')
+            print("Not recommended to run BayesPaths.py with fewer than 1 samples exiting...")
+            f.write('Not recommended to run BayesPaths.py with fewer than 1 samples exiting..\n')
         sys.exit(0)
 
     selectedIndices = np.where(selectedSamples)
