@@ -173,7 +173,9 @@ class AssemblyPathSVA():
     minLogQGamma = 1.0e-100
     
     minBeta = 1.0e-100
-        
+    minVar = 1.0e-3
+    
+    
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
@@ -1169,6 +1171,66 @@ class AssemblyPathSVA():
         np.place(self.betaTau, mask == 1, mBetaTau)
 
 
+    def updateEmpTauX(self,bFit = True, mask = None):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+    
+        square_diff_matrix = self.exp_square_diff_matrix()  
+           
+        mX = np.ma.masked_where(mask==0, self.X)
+        
+        mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
+        
+        X1D = np.ma.compressed(mX)
+        
+        logX1D = np.log(0.5 + X1D)
+        
+        mFit = np.ma.compressed(mSDM)
+        
+        logMFit = np.log(mFit + AssemblyPathSVA.minVar)
+        
+        try:
+            
+            if self.bLoess:
+                print("Attemptimg Loess smooth")
+                yest_sm = lowess(logX1D,logMFit, f=0.75, iter=3)
+            elif self.bGam:
+                if bFit:
+                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1D,logMFit)
+            
+                yest_sm = self.gam.predict(logX1D)
+            else:
+                print("Attemptimg linear regression")
+                    
+                model = LinearRegression()
+            
+                poly_reg = PolynomialFeatures(degree=2)
+            
+                X_poly = poly_reg.fit_transform(logX1D.reshape(-1,1))
+            
+                model.fit(X_poly, logMFit)
+            
+                yest_sm  = model.predict(X_poly)
+        except ValueError:
+            print("Performing fixed tau")
+                    
+            self.updateFixedTau(mask)
+                    
+            return
+
+        mBetaTau = self.beta*(X1D + 0.5) + 0.5*np.exp(yest_sm)
+
+        np.place(self.betaTau, mask == 1, mBetaTau)
+
+        mExpTau = (self.alpha + 0.5)/mBetaTau
+
+        np.place(self.expTau, mask == 1, mExpTau)
+        
+        mLogTau = digamma(self.alpha + 0.5) - np.log(mBetaTau) 
+        
+        np.place(self.expLogTau, mask == 1, mLogTau)
+    
     
     def updateLogTau(self,bFit = True):
 
@@ -1226,6 +1288,7 @@ class AssemblyPathSVA():
         self.expLogTau = np.reshape(yest_sm ,(self.V,self.S))
         
         self.expTau = np.exp(self.expLogTau)
+
 
     def updateTauBeta(self, mask = None):
     
