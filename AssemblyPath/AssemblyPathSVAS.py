@@ -1079,7 +1079,7 @@ class AssemblyPathSVA():
             if self.bLogTau:
                 self.updateLogTauX(bFit,mask)
             else:
-                self.updateTauBeta(mask)
+                self.updateEmpTauX(bFit,mask)
     
     
     def updateFixedTau(self, mask = None):
