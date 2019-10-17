@@ -1724,24 +1724,29 @@ class AssemblyPathSVA():
         while current != self.sourceNode:
             inPaths = list(biGraph.predecessors(current))
             NC = len(inPaths)
-            tempProb = np.zeros(NC)
-            for idx, inPath in enumerate(inPaths):
+            if NC > 0:
+                tempProb = np.zeros(NC)
+                for idx, inPath in enumerate(inPaths):
 
-                if inPath not in visited:
-                    tempProb[idx] = np.sum(margP[inPath][1:]) 
+                    if inPath not in visited:
+                        tempProb[idx] = np.sum(margP[inPath][1:]) 
            
-            if np.sum(tempProb) > 0.: 
-                tempProb = tempProb/np.sum(tempProb)
+                if np.sum(tempProb) > 0.: 
+                    tempProb = tempProb/np.sum(tempProb)
             
-                selectIn = self.prng.choice(np.arange(NC), 1, p=tempProb)
-            else:            
-                selectIn = self.prng.choice(np.arange(NC),1)
+                    selectIn = self.prng.choice(np.arange(NC), 1, p=tempProb)
+                else:            
+                    selectIn = self.prng.choice(np.arange(NC),1)
 
-            path.append(current)
+                path.append(current)
             
-            current = list(biGraph.predecessors(inPaths[selectIn[0]]))[0]
+                current = list(biGraph.predecessors(inPaths[selectIn[0]]))[0]
             
-            visited.add(inPaths[selectIn[0]])
+                visited.add(inPaths[selectIn[0]])
+            else:
+                path.append(current)
+                print("Warning: Ended up in errorenous terminal node sampleMargPath")
+                break
             
         path.reverse()
         return path
@@ -2394,6 +2399,31 @@ class AssemblyPathSVA():
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
         return MSE
 
+    def predictMaximal(self, M_pred):
+        ''' Predict missing values in R. '''
+        
+        self.getMaximalUnitigs('Dummy', drop_strain=None,relax_path=False,writeSeq=False)
+        
+        pPhi = np.zeros((self.V,self.G))
+        
+        for gene, mapGene in self.geneMapIdx.items(): 
+        
+            for g in self.G:
+                for node in self.paths[gene][g]:
+                    v_idx = mapGene[node]
+                    pPhi[v_idx,g] = 1.
+        
+        R_pred = self.lengths[:,np.newaxis]*np.dot(pPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+        MSE = self.compute_MSE(M_pred, self.X, R_pred)
+        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
+        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
+        return MSE
+
+
     ''' Functions for computing MSE, R^2 (coefficient of determination), Rp (Pearson correlation) '''
     def compute_MSE(self,M,R,R_pred):
         ''' Return the MSE of predictions in R_pred, expected values in R, for the entries in M. '''
@@ -2818,7 +2848,6 @@ class AssemblyPathSVA():
             
         return maximals
                     
-
 
     def getMaximalUnitigs(self, fileStub, drop_strain=None,relax_path=False,writeSeq=True):
 
