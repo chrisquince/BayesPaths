@@ -85,11 +85,16 @@ def assGraphWorker(gargs):
 
     train_elbo = assGraph.calc_elbo(M_test)
     train_err  = assGraph.predict(M_test)
-            
+    train_errP = assGraph.predictMaximal(M_test)
     train_div = assGraph.div(M_test)
     train_divF = assGraph.divF(M_test)
     train_ll = assGraph.calc_expll(M_test)
-    return (train_elbo, train_err, train_div, train_divF, train_ll, assGraph.G)
+    
+    fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
+    with open(fitFile, 'w') as ffile:
+        ffile.write(str(train_elbo) + "," + str(train_err)  + "," + str(train_errP) + "," + str(train_div) + "," + str(train_divF) + "," + str(train_ll) + "\n")
+
+    return (train_elbo, train_err, train_errP, train_div, train_divF, train_ll, assGraph.G)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -144,13 +149,13 @@ def main(argv):
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
-    parser.add_argument('--run_elbow', dest='run_elbow', action='store_true')
+    parser.add_argument('--no_run_elbow', dest='run_elbow', action='store_false')
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--nologtau', dest='bLogTau', action='store_false')
+    parser.add_argument('--logtau', dest='bLogTau', action='store_true')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
     
@@ -354,7 +359,8 @@ def main(argv):
             assGraph.initNMF()
             print("Round " + str(gIter) + " of gene filtering")
             assGraph.update(args.iters*2, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
-
+            #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
+            #MSE = assGraph.predict(np.ones((assGraph.V,assGraph.S)))
             assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
         
             assGraph.writeOutput(args.outFileStub + '_G' + str(gIter), False, selectedSamples)
@@ -392,13 +398,14 @@ def main(argv):
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = assGraph.G
+    Gopt = assGraph.G + 1
 
     if args.run_elbow or Gopt > 5:
         no_folds=10
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
         errs = defaultdict(lambda: np.zeros(no_folds))
+        errsP = defaultdict(lambda: np.zeros(no_folds))
         divs = defaultdict(lambda: np.zeros(no_folds))
         divFs = defaultdict(lambda: np.zeros(no_folds))
         expLLs = defaultdict(lambda: np.zeros(no_folds))
@@ -440,23 +447,25 @@ def main(argv):
             for f in range(no_folds):
                 elbos[g][f] = resultsa[f][0]
                 errs[g][f]  =  resultsa[f][1]
-                divs[g][f]  = resultsa[f][2]
-                divFs[g][f] = resultsa[f][3]
-                expLLs[g][f] = resultsa[f][4]
-                Hs[g][f] = resultsa[f][5]
+                errsP[g][f] = resultsa[f][2]
+                divs[g][f]  = resultsa[f][3]
+                divFs[g][f] = resultsa[f][4]
+                expLLs[g][f] = resultsa[f][5]
+                Hs[g][f] = resultsa[f][6]
                 
 
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
-                mean_err = np.mean(errs[g])   
+                mean_err = np.mean(errs[g])
+                mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
                 median_h = np.median(Hs[g]) 
                 median_ll = np.median(expLLs[g]) 
-                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
-                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
+                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
+                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
   
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:
