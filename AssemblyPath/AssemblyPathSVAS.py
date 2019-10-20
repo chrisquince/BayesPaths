@@ -2778,7 +2778,7 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + str(mask[v,s]) + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + str(mask[v_idx,s]) + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
 
 
 
