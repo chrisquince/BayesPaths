@@ -2404,14 +2404,18 @@ class AssemblyPathSVA():
         
         self.getMaximalUnitigs('Dummy', drop_strain=None,relax_path=False,writeSeq=False)
         
-        pPhi = np.zeros((self.V,self.G))
+        pPhi = np.zeros((self.V,self.GDash))
         
-        for gene, mapGene in self.geneMapIdx.items(): 
+        for gene, mapGene in self.mapGeneIdx.items(): 
         
             for g in self.G:
                 for node in self.paths[gene][g]:
-                    v_idx = mapGene[node]
+                    v_idx = mapGene[node[:-1]]
                     pPhi[v_idx,g] = 1.
+        
+        if self.NOISE:
+            pPhi[:,self.G] = 1.0
+        
         
         R_pred = self.lengths[:,np.newaxis]*np.dot(pPhi, self.expGamma)
         
