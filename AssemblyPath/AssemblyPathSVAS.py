@@ -177,7 +177,7 @@ class AssemblyPathSVA():
     
     
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
-                readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=0.1,beta=0.1,alpha0=1.0e-9,beta0=1.0e-9,
+                readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
@@ -1224,7 +1224,7 @@ class AssemblyPathSVA():
         np.place(self.betaTau, mask == 1, mBetaTau)
 
         mExpTau = (self.alpha + 0.5)/mBetaTau
-
+        
         np.place(self.expTau, mask == 1, mExpTau)
         
         mLogTau = digamma(self.alpha + 0.5) - np.log(mBetaTau) 
@@ -2408,7 +2408,7 @@ class AssemblyPathSVA():
         
         for gene, mapGene in self.mapGeneIdx.items(): 
         
-            for g in self.G:
+            for g in range(self.G):
                 for node in self.paths[gene][g]:
                     v_idx = mapGene[node[:-1]]
                     pPhi[v_idx,g] = 1.
