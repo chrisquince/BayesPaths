@@ -135,6 +135,9 @@ def main(argv):
     parser.add_argument('-i', '--iters', default=250, type=int,
         help="number of iterations for the variational inference")
     
+    parser.add_argument('-nfo', '--nofolds', default=10, type=int,
+        help="number of folds for the CV analysis")
+
     parser.add_argument('-r','--readLength',nargs='?', default=100., type=float,
         help=("read length used for sequencing defaults 100bp"))
 
@@ -401,7 +404,7 @@ def main(argv):
     Gopt = assGraph.G + 1
 
     if args.run_elbow or Gopt > 5:
-        no_folds=10
+        no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
         errs = defaultdict(lambda: np.zeros(no_folds))
@@ -414,7 +417,7 @@ def main(argv):
         
         M_attempts = 1000
         M = np.ones((assGraph.V,assGraph.S))
-        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=10,attempts=M_attempts,M=M)
+        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
