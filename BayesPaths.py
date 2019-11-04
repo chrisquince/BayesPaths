@@ -456,12 +456,13 @@ def main(argv):
                 expLLs[g][f] = resultsa[f][5]
                 Hs[g][f] = resultsa[f][6]
                 
-
+        mean_errs = np.zeros(Gopt)
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
                 mean_err = np.mean(errs[g])
+                means_errs[g - 1] = mean_err
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
@@ -469,7 +470,29 @@ def main(argv):
                 median_ll = np.median(expLLs[g]) 
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
-  
+    
+        #Rerun with optimal g
+        
+        print("Using " + str(minG) + " strains")
+        
+        minG = np.argmin(mean_errs) + 1
+        
+        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = minG, readLength=args.readLength,
+                                        ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                        fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+    
+        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log5.txt",drop_strain=None,relax_path=False,bMulti=True)
+
+        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log5.txt",drop_strain=None,relax_path=args.relax_path)
+
+        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+
+        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
+    
+    
+    assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
+    
+    
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:
         print("BayesPaths finished")
