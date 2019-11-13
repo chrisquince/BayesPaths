@@ -158,7 +158,7 @@ def main(argv):
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--logtau', dest='bLogTau', action='store_true')
+    parser.add_argument('--nologtau', dest='bLogTau', action='store_false')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
     

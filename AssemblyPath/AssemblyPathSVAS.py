@@ -1729,8 +1729,11 @@ class AssemblyPathSVA():
                 for idx, inPath in enumerate(inPaths):
 
                     if inPath not in visited:
-                        tempProb[idx] = np.sum(margP[inPath][1:]) 
-           
+                        if inPath in margP:
+                            tempProb[idx] = np.sum(margP[inPath][1:]) 
+                        else:
+                            tempProb[idx] = 0.
+
                 if np.sum(tempProb) > 0.: 
                     tempProb = tempProb/np.sum(tempProb)
             
