@@ -2430,6 +2430,39 @@ class AssemblyPathSVA():
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
         return MSE
 
+    def meanMargMaximal(self):
+        ''' Predict missing values in R. '''
+        
+        self.getMaximalUnitigs('Dummy', drop_strain=None,relax_path=False,writeSeq=False)
+        
+        meanMargMaximal = np.zeros(self.G)
+        countMargMaximal = np.zeros(self.G)
+        
+        for gene, mapGene in self.mapGeneIdx.items(): 
+        
+            for g in range(self.G):
+                for node in self.paths[gene][g]:
+                    v_idx = mapGene[node[:-1]]
+                    meanMargMaximal[g] += (1.0 - self.expPhi[v_idx,g])
+                    countMargMaximal[g] += 1
+        
+        return meanMargMaximal/countMargMaximal
+        
+        
+        if self.NOISE:
+            pPhi[:,self.G] = 1.0
+        
+        
+        R_pred = self.lengths[:,np.newaxis]*np.dot(pPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+        MSE = self.compute_MSE(M_pred, self.X, R_pred)
+        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
+        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
+        return MSE
+
 
     ''' Functions for computing MSE, R^2 (coefficient of determination), Rp (Pearson correlation) '''
     def compute_MSE(self,M,R,R_pred):
