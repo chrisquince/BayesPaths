@@ -2447,21 +2447,6 @@ class AssemblyPathSVA():
                     countMargMaximal[g] += 1
         
         return meanMargMaximal/countMargMaximal
-        
-        
-        if self.NOISE:
-            pPhi[:,self.G] = 1.0
-        
-        
-        R_pred = self.lengths[:,np.newaxis]*np.dot(pPhi, self.expGamma)
-        
-        if self.BIAS:
-            R_pred = R_pred*self.expTheta[:,np.newaxis]
-        
-        MSE = self.compute_MSE(M_pred, self.X, R_pred)
-        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
-        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
-        return MSE
 
 
     ''' Functions for computing MSE, R^2 (coefficient of determination), Rp (Pearson correlation) '''
@@ -2763,6 +2748,14 @@ class AssemblyPathSVA():
             for g in range(self.G):
                 divergenceFile.write( str(g) + "," + str(mean_div[g]) + "\n")
 
+    def writeMargMarginal(self, fileName):
+
+        mean_marg = self.meanMargMaximal()
+
+        with open(fileName, "w") as margFile:        
+            for g in range(self.G):
+                margFile.write( str(g) + "," + str(mean_marg[g]) + "\n")
+
 
     def writeMaximals(self,fileName,drop_strain=None):
 
@@ -2844,6 +2837,8 @@ class AssemblyPathSVA():
         self.writeTau(outFileStub + "Tau.csv")
 
         self.writePathDivergence(outFileStub + "Diver.csv",relax_path=relax_path_out)
+        
+        self.writeMargMarginal(outFileStub + "MmargFile.csv")
 
         self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None)
 
