@@ -71,7 +71,7 @@ def assGraphWorker(gargs):
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
-                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = False, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     assGraph.initNMF(M_train)
@@ -403,7 +403,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if args.run_elbow or Gopt > 5:
+    if args.run_elbow or Gopt > 5 and assGraph.S >=4:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -457,6 +457,7 @@ def main(argv):
                 Hs[g][f] = resultsa[f][6]
                 
         mean_errs = np.zeros(Gopt)
+        median_hs = {}
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
@@ -466,19 +467,20 @@ def main(argv):
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
-                median_h = np.median(Hs[g]) 
+                median_h = np.median(Hs[g])
+                median_hs[g] = median_h 
                 median_ll = np.median(expLLs[g]) 
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
     
         #Rerun with optimal g
     
-        minG = np.argmin(mean_errs) + 1
+        minG = int(median_hs[np.argmin(mean_errs)])
        
         print("Using " + str(minG) + " strains")
  
         assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = minG, readLength=args.readLength,
-                                        ARD=False,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                        ARD=False,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = False, bFixedTau = args.bFixedTau, 
                                         fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
