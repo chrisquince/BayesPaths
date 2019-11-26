@@ -403,7 +403,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if args.run_elbow or Gopt > 5 and assGraph.S >=4:
+    if (args.run_elbow or Gopt > 5) and assGraph.S >=4:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
