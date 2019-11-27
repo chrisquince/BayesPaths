@@ -482,7 +482,7 @@ def main(argv):
     
         #Rerun with optimal g
     
-        minG = int(median_hs[np.argmin(mean_errs)]) + 1
+        minG = int(median_hs[np.argmin(mean_errs)]) 
        
         print("Using " + str(minG) + " strains")
  
