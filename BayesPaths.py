@@ -464,7 +464,7 @@ def main(argv):
                 Hs[g][f] = resultsa[f][6]
                 
         mean_errs = np.zeros(Gopt)
-        median_hs = {}
+        median_hs = np.zeros(Gopt)
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
@@ -475,7 +475,7 @@ def main(argv):
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
                 median_h = np.median(Hs[g])
-                median_hs[g] = median_h 
+                median_hs[g - 1] = median_h 
                 median_ll = np.median(expLLs[g]) 
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
