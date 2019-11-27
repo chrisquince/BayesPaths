@@ -311,6 +311,13 @@ def main(argv):
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
+    genesWidth = assGraph.initNMF()
+    
+    for (gene,width) in genesWidth.items():
+        if width > 16:
+            if gene not in genesRemove:
+                genesRemove.append(gene)
+
     genesFilter = list(set(assGraph.genes) ^ set(genesRemove))
 
     selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length),float(args.min_cov),float(args.min_frac_cov))
