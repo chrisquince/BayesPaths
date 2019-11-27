@@ -1897,6 +1897,7 @@ class AssemblyPathSVA():
         initEta = covNMF.W
         
         for g in range(self.G):
+            treeWidths = {}
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
                     
@@ -1922,13 +1923,19 @@ class AssemblyPathSVA():
                 subprocess.run(cmd, shell=True,check=False)
 
                 #p = Popen(cmd, stdout=PIPE,shell=True)
-               
+                treeWidths[gene] = -1               
                 try:
                     inHandle = open(outFileName, 'r')
                     
                     outLines = inHandle.readlines()
-
+                    
                     inHandle.close()
+                    
+                    header = outLines[0]:
+                    matchW = re.search(r'.*twidth:(.*)',line)
+            
+                    if matchW is not None:
+                        treeWidths[gene] = int(matchW.group(1))
 
                     self.margG[gene][g] = self.parseMargString(factorGraph,outLines)
                     self.updateExpPhi(unitigs,self.mapGeneIdx[gene],self.margG[gene][g],g)
@@ -1962,6 +1969,7 @@ class AssemblyPathSVA():
                 
             self.addGamma(g)    
         print("-1,"+ str(self.div())) 
+        return treeWidths
 
     def initNMFGamma(self,assCopyGamma):
         gamma = np.copy(assCopyGamma.expGamma)
