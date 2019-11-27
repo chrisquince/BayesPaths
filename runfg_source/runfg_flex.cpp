@@ -56,10 +56,10 @@ int main( int argc, char *argv[] )
     opts.set("maxiter",maxiter);  // Maximum number of iterations
     opts.set("tol",tol);          // Tolerance for convergence
     opts.set("verbose",verb);     // Verbosity (amount of output generated)
-    
+    size_t tWidth = -1;    
     if (runJT == true){
         // Bound treewidth for junctiontree
-        size_t tWidth;
+
         BigInt tState;
         try {
             std::pair< size_t, BigInt > p = boundTreewidth(fg, &eliminationCost_MinFill, maxstates );
@@ -94,7 +94,7 @@ int main( int argc, char *argv[] )
             jt.run();
 
             outfile.open(argv[2]);
-            outfile << "Exact variable marginals:" << endl;
+            outfile << "Exact variable marginals twidth:" << tWidth << endl;
         
             for( size_t i = 0; i < fg.nrVars(); i++ ){ // iterate over all variables in fg
                 outfile << jt.belief(fg.var(i)) << endl; // display the "belief" of jt for that variable
@@ -117,7 +117,7 @@ int main( int argc, char *argv[] )
             jtmapstate = jtmap.findMaximum();
             
             outfile.open(argv[2]);
-            outfile << "Exact MAP state (log score = " << fg.logScore(jtmapstate) << "):" << endl;
+            outfile << "Exact MAP state (log score = " << fg.logScore(jtmapstate) << "):twidth:" << tWidth << endl;
             for( size_t i = 0; i < jtmapstate.size(); i++ )
                 outfile << fg.var(i) << "," << jtmapstate[i] << endl;
             outfile.close();
@@ -133,7 +133,7 @@ int main( int argc, char *argv[] )
             bp.run();
         
             outfile.open(argv[2]);
-            outfile << "Approximate (loopy belief propagation) factor marginals:" << endl;
+            outfile << "Approximate (loopy belief propagation) factor marginals twidth:" << tWidth << endl;
             for( size_t i = 0; i < bp.nrVars(); i++ ){ // iterate over all variables in fg
                 outfile << bp.belief(bp.var(i)) << endl; // display the "belief" of jt for that variable
             }
@@ -151,7 +151,7 @@ int main( int argc, char *argv[] )
 
             // Report max-product MAP joint state]
             outfile.open(argv[2]);
-            outfile << "Approximate (max-product) MAP state (log score = " << fg.logScore( mpstate ) << "):" << endl;
+            outfile << "Approximate (max-product) MAP state (log score = " << fg.logScore( mpstate ) << "):twidth:" << tWidth << endl;
             for( size_t i = 0; i < mpstate.size(); i++ )
                 outfile << fg.var(i) << "," << mpstate[i] << endl;
             
