@@ -1931,8 +1931,8 @@ class AssemblyPathSVA():
                     
                     inHandle.close()
                     
-                    header = outLines[0]:
-                    matchW = re.search(r'.*twidth:(.*)',line)
+                    header = outLines[0]
+                    matchW = re.search(r'.*twidth:(.*)',header)
             
                     if matchW is not None:
                         treeWidths[gene] = int(matchW.group(1))
