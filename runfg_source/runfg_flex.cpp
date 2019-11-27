@@ -14,7 +14,7 @@
 #include <dai/decmap.h>
 
 #define MAX_STATES 1048576
-#define MAX_WIDTH 128
+#define MAX_WIDTH 16
 
 using namespace dai;
 using namespace std;
