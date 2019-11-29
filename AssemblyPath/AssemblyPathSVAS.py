@@ -887,6 +887,22 @@ class AssemblyPathSVA():
                     tempMatrix[d] = np.sum(dFac*(dVal1*float(d) + dVal2*float(d*d)))    
 
                 unitigFacNode.P = expNormLogProb(tempMatrix)
+                
+    def updateUnitigFactorsN(self, unitigs, unitigMap, unitigFacNodes):
+                
+        for unitig in unitigs:
+            if unitig in unitigFacNodes:
+                unitigFacNode = unitigFacNodes[unitig]
+                v_idx = unitigMap[unitig]
+                
+                P = unitigFacNode.P
+                tempMatrix = np.zeros_like(P)
+            
+                nMax = unitigFacNode.P.shape[0]
+                                    
+                unitigFacNode.P = expNormLogProb(tempMatrix)
+                
+                
 
     def updateUnitigFactorsW(self,unitigs, unitigMap, unitigFacNodes, W,gidx):
 
@@ -1881,9 +1897,15 @@ class AssemblyPathSVA():
         return marg
 
     def calcTreeWidths(self):
+        
         treeWidths = {}
+        
         for gene, factorGraph in self.factorGraphs.items():
-                
+                        
+            unitigs = self.assemblyGraphs[gene].unitigs
+                    
+            self.updateUnitigFactorsN(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene])
+            
             factorGraph.var['zero+source+'].condition(1)
 
             factorGraph.var['sink+infty+'].condition(1)
