@@ -314,7 +314,7 @@ def main(argv):
     genesWidth = assGraph.calcTreeWidths()
     
     for (gene,width) in genesWidth.items():
-        if width > 16:
+        if width > 16 or width < 0:
             if gene not in genesRemove:
                 genesRemove.append(gene)
 

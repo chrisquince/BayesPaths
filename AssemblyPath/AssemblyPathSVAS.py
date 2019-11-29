@@ -1889,7 +1889,7 @@ class AssemblyPathSVA():
             factorGraph.var['sink+infty+'].condition(1)
                     
             graphString = str(factorGraph)
-            stubName = str(uuid.uuid4()) + 'graph_w')
+            stubName = str(uuid.uuid4()) + 'graph_w'
             graphFileName = self.working_dir + '/' + stubName + '.fg'
             outFileName = self.working_dir + '/' + stubName + '.out'
             with open(graphFileName, "w") as text_file:
