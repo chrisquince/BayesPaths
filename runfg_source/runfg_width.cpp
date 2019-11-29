@@ -21,15 +21,19 @@ using namespace std;
 
 int main( int argc, char *argv[] ) 
 {
-    if ( argc != 4 && argc != 5 ) {
+    if ( argc != 3 ) {
         cout << "Usage: " << argv[0] << " <filename.fg> <outfile>" << endl << endl;
         cout << "Reads factor graph <filename.fg> and runs" << endl;
         cout << "JunctionTree computes treewidth." << endl;
         return 1;
     } 
-    
+
+    size_t verb = 1;    
     ofstream outfile;    
     FactorGraph fg;
+    Real   tol = 1e-9;
+    size_t maxiter = 10000;
+    
     fg.ReadFromFile(argv[1]);
     
     size_t maxstates = MAX_STATES;
@@ -41,6 +45,7 @@ int main( int argc, char *argv[] )
     opts.set("tol",tol);          // Tolerance for convergence
     opts.set("verbose",verb);     // Verbosity (amount of output generated)
     size_t tWidth = -1;    
+    BigInt tState;
 
     std::pair< size_t, BigInt > p = boundTreewidth(fg, &eliminationCost_MinFill, maxstates);
 
