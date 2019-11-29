@@ -1880,6 +1880,49 @@ class AssemblyPathSVA():
                 marg[unitig] = tempMatrix
         return marg
 
+    def calcTreeWidths(self):
+        treeWidths = {}
+        for gene, factorGraph in self.factorGraphs.items():
+                
+            factorGraph.var['zero+source+'].condition(1)
+
+            factorGraph.var['sink+infty+'].condition(1)
+                    
+            graphString = str(factorGraph)
+            stubName = str(uuid.uuid4()) + 'graph_w')
+            graphFileName = self.working_dir + '/' + stubName + '.fg'
+            outFileName = self.working_dir + '/' + stubName + '.out'
+            with open(graphFileName, "w") as text_file:
+                print(graphString, file=text_file)
+                
+            cmd = self.fgExePath + 'runfg_width ' + graphFileName + ' ' + outFileName
+               
+            subprocess.run(cmd, shell=True,check=False)
+
+            treeWidths[gene] = -1               
+            try:
+                inHandle = open(outFileName, 'r')
+                    
+                outLines = inHandle.readlines()
+                    
+                inHandle.close()
+                    
+                header = outLines[0]
+                matchW = re.search(r'treewidth: (.*) states:.*',header)
+            
+                if matchW is not None:
+                    treeWidths[gene] = int(matchW.group(1))
+
+                os.remove(graphFileName)
+                os.remove(outFileName)
+                    
+            except FileNotFoundError:
+                
+                os.remove(graphFileName)
+                    
+        
+        return treeWidths
+        
     def initNMF(self, mask = None):
     
         if mask is None:

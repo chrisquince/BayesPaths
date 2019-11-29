@@ -311,7 +311,7 @@ def main(argv):
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
-    genesWidth = assGraph.initNMF()
+    genesWidth = assGraph.calcTreeWidths()
     
     for (gene,width) in genesWidth.items():
         if width > 16:
