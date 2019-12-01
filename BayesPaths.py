@@ -71,7 +71,7 @@ def assGraphWorker(gargs):
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
-                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = False, bFixedTau = args.bFixedTau, 
+                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     assGraph.initNMF(M_train)
@@ -147,12 +147,12 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.1, type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
-    parser.add_argument('--no_run_elbow', dest='run_elbow', action='store_false')
+    parser.add_argument('--run_elbow', dest='run_elbow', action='store_true')
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
@@ -410,7 +410,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow or Gopt > 5) and assGraph.S >=4:
+    if (args.run_elbow and Gopt > 5) and assGraph.S >=4:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
