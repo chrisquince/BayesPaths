@@ -247,6 +247,7 @@ class AssemblyPathSVA():
         bFirst = True
         self.nBubbles = 0
         self.mapBubbles = {}
+        self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.) 
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
@@ -276,7 +277,7 @@ class AssemblyPathSVA():
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
                 kFactor = 1.0/(self.readLength - assemblyGraph.overlapLength + 1.)
-                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*kFactor
+                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*(kFactor/self.readLength)
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
@@ -384,7 +385,7 @@ class AssemblyPathSVA():
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
-        self.minIntensity =  max(1.0,np.sum(self.meanSampleCov)/self.readLength)
+        self.minIntensity =  max(1.0,(self.fraCov*np.sum(self.meanSampleCov))/self.readLength
             
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -2672,7 +2673,7 @@ class AssemblyPathSVA():
         #calculate number of good strains
         nNewG = 0
         
-        sumIntensity = np.max(self.expGamma,axis=1)
+        sumIntensity = np.sum(self.expGamma,axis=1)
         if uncertainFactor is not None:
             dTemp = max(0.0,1.0 - 2.0*np.max(mean_div))
     
