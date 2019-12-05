@@ -178,7 +178,7 @@ class AssemblyPathSVA():
     
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, NOISE = False, muTheta0 = 1.0, tauTheta0 = 100.0,
+                no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
@@ -379,11 +379,13 @@ class AssemblyPathSVA():
 
        # print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
-            self.minIntensity = self.maxSampleCov/self.readLength
+
             self.adjUncertain = np.max(self.meanSampleCov)/self.readLength
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
+        self.minIntensity =  max(1.0,np.sum(self.meanSampleCov)/self.readLength)
+            
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
