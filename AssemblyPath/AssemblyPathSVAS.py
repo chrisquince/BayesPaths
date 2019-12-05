@@ -178,7 +178,7 @@ class AssemblyPathSVA():
     
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
-                no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
+                no_folds = 10, ARD = False, BIAS = True, NOISE = False, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
@@ -2672,7 +2672,9 @@ class AssemblyPathSVA():
         
         sumIntensity = np.max(self.expGamma,axis=1)
         if uncertainFactor is not None:
-            sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
+            dTemp = max(0.0,1.0 - 2.0*np.max(mean_div))
+    
+            sumIntensity[np.argmax(mean_div)] *= dTemp 
         
         dist = self.calcPathDist(relax_path)
 
