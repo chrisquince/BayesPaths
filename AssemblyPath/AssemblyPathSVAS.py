@@ -2664,9 +2664,9 @@ class AssemblyPathSVA():
     
         if uncertainFactor is not None:
             self.getMaximalUnitigs("Temp",drop_strain=None, relax_path=relax_path,writeSeq=False)
- 
-            mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
-    
+            #mean_div = self.getPathDivergence(100,drop_strain=None,relax_path=relax_path)
+            mean_div = self.meanMargMaximal()
+            
         #calculate number of good strains
         nNewG = 0
         
