@@ -247,10 +247,10 @@ class AssemblyPathSVA():
         bFirst = True
         self.nBubbles = 0
         self.mapBubbles = {}
-        self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.) 
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
+            self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.)
             (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
@@ -276,8 +276,7 @@ class AssemblyPathSVA():
                 
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
-                kFactor = 1.0/(self.readLength - assemblyGraph.overlapLength + 1.)
-                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*(kFactor/self.readLength)
+                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*(self.kFactor/self.readLength)
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
@@ -385,8 +384,14 @@ class AssemblyPathSVA():
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
-        self.minIntensity =  max(1.0,(self.fraCov*np.sum(self.meanSampleCov))/self.readLength
-            
+        self.totalCov = np.sum(self.meanSampleCov)
+        self.minIntensity =  max(1.0,self.fracCov*self.totalCov)/self.readLength
+        
+        if self.totalCov < 100:
+            self.NOISE = False
+            NOISE=False
+            self.bFixedTau = True
+
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
