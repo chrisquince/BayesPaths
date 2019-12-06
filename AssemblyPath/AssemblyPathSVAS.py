@@ -2680,7 +2680,7 @@ class AssemblyPathSVA():
         
         sumIntensity = np.sum(self.expGamma,axis=1)
         if uncertainFactor is not None:
-            dTemp = max(0.0,1.0 - 2.0*np.max(mean_div))
+            dTemp = min(1.0,exp(-uncertainFactor*np.max(mean_div))
     
             sumIntensity[np.argmax(mean_div)] *= dTemp 
         
