@@ -391,6 +391,8 @@ class AssemblyPathSVA():
             self.NOISE = False
             NOISE=False
             self.bFixedTau = True
+            self.bLogTau = False
+            print("Cov < 100, no noise and fixed tau")
 
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
