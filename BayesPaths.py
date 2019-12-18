@@ -502,9 +502,9 @@ def main(argv):
     assGraph.bFixedTau = False
     assGraph.tauType = 'empirical'
     
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
     
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=args.relax_path)
     
     assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
     
