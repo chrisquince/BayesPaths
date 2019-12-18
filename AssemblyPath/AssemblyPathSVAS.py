@@ -395,12 +395,15 @@ class AssemblyPathSVA():
         if self.tauType == 'auto':
             xRange = np.max(self.X) - np.min(self.X[self.X > 0])
         
-            if xRange < 10.:
-                self.tauType == 'fixed'
-            elif xRange < 100:
-                self.tauType == 'empirical'
+        #    if xRange < 10.:
+         #       self.tauType = 'fixed'
+          #      print("Set tau as fixed")
+            if xRange < 100:
+                print("Set tau as empirical")
+                self.tauType = 'fixed'
             else:
-                self.tauType == 'log'   
+                print("Set tau as log")
+                self.tauType = 'log'   
         
         if self.tauType == 'fixed':
             self.bLogTau   = False
