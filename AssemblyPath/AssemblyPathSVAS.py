@@ -179,7 +179,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto',
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -232,8 +232,7 @@ class AssemblyPathSVA():
             self.muTheta0 = muTheta0
             self.tauTheta0 = tauTheta0
 
-        self.bLogTau   = bLogTau
-        self.bFixedTau = bFixedTau 
+        self.tauType = tauType
 
         self.V = 0
         self.mapIdx = {}
@@ -387,18 +386,40 @@ class AssemblyPathSVA():
         self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
         self.minIntensity =  max(2.5,self.fracCov*self.totalCov)/self.readLength
         
+        self.NOISE = NOISE
         if self.totalCov < self.minNoiseCov:
             self.NOISE = False
-            NOISE=False
             
             print("Cov < 100, no noise")
+            
+        if self.tauType == 'auto':
+            xRange = np.max(self.X) - np.min(self.X[self.X > 0])
+        
+            if xRange < 10.:
+                self.tauType == 'fixed'
+            elif xRange < 100:
+                self.tauType == 'empirical'
+            else:
+                self.tauType == 'log'   
+        
+        if self.tauType == 'fixed':
+            self.bLogTau   = False
+            self.bFixedTau = True
+        elif self.tauType == 'log':
+            self.bLogTau   = True
+            self.bFixedTau = False
+        elif self.tauType == 'empirical':
+            self.bLogTau   = False
+            self.bFixedTau = False
+        else:
+            print("Hmm... impossible tau strategy disturbing")
+            
 
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
         self.G = G
         
-        self.NOISE = NOISE
         if self.NOISE:
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
