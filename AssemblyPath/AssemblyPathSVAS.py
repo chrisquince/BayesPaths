@@ -171,7 +171,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3
     
     minLogQGamma = 1.0e-100
-    minLogCov = 1.
+    minNoiseCov = 100.
     minBeta = 1.0e-100
     minVar = 1.0e-3
     
@@ -384,15 +384,14 @@ class AssemblyPathSVA():
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
-        self.totalCov = np.sum(self.meanSampleCov)
+        self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
         self.minIntensity =  max(2.5,self.fracCov*self.totalCov)/self.readLength
         
-        if self.totalCov < self.minLogCov:
+        if self.totalCov < self.minNoiseCov:
             self.NOISE = False
             NOISE=False
-            self.bFixedTau = True
-            self.bLogTau = False
-            print("Cov < 100, no noise and fixed tau")
+            
+            print("Cov < 100, no noise")
 
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -483,6 +482,7 @@ class AssemblyPathSVA():
         self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- math.log(self.beta))
         self.betaTau = np.full((self.V,self.S),self.beta)
         self.alphaTau = np.full((self.V,self.S),self.alpha)
+        
     def flag_degenerate_sequences(self):
         #First test for unitig  overlaps
         uniqSeqs = defaultdict(list)
