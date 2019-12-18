@@ -171,7 +171,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3
     
     minLogQGamma = 1.0e-100
-    
+    minLogCov = 1.
     minBeta = 1.0e-100
     minVar = 1.0e-3
     
@@ -387,7 +387,7 @@ class AssemblyPathSVA():
         self.totalCov = np.sum(self.meanSampleCov)
         self.minIntensity =  max(2.5,self.fracCov*self.totalCov)/self.readLength
         
-        if self.totalCov < 100:
+        if self.totalCov < self.minLogCov:
             self.NOISE = False
             NOISE=False
             self.bFixedTau = True
