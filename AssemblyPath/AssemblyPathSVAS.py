@@ -216,7 +216,7 @@ class AssemblyPathSVA():
         self.noiseFrac = noiseFrac 
         
         if minIntensity == None:
-            self.minIntensity = 2.5/self.readLength
+            self.minIntensity = 3.0/self.readLength
         else:
             self.minIntensity = minIntensity
 
@@ -384,7 +384,7 @@ class AssemblyPathSVA():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
         self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
-        self.minIntensity =  max(2.5,self.fracCov*self.totalCov)/self.readLength
+        self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
         
         self.NOISE = NOISE
         if self.totalCov < self.minNoiseCov:
