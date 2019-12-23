@@ -16,7 +16,7 @@ COG_COV_DEV = 2.5
 
 
 def filterGenes(assGraph, bGeneDev):
-    gene_mean_error = assGraph.gene_mean_diff()
+    gene_mean_error = assGraph.gene_MSE()
     gene_mean_elbo = assGraph.gene_mean_elbo()
     gene_mean_dev = assGraph.gene_mean_deviance()
     

@@ -2165,8 +2165,35 @@ class AssemblyPathSVA():
             gene_means[gene] = np.mean(np.array(gene_vals[gene]))
                 
         return gene_means
-        
     
+    def gene_MSE(self):
+    
+        ''' Predict missing values in R. '''
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+    
+        diff_matrix = (self.X - R_pred)**2
+        gene_vals = defaultdict(list)
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            for unitig in unitigs:
+                v_idx = self.mapGeneIdx[gene][unitig]
+                
+                gene_vals[gene].extend(diff_matrix[v_idx,:].tolist())
+            
+        gene_means = {}
+        
+        for gene in self.genes:
+            gene_means[gene] = np.mean(np.array(gene_vals[gene]))
+
+        
+        return gene_means
+                
+            
     def mean_diff(self):
     
         diff_matrix = self.divF_matrix()
