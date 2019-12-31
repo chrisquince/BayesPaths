@@ -2227,7 +2227,7 @@ class AssemblyPathSVA():
             mean_dev = 0.
             for unitig in unitigs:
                 v_idx = self.mapGeneIdx[gene][unitig]
-                mean_dev += np.sum(deviance_matrix[v_idx,:])
+                mean_dev += np.mean(deviance_matrix[v_idx,:])
             
             gene_means[gene] = mean_dev/len(unitigs)
                 
@@ -2408,7 +2408,7 @@ class AssemblyPathSVA():
 
     def calc_expdeviance_matrix(self):
                 # Log likelihood               
-        deviance_matrix = 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
+        deviance_matrix = 0.5*self.expTau*self.exp_square_diff_matrix()
         
         deviance_matrix -=  0.5*self.expLogTau 
         
