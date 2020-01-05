@@ -1514,7 +1514,7 @@ class AssemblyPathSVA():
         self.updateTau(bFit=True,mask=mask) 
         diffElbo = 1.0
         currElbo=self.calc_elbo(mask)
-        while iter < 100 or (iter < maxIter and diffElbo > minDiff):
+        while iter < 200 or (iter < maxIter and diffElbo > minDiff):
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
@@ -2741,8 +2741,9 @@ class AssemblyPathSVA():
 
         #first collapse degenerate clusters
         clusters = defaultdict(list)
+        gSorted = np.argsort(-sumIntensity[0:self.G])
         
-        for g in range(self.G):
+        for g in gSorted.tolist():
             
             found = False
             hclust = -1
@@ -2760,15 +2761,17 @@ class AssemblyPathSVA():
         nClusts = len(list(clusters.keys()))
     
         removed = np.zeros(self.GDash,dtype=bool)
+        removedClust = defaultdict(lambda: False)
         if nClusts < self.G:
             newGamma = np.copy(self.expGamma)
             
             for clust, members in clusters.items():
                 for c in members:
-                    if c != clust:
+                    if c != clust and removedClust[clust] == False:
                         newGamma[clust,:] += self.expGamma[c,:]     
                         removed[c] = True
                         newGamma[c,:] = 0.
+                        removedClust[clust] = True
                         
             self.expGamma = newGamma
 
