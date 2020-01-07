@@ -326,8 +326,9 @@ def main(argv):
     print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
     if np.sum(selectedSamples) < 2:
-        print("Not recommended to use bias with fewer than 2 samples setting bias to false")
+        print("Not recommended to use bias with fewer than 2 samples setting bias to false and using fixed tau")
         args.bias = False
+        args.tauType = 'fixed'
 
     if np.sum(selectedSamples) < 1:
         summaryFile=args.outFileStub + "_summary.txt"
