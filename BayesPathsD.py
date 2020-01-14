@@ -71,8 +71,7 @@ def assGraphWorker(gargs):
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
-                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
-                                bGam = args.usegam, tauType = args.tauType, 
+                                ARD=args.ARD,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     assGraph.initNMF(M_train)
@@ -81,7 +80,8 @@ def assGraphWorker(gargs):
     
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
-    assGraph.updateTau(False, M_test)
+    if assGraph.bLogTau:
+        assGraph.updateLogTauX(False,M_test)
 
     train_elbo = assGraph.calc_elbo(M_test)
     train_err  = assGraph.predict(M_test)
@@ -132,8 +132,6 @@ def main(argv):
 
     parser.add_argument('--no_ard', dest='ARD', action='store_false')
 
-    parser.add_argument('--no_noise', dest='NOISE', action='store_false')
-
     parser.add_argument('-i', '--iters', default=250, type=int,
         help="number of iterations for the variational inference")
     
@@ -149,20 +147,22 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=5., type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=0.0, type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
-    parser.add_argument('--no_run_elbow', dest='run_elbow', action='store_false')
+    parser.add_argument('--run_elbow', dest='run_elbow', action='store_true')
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
+    parser.add_argument('--nologtau', dest='bLogTau', action='store_false')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
+    
+    parser.add_argument('--fixedtau', dest='bFixedTau', action='store_true')
 
     args = parser.parse_args()
 
@@ -293,7 +293,7 @@ def main(argv):
         sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
         assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, tauType = args.tauType, 
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         
@@ -306,8 +306,7 @@ def main(argv):
         
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
-                                bGam = args.usegam, tauType = args.tauType,
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
@@ -326,9 +325,8 @@ def main(argv):
     print('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
     if np.sum(selectedSamples) < 2:
-        print("Not recommended to use bias with fewer than 2 samples setting bias to false and using fixed tau")
+        print("Not recommended to use bias with fewer than 2 samples setting bias to false")
         args.bias = False
-        args.tauType = 'fixed'
 
     if np.sum(selectedSamples) < 1:
         summaryFile=args.outFileStub + "_summary.txt"
@@ -354,8 +352,8 @@ def main(argv):
         graph.selectSamples(selectedSamples)
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                tauType = args.tauType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
+                                ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
 
     assemblyGraphs = assemblyGraphsFilter
@@ -385,8 +383,8 @@ def main(argv):
             sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
             assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                        ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        ARD=True,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = args.bLogTau, bFixedTau = args.bFixedTau, 
+                                        fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
 
             assemblyGraphs = assemblyGraphsSelect
@@ -412,7 +410,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 4) and assGraph.S >=7:
+    if (args.run_elbow and Gopt > 5) and assGraph.S >=4:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -472,27 +470,25 @@ def main(argv):
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
                 mean_err = np.mean(errs[g])
-                
+                mean_errs[g - 1] = mean_err
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
                 median_h = np.median(Hs[g])
                 median_hs[g - 1] = median_h 
                 median_ll = np.median(expLLs[g]) 
-                
-                mean_errs[g - 1] = median_ll
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
     
         #Rerun with optimal g
     
-        minG = int(median_hs[np.argmax(mean_errs)]) 
+        minG = int(median_hs[np.argmin(mean_errs)]) 
        
         print("Using " + str(minG) + " strains")
  
         assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = minG, readLength=args.readLength,
-                                        ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        ARD=False,BIAS=args.bias, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, bLogTau = False, bFixedTau = args.bFixedTau, 
+                                        fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
 
@@ -501,13 +497,11 @@ def main(argv):
         assGraph.update(args.iters, True,logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
 
     
-    #assGraph.bLogTau = False
-    #assGraph.bFixedTau = False
-    #assGraph.tauType = 'empirical'
+    assGraph.bLogTau = False
     
-    #assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
     
-    #assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=args.relax_path)
     
     assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
     

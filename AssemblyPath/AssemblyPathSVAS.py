@@ -171,7 +171,7 @@ class AssemblyPathSVA():
     minW = 1.0e-3
     
     minLogQGamma = 1.0e-100
-    
+    minNoiseCov = 100.
     minBeta = 1.0e-100
     minVar = 1.0e-3
     
@@ -179,7 +179,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, bLogTau = True, bFixedTau = False,
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto',
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -216,7 +216,7 @@ class AssemblyPathSVA():
         self.noiseFrac = noiseFrac 
         
         if minIntensity == None:
-            self.minIntensity = 2.0/self.readLength
+            self.minIntensity = 3.0/self.readLength
         else:
             self.minIntensity = minIntensity
 
@@ -232,8 +232,7 @@ class AssemblyPathSVA():
             self.muTheta0 = muTheta0
             self.tauTheta0 = tauTheta0
 
-        self.bLogTau   = bLogTau
-        self.bFixedTau = bFixedTau 
+        self.tauType = tauType
 
         self.V = 0
         self.mapIdx = {}
@@ -250,6 +249,7 @@ class AssemblyPathSVA():
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
             assemblyGraph = assemblyGraphs[gene]
+            self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.)
             (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
             unitigsDash = list(unitigFactorNode.keys())
@@ -275,8 +275,7 @@ class AssemblyPathSVA():
                 
                 self.mapIdx[unitigNew] = self.V
                 self.mapGeneIdx[gene][unitig] = self.V 
-                kFactor = 1.0/(self.readLength - assemblyGraph.overlapLength + 1.)
-                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*kFactor
+                self.covMapAdj[unitigNew] = assemblyGraph.covMap[unitig] * float(self.adjLengths[unitigNew])*(self.kFactor/self.readLength)
                 
                 if bFirst:
                     self.S = assemblyGraph.covMap[unitig].shape[0]
@@ -379,17 +378,51 @@ class AssemblyPathSVA():
 
        # print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
-            self.minIntensity = self.maxSampleCov/self.readLength
+
             self.adjUncertain = np.max(self.meanSampleCov)/self.readLength
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
+        self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
+        self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
+        
+        self.NOISE = NOISE
+        if self.totalCov < self.minNoiseCov:
+            self.NOISE = False
+            
+            print("Cov < 100, no noise")
+            
+        if self.tauType == 'auto':
+            xRange = np.max(self.X) - np.min(self.X[self.X > 0])
+        
+        #    if xRange < 10.:
+         #       self.tauType = 'fixed'
+          #      print("Set tau as fixed")
+            if xRange < 100:
+                print("Set tau as empirical")
+                self.tauType = 'fixed'
+            else:
+                print("Set tau as log")
+                self.tauType = 'log'   
+        
+        if self.tauType == 'fixed':
+            self.bLogTau   = False
+            self.bFixedTau = True
+        elif self.tauType == 'log':
+            self.bLogTau   = True
+            self.bFixedTau = False
+        elif self.tauType == 'empirical':
+            self.bLogTau   = False
+            self.bFixedTau = False
+        else:
+            print("Hmm... impossible tau strategy disturbing")
+            
+
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
         #Now initialise SVA parameters
         self.G = G
         
-        self.NOISE = NOISE
         if self.NOISE:
             self.GDash = self.G + 1
             self.epsilonNoise = epsilonNoise
@@ -473,6 +506,7 @@ class AssemblyPathSVA():
         self.expLogTau = np.full((self.V,self.S), digamma(self.alpha)- math.log(self.beta))
         self.betaTau = np.full((self.V,self.S),self.beta)
         self.alphaTau = np.full((self.V,self.S),self.alpha)
+        
     def flag_degenerate_sequences(self):
         #First test for unitig  overlaps
         uniqSeqs = defaultdict(list)
@@ -1480,7 +1514,7 @@ class AssemblyPathSVA():
         self.updateTau(bFit=True,mask=mask) 
         diffElbo = 1.0
         currElbo=self.calc_elbo(mask)
-        while iter < 100 or (iter < maxIter and diffElbo > minDiff):
+        while iter < 200 or (iter < maxIter and diffElbo > minDiff):
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
@@ -2131,8 +2165,35 @@ class AssemblyPathSVA():
             gene_means[gene] = np.mean(np.array(gene_vals[gene]))
                 
         return gene_means
-        
     
+    def gene_MSE(self):
+    
+        ''' Predict missing values in R. '''
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+    
+        diff_matrix = (self.X - R_pred)**2
+        gene_vals = defaultdict(list)
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            for unitig in unitigs:
+                v_idx = self.mapGeneIdx[gene][unitig]
+                
+                gene_vals[gene].extend(diff_matrix[v_idx,:].tolist())
+            
+        gene_means = {}
+        
+        for gene in self.genes:
+            gene_means[gene] = np.mean(np.array(gene_vals[gene]))
+
+        
+        return gene_means
+                
+            
     def mean_diff(self):
     
         diff_matrix = self.divF_matrix()
@@ -2166,7 +2227,7 @@ class AssemblyPathSVA():
             mean_dev = 0.
             for unitig in unitigs:
                 v_idx = self.mapGeneIdx[gene][unitig]
-                mean_dev += np.sum(deviance_matrix[v_idx,:])
+                mean_dev += np.mean(deviance_matrix[v_idx,:])
             
             gene_means[gene] = mean_dev/len(unitigs)
                 
@@ -2347,7 +2408,7 @@ class AssemblyPathSVA():
 
     def calc_expdeviance_matrix(self):
                 # Log likelihood               
-        deviance_matrix = 0.5*np.sum(self.expTau*self.exp_square_diff_matrix())
+        deviance_matrix = 0.5*self.expTau*self.exp_square_diff_matrix()
         
         deviance_matrix -=  0.5*self.expLogTau 
         
@@ -2670,16 +2731,19 @@ class AssemblyPathSVA():
         #calculate number of good strains
         nNewG = 0
         
-        sumIntensity = np.max(self.expGamma,axis=1)
+        sumIntensity = np.sum(self.expGamma,axis=1)
         if uncertainFactor is not None:
-            sumIntensity[np.argmax(mean_div)] -= uncertainFactor*np.max(mean_div) 
+            dTemp = min(1.0,np.exp(-uncertainFactor*np.max(mean_div)))
+    
+            sumIntensity[np.argmax(mean_div)] *= dTemp 
         
         dist = self.calcPathDist(relax_path)
 
         #first collapse degenerate clusters
         clusters = defaultdict(list)
+        gSorted = np.argsort(-sumIntensity[0:self.G])
         
-        for g in range(self.G):
+        for g in gSorted.tolist():
             
             found = False
             hclust = -1
@@ -2697,15 +2761,17 @@ class AssemblyPathSVA():
         nClusts = len(list(clusters.keys()))
     
         removed = np.zeros(self.GDash,dtype=bool)
+        removedClust = defaultdict(lambda: False)
         if nClusts < self.G:
             newGamma = np.copy(self.expGamma)
             
             for clust, members in clusters.items():
                 for c in members:
-                    if c != clust:
+                    if c != clust and removedClust[clust] == False:
                         newGamma[clust,:] += self.expGamma[c,:]     
                         removed[c] = True
                         newGamma[c,:] = 0.
+                        removedClust[clust] = True
                         
             self.expGamma = newGamma
 
