@@ -1185,7 +1185,7 @@ class AssemblyPathSVA():
         
         mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
             
-        mBetaTau = self.beta*X1DFit + 0.5*np.ma.compressed(mSDM)
+        mBetaTau = self.beta*X1D + 0.5*np.ma.compressed(mSDM)
         
         mBetaTau[mBetaTau < AssemblyPathSVA.minBeta] = AssemblyPathSVA.minBeta
             
@@ -1214,7 +1214,7 @@ class AssemblyPathSVA():
         try:
             
             if self.bLoess:
-                assert(bMaskDegen = False)
+                assert(bMaskDegen == False)
                             
                 print("Attemptimg Loess smooth")
                 
@@ -1296,7 +1296,7 @@ class AssemblyPathSVA():
             if self.bLoess:
                 print("Attemptimg Loess smooth")
                 
-                assert(bMaskDegen = False)
+                assert(bMaskDegen == False)
                 
                 yest_sm = lowess(logX1D,logMFit, f=0.75, iter=3)
             elif self.bGam:
@@ -1454,7 +1454,7 @@ class AssemblyPathSVA():
         
         self.updateTau(True, mask, bMaskDegen) 
         diffElbo = 1.0
-        currElbo=self.calc_elbo(mask)
+        currElbo=self.calc_elbo(mask, bMaskDegen)
         while iter < 200 or (iter < maxIter and diffElbo > minDiff):
             #update phi marginals
             if removeRedundant:

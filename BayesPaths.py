@@ -77,9 +77,9 @@ def assGraphWorker(gargs):
     
     assGraph.initNMF(M_train)
                 
-    assGraph.update(args.iters, True, True, M_train, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+    assGraph.update(args.iters, True, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
 
-    assGraph.updateTau(False, True, M_test)
+    assGraph.updateTau(False, M_test, True)
 
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
@@ -166,7 +166,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+    import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -370,7 +370,7 @@ def main(argv):
         while nChange > 0 and gIter < maxGIter:
             assGraph.initNMF()
             print("Round " + str(gIter) + " of gene filtering")
-            assGraph.update(args.iters*2, True, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+            assGraph.update(args.iters*2, True, None, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
             #MSE = assGraph.predict(np.ones((assGraph.V,assGraph.S)))
             assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
@@ -398,15 +398,15 @@ def main(argv):
 
     assGraph.initNMF()
 
-    assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
     assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
@@ -425,8 +425,7 @@ def main(argv):
         
         
         M_attempts = 1000
-        M = assGraph.MaskDegen
-        #np.ones((assGraph.V,assGraph.S))
+        M = np.ones((assGraph.V,assGraph.S))
         Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
 
@@ -497,9 +496,9 @@ def main(argv):
    
         assGraph.initNMF()
 
-        assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
+        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-        assGraph.update(args.iters, True, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
 
     
     #assGraph.bLogTau = False
