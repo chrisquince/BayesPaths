@@ -83,12 +83,12 @@ def assGraphWorker(gargs):
 
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
-    train_elbo = assGraph.calc_elbo(M_test)
-    train_err  = assGraph.predict(M_test)
-    train_errP = assGraph.predictMaximal(M_test)
-    train_div = assGraph.div(M_test)
-    train_divF = assGraph.divF(M_test)
-    train_ll = assGraph.calc_expll(M_test)
+    train_elbo = assGraph.calc_elbo(M_test, True)
+    train_err  = assGraph.predict(M_test,True)
+    train_errP = assGraph.predictMaximal(M_test, True)
+    train_div = assGraph.div(M_test, True)
+    train_divF = assGraph.divF(M_test, True)
+    train_ll = assGraph.calc_expll(M_test, True)
     
     fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
     with open(fitFile, 'w') as ffile:

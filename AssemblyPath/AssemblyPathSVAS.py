@@ -1631,9 +1631,14 @@ class AssemblyPathSVA():
             #print(str(iter)+","+ str(self.divF()))  
             iter += 1
 
-    def div(self,M=None):
+    def div(self,M=None,bMaskDegen = False):
+        
         if M is None:
             M = np.ones((self.V,self.S))
+            
+        if bMaskDegen:
+            M = M*self.MaskDegen    
+        
         """Compute divergence of target matrix from its NMF estimate."""
         Va = self.eLambda
         if self.BIAS:
@@ -1641,9 +1646,12 @@ class AssemblyPathSVA():
             
         return (M*(np.multiply(self.XN, np.log(elop(self.XN, Va, truediv))) + (Va - self.XN))).sum()
 
-    def divF(self,M=None):
+    def divF(self,M=None, bMaskDegen = False):
         if M is None:
             M = np.ones((self.V,self.S))
+
+        if bMaskDegen:
+            M = M*self.MaskDegen
 
         """Compute squared Frobenius norm of a target matrix and its NMF estimate."""
         
@@ -2355,7 +2363,14 @@ class AssemblyPathSVA():
         
         return deviance_matrix
 
-    def calc_expll(self, mask = None):
+    def calc_expll(self, mask = None, bMaskDegen = False):
+        
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
         total_elbo = 0.
         
         # Log likelihood
@@ -2468,19 +2483,22 @@ class AssemblyPathSVA():
         total_elbo += np.sum(self.HPhi)
         return total_elbo
 
-    def predict(self, M_pred):
+    def predict(self, M_pred, bMaskDegen = False):
         ''' Predict missing values in R. '''
         R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
         
         if self.BIAS:
             R_pred = R_pred*self.expTheta[:,np.newaxis]
         
+        if bMaskDegen:
+            M_pred = M_pred*self.MaskDegen
+        
         MSE = self.compute_MSE(M_pred, self.X, R_pred)
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
         return MSE
 
-    def predictMaximal(self, M_pred):
+    def predictMaximal(self, M_pred, bMaskDegen = False):
         ''' Predict missing values in R. '''
         
         self.getMaximalUnitigs('Dummy', drop_strain=None,relax_path=False,writeSeq=False)
@@ -2502,6 +2520,9 @@ class AssemblyPathSVA():
         
         if self.BIAS:
             R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+        if bMaskDegen:
+            M_pred = M_pred*self.MaskDegen
         
         MSE = self.compute_MSE(M_pred, self.X, R_pred)
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
