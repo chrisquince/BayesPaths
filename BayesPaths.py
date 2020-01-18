@@ -166,7 +166,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -471,7 +471,7 @@ def main(argv):
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
-                mean_err = np.mean(errs[g])
+                mean_err = np.median(errs[g])
                 
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
@@ -480,17 +480,17 @@ def main(argv):
                 median_hs[g - 1] = median_h 
                 median_ll = np.median(expLLs[g]) 
                 
-                mean_errs[g - 1] = median_ll
+                mean_errs[g - 1] = mean_err
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
     
         #Rerun with optimal g
     
-        minG = int(median_hs[np.argmax(mean_errs)]) 
+        minG = int(median_hs[np.argmin(mean_errs)]) 
        
         print("Using " + str(minG) + " strains")
  
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = minG, readLength=args.readLength,
+        assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
