@@ -412,7 +412,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 4) and assGraph.S >=7:
+    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -480,13 +480,13 @@ def main(argv):
                 median_hs[g - 1] = median_h 
                 median_ll = np.median(expLLs[g]) 
                 
-                mean_errs[g - 1] = mean_err
+                mean_errs[g - 1] = median_ll
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
                 print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
     
         #Rerun with optimal g
     
-        minG = int(median_hs[np.argmin(mean_errs)]) 
+        minG = int(median_hs[np.argmax(mean_errs)]) 
        
         print("Using " + str(minG) + " strains")
  
@@ -495,6 +495,8 @@ def main(argv):
                                         tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
+
+        assGraph.update(args.iters, False, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
 
         assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
 
