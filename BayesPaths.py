@@ -77,18 +77,18 @@ def assGraphWorker(gargs):
     
     assGraph.initNMF(M_train)
                 
-    assGraph.update(args.iters, True, M_train, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
-    
+    assGraph.update(args.iters, True, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+
+    assGraph.updateTau(False, M_test, True)
+
     assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
 
-    assGraph.updateTau(False, M_test)
-
-    train_elbo = assGraph.calc_elbo(M_test)
-    train_err  = assGraph.predict(M_test)
-    train_errP = assGraph.predictMaximal(M_test)
-    train_div = assGraph.div(M_test)
-    train_divF = assGraph.divF(M_test)
-    train_ll = assGraph.calc_expll(M_test)
+    train_elbo = assGraph.calc_elbo(M_test, True)
+    train_err  = assGraph.predict(M_test,True)
+    train_errP = assGraph.predictMaximal(M_test, True)
+    train_div = assGraph.div(M_test, True)
+    train_divF = assGraph.divF(M_test, True)
+    train_ll = assGraph.calc_expll(M_test, True)
     
     fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
     with open(fitFile, 'w') as ffile:
@@ -370,7 +370,7 @@ def main(argv):
         while nChange > 0 and gIter < maxGIter:
             assGraph.initNMF()
             print("Round " + str(gIter) + " of gene filtering")
-            assGraph.update(args.iters*2, True,logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
+            assGraph.update(args.iters*2, True, None, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
             #MSE = assGraph.predict(np.ones((assGraph.V,assGraph.S)))
             assGraph.writeGeneError(args.outFileStub + "_" + str(gIter)+ "_geneError.csv")
@@ -398,21 +398,21 @@ def main(argv):
 
     assGraph.initNMF()
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
     assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True,logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 4) and assGraph.S >=7:
+    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -471,7 +471,7 @@ def main(argv):
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
-                mean_err = np.mean(errs[g])
+                mean_err = np.median(errs[g])
                 
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
@@ -490,15 +490,17 @@ def main(argv):
        
         print("Using " + str(minG) + " strains")
  
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = minG, readLength=args.readLength,
+        assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
 
-        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
+        assGraph.update(args.iters, False, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
 
-        assGraph.update(args.iters, True,logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
+
+        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
 
     
     #assGraph.bLogTau = False
