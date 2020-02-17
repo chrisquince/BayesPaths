@@ -71,7 +71,7 @@ def assGraphWorker(gargs):
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
-                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
+                                ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
@@ -160,7 +160,7 @@ def main(argv):
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
+    parser.add_argument('--tau_type', dest='tauType', default='empirical',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
@@ -412,7 +412,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
+    if (args.run_elbow and Gopt > 1) and assGraph.S >=1:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
