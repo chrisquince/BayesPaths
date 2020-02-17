@@ -1262,18 +1262,6 @@ class AssemblyPathSVA():
     
         square_diff_matrix = self.exp_square_diff_matrix()  
            
-        mX = np.ma.masked_where(mask==0, self.X)
-        
-        mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
-        
-        X1D = np.ma.compressed(mX)
-        
-        logX1D = np.log(0.5 + X1D)
-        
-        mFit = np.ma.compressed(mSDM)
-        
-        logMFit = np.log(mFit + AssemblyPathSVA.minVar)
-        
         
         if bMaskDegen:
             maskFit = self.MaskDegen*mask
@@ -1293,39 +1281,24 @@ class AssemblyPathSVA():
      
         logMFitFit = np.log(mFitFit + AssemblyPathSVA.minVar)
         
-        try:
+        if bFit:
+            try:
+                self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1DFit,logMFitFit)
             
-            if self.bLoess:
-                print("Attemptimg Loess smooth")
-                
-                assert(bMaskDegen == False)
-                
-                yest_sm = lowess(logX1D,logMFit, f=0.75, iter=3)
-            elif self.bGam:
-                if bFit:
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1DFit,logMFitFit)
-            
-                yest_sm = self.gam.predict(logX1D)
-            else:
-                print("Attemptimg linear regression")
+            except ValueError:
+                print("Performing fixed tau")
                     
-                model = LinearRegression()
-            
-                poly_reg = PolynomialFeatures(degree=2)
-            
-                X_poly = poly_reg.fit_transform(logX1DFit.reshape(-1,1))
-            
-                model.fit(X_poly, logMFitFit)
-            
-                X_poly_est = poly_reg.fit_transform(logX1D.reshape(-1,1))
-            
-                yest_sm  = model.predict(X_poly_est)
-        except ValueError:
-            print("Performing fixed tau")
+                self.updateFixedTau(mask)
                     
-            self.updateFixedTau(mask)
-                    
-            return
+                return
+        
+        mX = np.ma.masked_where(mask==0, self.X)
+        
+        X1D = np.ma.compressed(mX)
+        
+        logX1D = np.log(0.5 + X1D)
+         
+        yest_sm = self.gam.predict(logX1D)
 
         mBetaTau = self.beta*(X1D + 0.5) + 0.5*np.exp(yest_sm)
 
