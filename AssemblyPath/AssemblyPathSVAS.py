@@ -1288,8 +1288,10 @@ class AssemblyPathSVA():
         logX1DFit = np.log(0.5 + X1DFit)
         
         mSDMFit = np.ma.masked_where(maskFit==0, square_diff_matrix)
-            
-        logMFitFit = np.log(mSDMFit + AssemblyPathSVA.minVar)
+       
+        mFitFit = np.ma.compressed(mSDMFit)
+     
+        logMFitFit = np.log(mFitFit + AssemblyPathSVA.minVar)
         
         try:
             
