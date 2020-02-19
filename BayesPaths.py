@@ -81,7 +81,7 @@ def assGraphWorker(gargs):
 
     assGraph.updateTau(False, M_test, True)
 
-    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
+    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
 
     train_elbo = assGraph.calc_elbo(M_test, True)
     train_err  = assGraph.predict(M_test,True)
