@@ -2354,6 +2354,27 @@ class AssemblyPathSVA():
         total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
         return total_elbo
+        
+    def calc_expll_poisson(self, mask = None, bMaskDegen = False):
+        
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        total_elbo = 0.
+        
+        # Log likelihood
+        nTOmega = np.sum(mask)    
+        
+        poissonWeight = 1.0/(0.5 + self.X)
+                   
+        total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
+
+        return total_elbo
 
     def calc_elbo(self, mask = None, bMaskDegen = False):
     
