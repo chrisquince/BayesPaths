@@ -1223,7 +1223,7 @@ class AssemblyPathSVA():
             elif self.bGam:
                 if bFit:
                 
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(X1DFit, mLogExpTauFit)
+                    self.gam = LinearGAM(s(0,n_splines=5,,constraints='monotonic_dec'))).fit(X1DFit, mLogExpTauFit)
             
                 yest_sm = self.gam.predict(X1D)
                 
@@ -2372,7 +2372,7 @@ class AssemblyPathSVA():
                    
         total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
         
-        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.exp_square_diff_matrix()) #second part likelihood
 
         return total_elbo
 
