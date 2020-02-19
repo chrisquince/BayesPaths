@@ -2874,6 +2874,9 @@ class AssemblyPathSVA():
         Div_matrix = self.exp_square_diff_matrix()
         
         with open(fileName, "w") as predictFile:
+        
+            predictFile.write("v_idx, sample, gene, unitig, mask, mask_degen, haplos, X, X_est, R2, tau\n")
+        
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
 
@@ -2890,11 +2893,17 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + str(mask[v_idx,s]) + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + 
+                                str(mask[v_idx,s]) + "," + str(self.MaskDegen[v_idx,s]) + "," +
+                                vString + "," + str(self.X[v_idx,s]) + "," + 
+                                str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
 
 
 
-    def writeOutput(self, outFileStub, relax_path_out, selectedSamples):
+    def writeOutput(self, outFileStub, relax_path_out, selectedSamples, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
         self.writeGeneError(outFileStub + "geneError.csv")
 
@@ -2919,7 +2928,7 @@ class AssemblyPathSVA():
         
         self.writeMargMarginal(outFileStub + "MmargFile.csv")
 
-        self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None)
+        self.writePredictions(outFileStub + "Pred.csv" , mask, drop_strain=None)
 
 
     def runFGMaximal(self, factorGraph, g):
