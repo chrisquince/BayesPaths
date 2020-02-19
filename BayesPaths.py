@@ -88,7 +88,7 @@ def assGraphWorker(gargs):
     train_errP = assGraph.predictMaximal(M_test, True)
     train_div = assGraph.div(M_test, True)
     train_divF = assGraph.divF(M_test, True)
-    train_ll = assGraph.calc_expll(M_test, True)
+    train_ll = assGraph.calc_expll_poisson(M_test, True)
     
     fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
     with open(fitFile, 'w') as ffile:
