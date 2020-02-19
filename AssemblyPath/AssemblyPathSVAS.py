@@ -1223,7 +1223,7 @@ class AssemblyPathSVA():
             elif self.bGam:
                 if bFit:
                 
-                    self.gam = LinearGAM(s(0,n_splines=5,,constraints='monotonic_dec'))).fit(X1DFit, mLogExpTauFit)
+                    self.gam = LinearGAM(s(0,n_splines=5,constraints='monotonic_dec')).fit(X1DFit, mLogExpTauFit)
             
                 yest_sm = self.gam.predict(X1D)
                 
