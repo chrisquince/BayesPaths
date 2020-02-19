@@ -1283,7 +1283,7 @@ class AssemblyPathSVA():
         
         if bFit:
             try:
-                self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1DFit,logMFitFit)
+                self.gam = LinearGAM(s(0,n_splines=5,constraints='monotonic_inc')).fit(logX1DFit,logMFitFit)
             
             except ValueError:
                 print("Performing fixed tau")
