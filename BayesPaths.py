@@ -160,7 +160,7 @@ def main(argv):
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--tau_type', dest='tauType', default='empirical',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
+    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
@@ -355,7 +355,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                tauType = 'auto', fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
+                                tauType = args.tauType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
 
     assemblyGraphs = assemblyGraphsFilter
@@ -386,7 +386,7 @@ def main(argv):
 
             assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = 'auto', fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
 
             assemblyGraphs = assemblyGraphsSelect
@@ -412,7 +412,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 1) and assGraph.S >=1:
+    if (args.run_elbow and Gopt > 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
