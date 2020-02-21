@@ -408,12 +408,23 @@ class AssemblyPathSVA():
         if self.tauType == 'fixed':
             self.bLogTau   = False
             self.bFixedTau = True
+            self.bPoissonTau = False
         elif self.tauType == 'log':
             self.bLogTau   = True
             self.bFixedTau = False
+            self.bPoissonTau = False
         elif self.tauType == 'empirical':
             self.bLogTau   = False
             self.bFixedTau = False
+            self.bPoissonTau = False
+        elif self.tauType == 'poisson':
+            self.bLogTau   = False
+            self.bFixedTau = False
+            self.bPoissonTau = True
+            
+            self.expTau = 1.0/(self.X + 0.5)
+            self.expLogTau = np.log(self.expTau)
+            
         else:
             print("Hmm... impossible tau strategy disturbing")
             
@@ -1122,6 +1133,9 @@ class AssemblyPathSVA():
     
         
     def updateTau(self,bFit=True, mask = None, bMaskDegen = True):
+        
+        if self.bPoissonTau:
+            return
         
         if mask is None:
             mask = np.ones((self.V, self.S))

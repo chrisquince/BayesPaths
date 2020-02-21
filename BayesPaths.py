@@ -160,7 +160,7 @@ def main(argv):
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
+    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto','poisson'],help='Strategy for setting precision')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
