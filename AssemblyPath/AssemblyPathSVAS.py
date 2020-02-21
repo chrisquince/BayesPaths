@@ -1135,6 +1135,10 @@ class AssemblyPathSVA():
     def updateTau(self,bFit=True, mask = None, bMaskDegen = True):
         
         if self.bPoissonTau:
+            self.expTau = 1.0/(self.X + 0.5)
+
+            self.expLogTau = np.log(self.expTau)
+
             return
         
         if mask is None:
