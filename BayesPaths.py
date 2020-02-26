@@ -425,9 +425,36 @@ def main(argv):
         
         
         M_attempts = 1000
-        M = np.ones((assGraph.V,assGraph.S))
-        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+        MBubbles = np.ones((assGraph.nBubbles,assGraph.S))
+        
+                self.nBubbles = 0
+        self.mapBubbles = {}
+        
+        
+        
+        Ms_training_and_test_bubbles = compute_folds_attempts(I=assGraph.nBubbles,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=MBubbles)
 
+        
+        Ms_train = []
+        Ms_test = []
+        
+        for f in range(no_folds):
+        
+            M_train = np.zeros((assGraph.V,assGraph.S))
+            
+            M_test = np.zeros((assGraph.V,assGraph.S))
+            
+            train_bubble_f = Ms_training_and_test_bubbles[0][f]
+            test_bubble_f = Ms_training_and_test_bubbles[1][f]
+            
+            for v, mapb in assGraph.mapBubbles:
+                M_train[v,:] = train_bubble_f[mapb,:]
+                M_test[v,:]  = test_bubble_f[mapb,:]
+            Ms_train.append(M_train) 
+            Ms_test.append(M_test)
+
+
+        
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
@@ -445,8 +472,8 @@ def main(argv):
             pargs = []
             for f in range(no_folds):
                 
-                M_train = Ms_training_and_test[0][f]
-                M_test = Ms_training_and_test[1][f]
+                M_train = Ms_train[f]
+                M_test = Ms_test[f]
                 
                 prng = RandomState(args.random_seed + f) 
                 
