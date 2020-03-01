@@ -396,23 +396,23 @@ def main(argv):
             gIter += 1
     
 
-    assGraph.initNMF()
+    #assGraph.initNMF()
 
-    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+    #assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
-    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub, False, selectedSamples)
 
-    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    #assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
+    #assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log3.txt",drop_strain=None,relax_path=args.relax_path)
   
-    assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
+    #assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt > 5) and assGraph.S >=5:
+    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -425,9 +425,37 @@ def main(argv):
         
         
         M_attempts = 1000
-        M = np.ones((assGraph.V,assGraph.S))
-        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
+        M = np.ones((assGraph.V,assGraph.S))
+
+        (Ms_train,Ms_test) = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+    #    MBubbles = np.ones((assGraph.nBubbles,assGraph.S))
+        
+        
+     #   Ms_training_and_test_bubbles = compute_folds_attempts(I=assGraph.nBubbles,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=MBubbles)
+
+        
+      #  Ms_train = []
+       # Ms_test = []
+        
+        #for f in range(no_folds):
+        
+         #   M_train = np.zeros((assGraph.V,assGraph.S))
+            
+          #  M_test = np.zeros((assGraph.V,assGraph.S))
+            
+           # train_bubble_f = Ms_training_and_test_bubbles[0][f]
+            #test_bubble_f = Ms_training_and_test_bubbles[1][f]
+            
+            #for v, mapb in assGraph.mapBubbles.items():
+             #   M_train[v,:] = train_bubble_f[mapb,:]
+              #  M_test[v,:]  = test_bubble_f[mapb,:]
+            #Ms_train.append(M_train) 
+            #Ms_test.append(M_test)
+
+
+        
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
         try:
@@ -445,8 +473,8 @@ def main(argv):
             pargs = []
             for f in range(no_folds):
                 
-                M_train = Ms_training_and_test[0][f]
-                M_test = Ms_training_and_test[1][f]
+                M_train = Ms_train[f]
+                M_test = Ms_test[f]
                 
                 prng = RandomState(args.random_seed + f) 
                 
