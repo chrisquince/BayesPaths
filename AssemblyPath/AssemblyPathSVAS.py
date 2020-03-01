@@ -2394,6 +2394,7 @@ class AssemblyPathSVA():
 
         return total_elbo
 
+
     def calc_elbo(self, mask = None, bMaskDegen = False):
     
         if mask is None:
@@ -2511,6 +2512,22 @@ class AssemblyPathSVA():
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
         return MSE
+
+    def predict_sqrt(self, M_pred, bMaskDegen = False):
+        ''' Predict missing values in R. '''
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+        if bMaskDegen:
+            M_pred = M_pred*self.MaskDegen
+        
+        MSE = self.compute_MSE(M_pred, np.sqrt(self.X), np.sqrt(R_pred))
+        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
+        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
+        return MSE
+
 
     def predictMaximal(self, M_pred, bMaskDegen = False):
         ''' Predict missing values in R. '''
