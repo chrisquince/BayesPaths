@@ -2386,7 +2386,7 @@ class AssemblyPathSVA():
         # Log likelihood
         nTOmega = np.sum(mask)    
         
-        poissonWeight = 1.0/(0.5 + self.X)
+        poissonWeight = 1.0/(0.1 + self.X)
                    
         total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
         
