@@ -2381,12 +2381,17 @@ class AssemblyPathSVA():
         if bMaskDegen:
             mask = mask*self.MaskDegen
         
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+
         total_elbo = 0.
         
         # Log likelihood
         nTOmega = np.sum(mask)    
         
-        poissonWeight = 1.0/(0.1 + self.X)
+        poissonWeight = 1.0/(self.X + 0.5)
                    
         total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
         
