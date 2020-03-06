@@ -408,12 +408,23 @@ class AssemblyPathSVA():
         if self.tauType == 'fixed':
             self.bLogTau   = False
             self.bFixedTau = True
+            self.bPoissonTau = False
         elif self.tauType == 'log':
             self.bLogTau   = True
             self.bFixedTau = False
+            self.bPoissonTau = False
         elif self.tauType == 'empirical':
             self.bLogTau   = False
             self.bFixedTau = False
+            self.bPoissonTau = False
+        elif self.tauType == 'poisson':
+            self.bLogTau   = False
+            self.bFixedTau = False
+            self.bPoissonTau = True
+            
+            self.expTau = 1.0/(self.X + 0.5)
+            self.expLogTau = np.log(self.expTau)
+            
         else:
             print("Hmm... impossible tau strategy disturbing")
             
@@ -1123,6 +1134,13 @@ class AssemblyPathSVA():
         
     def updateTau(self,bFit=True, mask = None, bMaskDegen = True):
         
+        if self.bPoissonTau:
+            self.expTau = 1.0/(self.X + 0.5)
+
+            self.expLogTau = np.log(self.expTau)
+
+            return
+        
         if mask is None:
             mask = np.ones((self.V, self.S))
         
@@ -1223,7 +1241,7 @@ class AssemblyPathSVA():
             elif self.bGam:
                 if bFit:
                 
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(X1DFit, mLogExpTauFit)
+                    self.gam = LinearGAM(s(0,n_splines=5,constraints='monotonic_dec')).fit(X1DFit, mLogExpTauFit)
             
                 yest_sm = self.gam.predict(X1D)
                 
@@ -1262,18 +1280,6 @@ class AssemblyPathSVA():
     
         square_diff_matrix = self.exp_square_diff_matrix()  
            
-        mX = np.ma.masked_where(mask==0, self.X)
-        
-        mSDM = np.ma.masked_where(mask==0, square_diff_matrix)
-        
-        X1D = np.ma.compressed(mX)
-        
-        logX1D = np.log(0.5 + X1D)
-        
-        mFit = np.ma.compressed(mSDM)
-        
-        logMFit = np.log(mFit + AssemblyPathSVA.minVar)
-        
         
         if bMaskDegen:
             maskFit = self.MaskDegen*mask
@@ -1293,39 +1299,24 @@ class AssemblyPathSVA():
      
         logMFitFit = np.log(mFitFit + AssemblyPathSVA.minVar)
         
-        try:
+        if bFit:
+            try:
+                self.gam = LinearGAM(s(0,n_splines=5,constraints='monotonic_inc')).fit(logX1DFit,logMFitFit)
             
-            if self.bLoess:
-                print("Attemptimg Loess smooth")
-                
-                assert(bMaskDegen == False)
-                
-                yest_sm = lowess(logX1D,logMFit, f=0.75, iter=3)
-            elif self.bGam:
-                if bFit:
-                    self.gam = LinearGAM(s(0,n_splines=5)).fit(logX1DFit,logMFitFit)
-            
-                yest_sm = self.gam.predict(logX1D)
-            else:
-                print("Attemptimg linear regression")
+            except ValueError:
+                print("Performing fixed tau")
                     
-                model = LinearRegression()
-            
-                poly_reg = PolynomialFeatures(degree=2)
-            
-                X_poly = poly_reg.fit_transform(logX1DFit.reshape(-1,1))
-            
-                model.fit(X_poly, logMFitFit)
-            
-                X_poly_est = poly_reg.fit_transform(logX1D.reshape(-1,1))
-            
-                yest_sm  = model.predict(X_poly_est)
-        except ValueError:
-            print("Performing fixed tau")
+                self.updateFixedTau(mask)
                     
-            self.updateFixedTau(mask)
-                    
-            return
+                return
+        
+        mX = np.ma.masked_where(mask==0, self.X)
+        
+        X1D = np.ma.compressed(mX)
+        
+        logX1D = np.log(0.5 + X1D)
+         
+        yest_sm = self.gam.predict(logX1D)
 
         mBetaTau = self.beta*(X1D + 0.5) + 0.5*np.exp(yest_sm)
 
@@ -2381,6 +2372,33 @@ class AssemblyPathSVA():
         total_elbo -= 0.5*np.sum(mask*self.expTau*self.exp_square_diff_matrix()) #second part likelihood
 
         return total_elbo
+        
+    def calc_expll_poisson(self, mask = None, bMaskDegen = False):
+        
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+
+        total_elbo = 0.
+        
+        # Log likelihood
+        nTOmega = np.sum(mask)    
+        
+        poissonWeight = 1.0/(self.X + 0.5)
+                   
+        total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.exp_square_diff_matrix()) #second part likelihood
+
+        return total_elbo
+
 
     def calc_elbo(self, mask = None, bMaskDegen = False):
     
@@ -2499,6 +2517,22 @@ class AssemblyPathSVA():
         #R2 = self.compute_R2(M_pred, self.R, R_pred)    
         #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
         return MSE
+
+    def predict_sqrt(self, M_pred, bMaskDegen = False):
+        ''' Predict missing values in R. '''
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+        if bMaskDegen:
+            M_pred = M_pred*self.MaskDegen
+        
+        MSE = self.compute_MSE(M_pred, np.sqrt(self.X), np.sqrt(R_pred))
+        #R2 = self.compute_R2(M_pred, self.R, R_pred)    
+        #Rp = self.compute_Rp(M_pred, self.R, R_pred)        
+        return MSE
+
 
     def predictMaximal(self, M_pred, bMaskDegen = False):
         ''' Predict missing values in R. '''
@@ -2901,6 +2935,9 @@ class AssemblyPathSVA():
         Div_matrix = self.exp_square_diff_matrix()
         
         with open(fileName, "w") as predictFile:
+        
+            predictFile.write("v_idx, sample, gene, unitig, mask, mask_degen, haplos, X, X_est, R2, tau\n")
+        
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
 
@@ -2917,11 +2954,17 @@ class AssemblyPathSVA():
                         v_idx = self.mapGeneIdx[gene][unitig]
                         
                         for s in range(self.S):
-                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + str(mask[v_idx,s]) + "," + vString + "," + str(self.X[v_idx,s]) + "," + str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
+                            predictFile.write(str(v_idx) + "," + str(s) + "," + gene + "," + unitig + "," + 
+                                str(mask[v_idx,s]) + "," + str(self.MaskDegen[v_idx,s]) + "," +
+                                vString + "," + str(self.X[v_idx,s]) + "," + 
+                                str(R[v_idx,s]) + "," + str(Div_matrix[v_idx,s]) + "," +str(self.expTau[v_idx,s])+"\n")
 
 
 
-    def writeOutput(self, outFileStub, relax_path_out, selectedSamples):
+    def writeOutput(self, outFileStub, relax_path_out, selectedSamples, mask = None):
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
         
         self.writeGeneError(outFileStub + "geneError.csv")
 
@@ -2946,7 +2989,7 @@ class AssemblyPathSVA():
         
         self.writeMargMarginal(outFileStub + "MmargFile.csv")
 
-        self.writePredictions(outFileStub + "Pred.csv" , drop_strain=None)
+        self.writePredictions(outFileStub + "Pred.csv" , mask, drop_strain=None)
 
 
     def runFGMaximal(self, factorGraph, g):

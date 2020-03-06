@@ -71,7 +71,7 @@ def assGraphWorker(gargs):
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
-                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
+                                ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, 
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
@@ -81,14 +81,14 @@ def assGraphWorker(gargs):
 
     assGraph.updateTau(False, M_test, True)
 
-    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples)
+    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
 
     train_elbo = assGraph.calc_elbo(M_test, True)
-    train_err  = assGraph.predict(M_test,True)
+    train_err  = assGraph.predict_sqrt(M_test,True)
     train_errP = assGraph.predictMaximal(M_test, True)
     train_div = assGraph.div(M_test, True)
     train_divF = assGraph.divF(M_test, True)
-    train_ll = assGraph.calc_expll(M_test, True)
+    train_ll = assGraph.calc_expll_poisson(M_test, True)
     
     fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
     with open(fitFile, 'w') as ffile:
@@ -160,7 +160,7 @@ def main(argv):
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
 
-    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto'],help='Strategy for setting precision')
+    parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto','poisson'],help='Strategy for setting precision')
 
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
@@ -425,8 +425,34 @@ def main(argv):
         
         
         M_attempts = 1000
+
         M = np.ones((assGraph.V,assGraph.S))
-        Ms_training_and_test = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+        (Ms_train,Ms_test) = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+    #    MBubbles = np.ones((assGraph.nBubbles,assGraph.S))
+        
+        
+     #   Ms_training_and_test_bubbles = compute_folds_attempts(I=assGraph.nBubbles,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=MBubbles)
+
+        
+      #  Ms_train = []
+       # Ms_test = []
+        
+        #for f in range(no_folds):
+        
+         #   M_train = np.zeros((assGraph.V,assGraph.S))
+            
+          #  M_test = np.zeros((assGraph.V,assGraph.S))
+            
+           # train_bubble_f = Ms_training_and_test_bubbles[0][f]
+            #test_bubble_f = Ms_training_and_test_bubbles[1][f]
+            
+            #for v, mapb in assGraph.mapBubbles.items():
+             #   M_train[v,:] = train_bubble_f[mapb,:]
+              #  M_test[v,:]  = test_bubble_f[mapb,:]
+            #Ms_train.append(M_train) 
+            #Ms_test.append(M_test)
 
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
@@ -445,8 +471,8 @@ def main(argv):
             pargs = []
             for f in range(no_folds):
                 
-                M_train = Ms_training_and_test[0][f]
-                M_test = Ms_training_and_test[1][f]
+                M_train = Ms_train[f]
+                M_test = Ms_test[f]
                 
                 prng = RandomState(args.random_seed + f) 
                 
@@ -471,14 +497,14 @@ def main(argv):
             f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
             for g in range(1,Gopt + 1):
                 mean_elbo = np.mean(elbos[g])        
-                mean_err = np.median(errs[g])
+                mean_err = np.mean(errs[g])
                 
                 mean_errP = np.mean(errsP[g])   
                 mean_div = np.mean(divs[g]) 
                 mean_divF = np.mean(divFs[g])     
                 median_h = np.median(Hs[g])
                 median_hs[g - 1] = median_h 
-                median_ll = np.median(expLLs[g]) 
+                median_ll = np.mean(expLLs[g]) 
                 
                 mean_errs[g - 1] = median_ll
                 f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
