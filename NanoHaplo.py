@@ -112,10 +112,13 @@ def main(argv):
 
 
     N = len(mapSeqs)
+    readLengths = np.zeros(N)
     
     ids = list(mapSeqs.keys())
     
     mapID = {ids[i]:i for i in range(N)}
+
+    readLengths = np.asarray([len(mapSeqs[id]) for id in ids],dtype=np.int)
 
     G = args.strain_number
     
@@ -150,6 +153,11 @@ def main(argv):
     subprocess.run(vargs)
 
     misMatch = defaultdict(dict)
+    M = np.zeros((N,G))
+    m = np.ones((N,G))
+    m = m*readLengths[:,np.newaxis]
+    
+    
     with open('hap.tsv','r') as f:
         
         for line in f:
@@ -160,12 +168,21 @@ def main(argv):
             target = toks[1]
             alen = int(toks[2])
             pid = float(toks[3])
-    
-            misMatch[query][target]= (int(pid*alen),int((1-pid)*alen))
+            
+            match  = int(pid*alen)
+            mmatch = int((1-pid)*alen)
+            
+            misMatch[query][target]= (match,mmatch)
 
-    
-    M = np.zeros((N,G))
+            n = mapID[query]
+            
+            M[n,int(target)] = match
+            m[n,int(target)] = mmatch
+         
 
+    epsilon = 0.1
+    
+    
     
 
 if __name__ == "__main__":
