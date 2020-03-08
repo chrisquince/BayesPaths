@@ -3,6 +3,7 @@ import argparse
 import sys
 import numpy as np
 import os
+import subprocess
 
 from Bio import SeqIO
 from Bio import pairwise2
@@ -45,7 +46,7 @@ def main(argv):
         
     deadEnds = []
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     try:
         with open(args.dead_end_file) as f:
@@ -132,9 +133,26 @@ def main(argv):
         unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
    
         (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readWeight',source_names, sink_names)
-        haplotype[g] = maxSeq
-        
+        haplotypes[g] = maxSeq
     
-        
+    with open('Haplotypes.fa','w') as f:    
+        for g in range(G):
+            f.write(">Haplo_" + str(g) + '\n')
+            f.write(haplotypes[g] + '\n')
+    
+
+
+    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--blast6out','hap.tsv','--maxaccepts','10']
+    subprocess.run(vargs)
+
+    with open('Haplotypes.fa','w') as f:
+        for g in range(G):
+            f.write(">Haplo_" + str(g) + '\n')
+            f.write(haplotypes[g] + '\n')
+    
+    M = np.zeros((N,G))
+
+     
+
 if __name__ == "__main__":
     main(sys.argv[1:])
