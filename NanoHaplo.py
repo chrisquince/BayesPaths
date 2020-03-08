@@ -13,6 +13,7 @@ from collections import defaultdict
 from Utils.UnitigGraph import UnitigGraph
 from Utils.UtilsFunctions import convertNodeToName
 from Utils.UtilsFunctions import expNormLogProb
+from Utils.UtilsFunctions import expLogProb
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -154,8 +155,10 @@ def main(argv):
     
 
 
-        vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
-        subprocess.run(vargs)
+        vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db',
+                    'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
+                                    '--userout','hap.tsv','--maxaccepts','10','>','vlog.out']
+        subprocess.run(vargs,shell=True)
         #import ipdb; ipdb.set_trace()
         misMatch = defaultdict(dict)
         M = np.zeros((N,G))
@@ -195,8 +198,12 @@ def main(argv):
         print(Pi.tolist())
         logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
     
+        logL = 0
         for n in range(N):
             Z[n,:] = expNormLogProb(logP[n,:])
+            logL += np.sum(expLogProb(logP[n,:]))
+        
+        print("LogLL: " +str(logL)) 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
