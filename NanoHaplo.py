@@ -12,6 +12,7 @@ from collections import defaultdict
 
 from Utils.UnitigGraph import UnitigGraph
 from Utils.UtilsFunctions import convertNodeToName
+from Utils.UtilsFunctions import expNormLogProb
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -133,59 +134,62 @@ def main(argv):
 
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
-    haplotypes = {}
-    for g in range(G):
-        unitigGraph.clearReadWeights()
+    maxIter = 100
     
-        unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
-   
-        (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readWeight',source_names, sink_names)
-        haplotypes[g] = maxSeq
+    for i in range(maxIter):
     
-    with open('Haplotypes.fa','w') as f:    
+        haplotypes = {}
         for g in range(G):
-            f.write(">" + str(g) + '\n')
-            f.write(haplotypes[g] + '\n')
+            unitigGraph.clearReadWeights()
+    
+            unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
+   
+            (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readWeight',source_names, sink_names)
+            haplotypes[g] = maxSeq
+    
+        with open('Haplotypes.fa','w') as f:    
+            for g in range(G):
+                f.write(">" + str(g) + '\n')
+                f.write(haplotypes[g] + '\n')
     
 
 
-    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
-    subprocess.run(vargs)
-    import ipdb; ipdb.set_trace()
-    misMatch = defaultdict(dict)
-    M = np.zeros((N,G))
-    m = np.ones((N,G))
-    m = m*readLengths[:,np.newaxis]
+        vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
+        subprocess.run(vargs)
+        import ipdb; ipdb.set_trace()
+        misMatch = defaultdict(dict)
+        M = np.zeros((N,G))
+        m = np.ones((N,G))
+        m = m*readLengths[:,np.newaxis]
     
-    
-    with open('hap.tsv','r') as f:
+        with open('hap.tsv','r') as f:
         
-        for line in f:
-            line = line.rstrip()
-            toks = line.split('\t')
+            for line in f:
+                line = line.rstrip()
+                toks = line.split('\t')
                 
-            query = toks[0]
-            target = toks[1]
-            alen = int(toks[2])
-            pid = float(toks[3])/100.0
+                query = toks[0]
+                target = toks[1]
+                alen = int(toks[2])
+                pid = float(toks[3])/100.0
             
-            match  = int(pid*alen)
-            mmatch = int((1-pid)*alen)
+                match  = int(pid*alen)
+                mmatch = int((1-pid)*alen)
             
-            misMatch[query][target]= (match,mmatch)
+                misMatch[query][target]= (match,mmatch)
 
-            n = mapID[query]
+                n = mapID[query]
             
-            M[n,int(target)] = match
-            m[n,int(target)] = mmatch
+                M[n,int(target)] = match
+                m[n,int(target)] = mmatch
          
 
-    epsilon = 0.1
+        epsilon = 0.1
 
-    Pi = np.sum(Z,axis=0)
-    logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
+        Pi = np.sum(Z,axis=0)
+        logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
     
-    
+        Z = expNormLogProb(logP)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
