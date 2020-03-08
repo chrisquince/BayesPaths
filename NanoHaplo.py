@@ -8,6 +8,7 @@ import subprocess
 from Bio import SeqIO
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
+from collections import defaultdict
 
 from Utils.UnitigGraph import UnitigGraph
 from Utils.UtilsFunctions import convertNodeToName
@@ -140,12 +141,12 @@ def main(argv):
     
     with open('Haplotypes.fa','w') as f:    
         for g in range(G):
-            f.write(">Haplo_" + str(g) + '\n')
+            f.write(">" + str(g) + '\n')
             f.write(haplotypes[g] + '\n')
     
 
 
-    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+aln+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
+    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
     subprocess.run(vargs)
 
     misMatch = defaultdict(dict)
@@ -154,9 +155,14 @@ def main(argv):
         for line in f:
             line = line.rstrip()
             toks = line.split('\t')
-            
-            misMatch = int(toks[5])
+                
+            query = toks[0]
+            target = toks[1]
+            alen = int(toks[2])
+            pid = float(toks[3])
     
+            misMatch[query][target]= (int(pid*alen),int((1-pid)*alen))
+
     
     M = np.zeros((N,G))
 
