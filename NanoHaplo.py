@@ -125,12 +125,16 @@ def main(argv):
 
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
+    haplotypes = {}
     for g in range(G):
         unitigGraph.clearReadWeights()
     
         unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
    
         (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readWeight',source_names, sink_names)
- 
+        haplotype[g] = maxSeq
+        
+    
+        
 if __name__ == "__main__":
     main(sys.argv[1:])
