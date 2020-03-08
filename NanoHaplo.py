@@ -151,7 +151,7 @@ def main(argv):
 
     vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
     subprocess.run(vargs)
-
+    import ipdb; ipdb.set_trace()
     misMatch = defaultdict(dict)
     M = np.zeros((N,G))
     m = np.ones((N,G))
@@ -167,7 +167,7 @@ def main(argv):
             query = toks[0]
             target = toks[1]
             alen = int(toks[2])
-            pid = float(toks[3])
+            pid = float(toks[3])/100.0
             
             match  = int(pid*alen)
             mmatch = int((1-pid)*alen)
@@ -181,7 +181,9 @@ def main(argv):
          
 
     epsilon = 0.1
-    
+
+    Pi = np.sum(Z,axis=0)
+    logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
     
     
 
