@@ -102,6 +102,7 @@ def main(argv):
             
     
     mapSeqs = {}
+    
     handle = open(args.nanopore_reads, "r")
     for record in SeqIO.parse(handle, "fasta"):
         seq = record.seq
@@ -113,6 +114,8 @@ def main(argv):
     
     ids = list(mapSeqs.keys())
     
+    mapID = {ids[i]:i for i in range(N)}
+
     G = args.strain_number
     
     Z = np.zeros((N,G))
@@ -142,17 +145,22 @@ def main(argv):
     
 
 
-    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--blast6out','hap.tsv','--maxaccepts','10']
+    vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+aln+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
     subprocess.run(vargs)
 
-    with open('Haplotypes.fa','w') as f:
-        for g in range(G):
-            f.write(">Haplo_" + str(g) + '\n')
-            f.write(haplotypes[g] + '\n')
+    misMatch = defaultdict(dict)
+    with open('hap.tsv','r') as f:
+        
+        for line in f:
+            line = line.rstrip()
+            toks = line.split('\t')
+            
+            misMatch = int(toks[5])
+    
     
     M = np.zeros((N,G))
 
-     
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
