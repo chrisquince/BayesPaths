@@ -38,7 +38,8 @@ def main(argv):
     
     args = parser.parse_args()
 
-        
+
+    import ipdb; ipdb.set_trace()    
     try:
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.cog_graph,int(args.kmer_length), args.cov_file, tsvFile=True, bRemoveSelfLinks = True)
     except IOError:
@@ -48,7 +49,6 @@ def main(argv):
         
     deadEnds = []
 
-    #import ipdb; ipdb.set_trace()
 
     try:
         with open(args.dead_end_file) as f:
@@ -135,7 +135,7 @@ def main(argv):
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
     maxIter = 100
-    
+    import ipdb; ipdb.set_trace()
     for i in range(maxIter):
     
         haplotypes = {}
@@ -156,7 +156,7 @@ def main(argv):
 
         vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db','Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism','--userout','hap.tsv','--maxaccepts','10']
         subprocess.run(vargs)
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         misMatch = defaultdict(dict)
         M = np.zeros((N,G))
         m = np.ones((N,G))
@@ -184,12 +184,19 @@ def main(argv):
                 m[n,int(target)] = mmatch
          
 
+        
+        mZ = np.sum(Z*m)
+        MZ = np.sum(Z*M)
+    
+        epsilon = mZ/(MZ + mZ)
         epsilon = 0.1
-
         Pi = np.sum(Z,axis=0)
+        print(epsilon)
+        print(Pi.tolist())
         logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
     
-        Z = expNormLogProb(logP)
+        for n in range(N):
+            Z[n,:] = expNormLogProb(logP[n,:])
 
 if __name__ == "__main__":
     main(sys.argv[1:])
