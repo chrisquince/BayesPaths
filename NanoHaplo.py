@@ -32,6 +32,8 @@ def main(argv):
         
     parser.add_argument("dead_end_file", help="deadend file")
     
+    parser.add_argument("var_dist_file", help="variant distances for Nanopore reads")
+
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("number of strains"))
     
@@ -126,6 +128,41 @@ def main(argv):
     
     Z = np.zeros((N,G))
     
+
+    first = True
+    dids = []
+    dictDist = defaultdict(dict)
+    with open(args.var_dist_file) as f:
+        for line in f:
+    
+            if first:
+                line = line.rstrip()
+
+                toks = line.split(',')
+
+                toks.pop(0)
+
+                dids = toks
+
+                first = False
+            else:
+                line = line.rstrip()
+
+                toks = line.split(',')                
+                did = toks.pop(0)
+
+                for d, djd in enumerate(dids):
+                    dictDist[did][djd] = float(toks[d])
+
+    assert len(ids) == len(dids)
+
+    dMatrix = np.zeros((N,N))
+
+    
+    for i, iid in enumerate(ids):
+        for j, jid in enumerate(ids):
+            dMatrix[i,j] = dictDist[iid][jid]
+
     ass = np.random.randint(G, size=N)
     
     for n,a in enumerate(ass):
@@ -136,7 +173,7 @@ def main(argv):
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
     maxIter = 100
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     for i in range(maxIter):
     
         haplotypes = {}
@@ -157,8 +194,8 @@ def main(argv):
 
         vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db',
                     'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
-                                    '--userout','hap.tsv','--maxaccepts','10','>','vlog.out']
-        subprocess.run(vargs,shell=True)
+                                    '--userout','hap.tsv','--maxaccepts','10']
+        subprocess.run(vargs)
         #import ipdb; ipdb.set_trace()
         misMatch = defaultdict(dict)
         M = np.zeros((N,G))
@@ -192,7 +229,7 @@ def main(argv):
         MZ = np.sum(Z*M)
     
         epsilon = mZ/(MZ + mZ)
-        epsilon = 0.1
+    #    epsilon = 0.1
         Pi = np.sum(Z,axis=0)
         print(epsilon)
         print(Pi.tolist())
