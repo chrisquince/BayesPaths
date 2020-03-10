@@ -14,6 +14,7 @@ from Utils.UnitigGraph import UnitigGraph
 from Utils.UtilsFunctions import convertNodeToName
 from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
+from kmedoids.kmedoids import kMedoids
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -112,23 +113,10 @@ def main(argv):
     for record in SeqIO.parse(handle, "fasta"):
         seq = record.seq
 
-        mapSeqs[record.id] = seq
-
-
-    N = len(mapSeqs)
-    readLengths = np.zeros(N)
+        mapSeqs[record.id] = str(seq)
     
     ids = list(mapSeqs.keys())
     
-    mapID = {ids[i]:i for i in range(N)}
-
-    readLengths = np.asarray([len(mapSeqs[id]) for id in ids],dtype=np.int)
-
-    G = args.strain_number
-    
-    Z = np.zeros((N,G))
-    
-
     first = True
     dids = []
     dictDist = defaultdict(dict)
@@ -154,19 +142,42 @@ def main(argv):
                 for d, djd in enumerate(dids):
                     dictDist[did][djd] = float(toks[d])
 
-    assert len(ids) == len(dids)
+    
 
+    ids = list(set(ids).intersection(set(dids)))
+
+    N = len(ids)
+    
+    readLengths = np.zeros(N)
+
+    mapID = {ids[i]:i for i in range(N)}
+
+    readLengths = np.asarray([len(mapSeqs[id]) for id in ids],dtype=np.int)
+
+    G = args.strain_number
+    
+    Z = np.zeros((N,G))    
+    
     dMatrix = np.zeros((N,N))
 
-    
     for i, iid in enumerate(ids):
         for j, jid in enumerate(ids):
             dMatrix[i,j] = dictDist[iid][jid]
 
-    ass = np.random.randint(G, size=N)
-    
-    for n,a in enumerate(ass):
-        Z[n,a] = 1.
+    readGraphMaps = {iid:readGraphMaps[iid] for iid in ids}
+
+    with open('selectedReads.fa','w') as f:    
+        for n in range(N):
+            f.write(">" + ids[n] + '\n')
+            f.write(mapSeqs[ids[n]] + '\n')
+
+
+    M, C = kMedoids(dMatrix, G)
+
+    for g in range(G):
+        ass = C[g]
+        
+        Z[ass,g] = 1. 
     
     unitigGraph.createDirectedBiGraph()
 
@@ -192,7 +203,7 @@ def main(argv):
     
 
 
-        vargs = ['vsearch','--usearch_global',args.nanopore_reads, '--db',
+        vargs = ['vsearch','--usearch_global','selectedReads.fa', '--db',
                     'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
                                     '--userout','hap.tsv','--maxaccepts','10']
         subprocess.run(vargs)
