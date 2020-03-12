@@ -16,34 +16,42 @@ from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
 
-def main(argv):
-    parser = argparse.ArgumentParser()
 
-    parser.add_argument("cog_graph", help="gfa file")
-    
-    parser.add_argument("kmer_length", help="kmer length assumed overlap")
-    
-    parser.add_argument("cov_file", help="tsv file")
+def readDistMatrix(var_dist_file):
 
-    parser.add_argument("nanopore_reads", help="reads")
-
-    parser.add_argument("nanopore_maps", help="read mappings")
+    first = True
+    dids = []
+    dictDist = defaultdict(dict)
+    with open(var_dist_file) as f:
+        for line in f:
     
-    parser.add_argument("stop_file", help="stop file")
+            if first:
+                line = line.rstrip()
+
+                toks = line.split(',')
+
+                toks.pop(0)
+
+                dids = toks
+
+                first = False
+            else:
+                line = line.rstrip()
+
+                toks = line.split(',')                
+                did = toks.pop(0)
+
+                for d, djd in enumerate(dids):
+                    dictDist[did][djd] = float(toks[d])
+
+    return (dictDist, dids)
+    
+def readCogStopsDead(cog_graph):
+
+    deadEndFile = cog_graph[:-3] + "deadends"
         
-    parser.add_argument("dead_end_file", help="deadend file")
-    
-    parser.add_argument("var_dist_file", help="variant distances for Nanopore reads")
+    stopFile = cog_graph[:-3] + "stops"
 
-    parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
-        help=("number of strains"))
-    
-    parser.add_argument('-t','--length_list',nargs='?', default=None, help=("amino acid lengths for genes"))
-    
-    args = parser.parse_args()
-
-
-    import ipdb; ipdb.set_trace()    
     try:
         unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.cog_graph,int(args.kmer_length), args.cov_file, tsvFile=True, bRemoveSelfLinks = True)
     except IOError:
@@ -77,7 +85,34 @@ def main(argv):
     except IOError:
         print('Trouble using file {}'.format(args.stop_file))
         sys.exit()
+        
+    return (unitigGraph, stops, deadEnds )
+ 
+def main(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("cog_graph", help="gfa file")
     
+    parser.add_argument("kmer_length", help="kmer length assumed overlap")
+    
+    parser.add_argument("cov_file", help="tsv file")
+
+    parser.add_argument("nanopore_reads", help="reads")
+
+    parser.add_argument("nanopore_maps", help="read mappings")
+    
+    parser.add_argument("var_dist_file", help="variant distances for Nanopore reads")
+
+    parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
+        help=("number of strains"))
+    
+    parser.add_argument('-t','--length_list',nargs='?', default=None, help=("amino acid lengths for genes"))
+    
+    args = parser.parse_args()
+
+    import ipdb; ipdb.set_trace()    
+
+    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph)
     
     cogLengths = {}
     if  args.length_list != None:
@@ -117,31 +152,8 @@ def main(argv):
     
     ids = list(mapSeqs.keys())
     
-    first = True
-    dids = []
-    dictDist = defaultdict(dict)
-    with open(args.var_dist_file) as f:
-        for line in f:
-    
-            if first:
-                line = line.rstrip()
 
-                toks = line.split(',')
-
-                toks.pop(0)
-
-                dids = toks
-
-                first = False
-            else:
-                line = line.rstrip()
-
-                toks = line.split(',')                
-                did = toks.pop(0)
-
-                for d, djd in enumerate(dids):
-                    dictDist[did][djd] = float(toks[d])
-
+    (dictDist, dids) = readDistMatrix(args.var_dist_file)
     
 
     ids = list(set(ids).intersection(set(dids)))
@@ -184,9 +196,14 @@ def main(argv):
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
     maxIter = 100
+
+    deltaLL = np.finfo(float).max
+    lastLL = 0.0
+    minChange = 1.0e-5
     #import ipdb; ipdb.set_trace()
-    for i in range(maxIter):
-    
+    i = 0 
+    while ( i < maxIter and deltaLL > minChange):
+        print("iter: " + str(i))
         haplotypes = {}
         for g in range(G):
             unitigGraph.clearReadWeights()
@@ -206,7 +223,10 @@ def main(argv):
         vargs = ['vsearch','--usearch_global','selectedReads.fa', '--db',
                     'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
                                     '--userout','hap.tsv','--maxaccepts','10']
-        subprocess.run(vargs)
+        
+       # with(open('vsearch.log','a')) as f: 
+        results = subprocess.run(vargs,capture_output=True)
+        
         #import ipdb; ipdb.set_trace()
         misMatch = defaultdict(dict)
         M = np.zeros((N,G))
@@ -240,7 +260,7 @@ def main(argv):
         MZ = np.sum(Z*M)
     
         epsilon = mZ/(MZ + mZ)
-    #    epsilon = 0.1
+        #epsilon = 0.05
         Pi = np.sum(Z,axis=0)
         print(epsilon)
         print(Pi.tolist())
@@ -249,9 +269,17 @@ def main(argv):
         logL = 0
         for n in range(N):
             Z[n,:] = expNormLogProb(logP[n,:])
-            logL += np.sum(expLogProb(logP[n,:]))
+            Probs, dMax = expLogProb(logP[n,:])
+            
+            logL += np.log(np.sum(Probs)) + dMax
         
-        print("LogLL: " +str(logL)) 
+        if i > 0:
+            deltaLL = logL - lastLL 
+        
+        lastLL = logL
+        print("LogLL: " + str(logL) + ", DeltaLL: " + str(deltaLL)) 
+        
+        i = i + 1
 
 if __name__ == "__main__":
     main(sys.argv[1:])
