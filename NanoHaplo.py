@@ -89,101 +89,10 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
         
     return (unitigGraph, stops, deadEnds )
  
-def main(argv):
-    parser = argparse.ArgumentParser()
 
-    parser.add_argument("cog_graph", help="gfa file")
-    
-    parser.add_argument("kmer_length", help="kmer length assumed overlap")
-    
-    parser.add_argument("cov_file", help="tsv file")
+def findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix, minIter = 10, maxIter = 100):
 
-    parser.add_argument("nanopore_reads", help="reads")
-
-    parser.add_argument("nanopore_maps", help="read mappings")
-    
-    parser.add_argument("var_dist_file", help="variant distances for Nanopore reads")
-
-    parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
-        help=("number of strains"))
-    
-    parser.add_argument('-t','--length_list',nargs='?', default=None, help=("amino acid lengths for genes"))
-    
-    args = parser.parse_args()
-
-    import ipdb; ipdb.set_trace()    
-
-    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
-    
-    cogLengths = {}
-    if  args.length_list != None:
-        with open(args.length_list,'r') as cog_file:
-            for line in cog_file:
-                line = line.rstrip()
-                toks = line.split('\t') 
-                cogLengths[toks[0]] = float(toks[1])
-    
-    gene = os.path.splitext(os.path.basename(args.cog_graph))[0] 
-    if gene in cogLengths:
-        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
-    else:
-        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
-    
-    source_names = [convertNodeToName(source) for source in source_list] 
-    sink_names = [convertNodeToName(sink) for sink in sink_list]
-        
-    readGraphMaps = {}
-    
-    with open(args.nanopore_maps) as f:
-        for line in f:
-            line = line.rstrip()
-            
-            toks = line.split('\t')
-            
-            readGraphMaps[toks[0]] = toks[6].split(',')
-            
-    
-    mapSeqs = {}
-    
-    handle = open(args.nanopore_reads, "r")
-    for record in SeqIO.parse(handle, "fasta"):
-        seq = record.seq
-
-        mapSeqs[record.id] = str(seq)
-    
-    ids = list(mapSeqs.keys())
-    
-
-    (dictDist, dids) = readDistMatrix(args.var_dist_file)
-    
-
-    ids = list(set(ids).intersection(set(dids)))
-
-    N = len(ids)
-    
-    readLengths = np.zeros(N)
-
-    mapID = {ids[i]:i for i in range(N)}
-
-    readLengths = np.asarray([len(mapSeqs[id]) for id in ids],dtype=np.int)
-
-    G = args.strain_number
-    
     Z = np.zeros((N,G))    
-    
-    dMatrix = np.zeros((N,N))
-
-    for i, iid in enumerate(ids):
-        for j, jid in enumerate(ids):
-            dMatrix[i,j] = dictDist[iid][jid]
-
-    readGraphMaps = {iid:readGraphMaps[iid] for iid in ids}
-
-    with open('selectedReads.fa','w') as f:    
-        for n in range(N):
-            f.write(">" + ids[n] + '\n')
-            f.write(mapSeqs[ids[n]] + '\n')
-
 
     M, C = kMedoids(dMatrix, G)
 
@@ -191,10 +100,6 @@ def main(argv):
         ass = C[g]
         
         Z[ass,g] = 1. 
-    
-    unitigGraph.createDirectedBiGraph()
-
-    unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
     maxIter = 100
 
@@ -204,7 +109,7 @@ def main(argv):
     minChange = 1.0e-5
     #import ipdb; ipdb.set_trace()
     i = 0 
-    while ( i < 10 or deltaLL > minChange):
+    while ( i < minIter or (deltaLL > minChange or i > maxIter)):
         print("iter: " + str(i))
         haplotypes = {}
         for g in range(G):
@@ -220,8 +125,6 @@ def main(argv):
                 f.write(">" + str(g) + '\n')
                 f.write(haplotypes[g] + '\n')
     
-
-
         vargs = ['vsearch','--usearch_global','selectedReads.fa', '--db',
                     'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
                                     '--userout','hap.tsv','--maxaccepts','10']
@@ -281,6 +184,107 @@ def main(argv):
         print("LogLL: " + str(logL) + ", DeltaLL: " + str(deltaLL)) 
         
         i = i + 1
+
+    return  (logLL, haplotypes, Pi, epsilon)
+
+
+def main(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("cog_graph", help="gfa file")
+    
+    parser.add_argument("kmer_length", help="kmer length assumed overlap")
+    
+    parser.add_argument("cov_file", help="tsv file")
+
+    parser.add_argument("nanopore_reads", help="reads")
+
+    parser.add_argument("nanopore_maps", help="read mappings")
+    
+    parser.add_argument("var_dist_file", help="variant distances for Nanopore reads")
+
+    parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
+        help=("number of strains"))
+    
+    parser.add_argument('-t','--length_list',nargs='?', default=None, help=("amino acid lengths for genes"))
+    
+    args = parser.parse_args()
+
+    import ipdb; ipdb.set_trace()    
+    np.random.seed(0)
+
+    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
+    
+    cogLengths = {}
+    if  args.length_list != None:
+        with open(args.length_list,'r') as cog_file:
+            for line in cog_file:
+                line = line.rstrip()
+                toks = line.split('\t') 
+                cogLengths[toks[0]] = float(toks[1])
+    
+    gene = os.path.splitext(os.path.basename(args.cog_graph))[0] 
+    if gene in cogLengths:
+        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
+    else:
+        (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
+    
+    source_names = [convertNodeToName(source) for source in source_list] 
+    sink_names = [convertNodeToName(sink) for sink in sink_list]
+        
+    readGraphMaps = {}
+    
+    with open(args.nanopore_maps) as f:
+        for line in f:
+            line = line.rstrip()
+            
+            toks = line.split('\t')
+            
+            readGraphMaps[toks[0]] = toks[6].split(',')
+            
+    
+    mapSeqs = {}
+    
+    handle = open(args.nanopore_reads, "r")
+    for record in SeqIO.parse(handle, "fasta"):
+        seq = record.seq
+
+        mapSeqs[record.id] = str(seq)
+    
+    ids = list(mapSeqs.keys())
+    
+
+    (dictDist, dids) = readDistMatrix(args.var_dist_file)
+    
+
+    ids = list(set(ids).intersection(set(dids)))
+
+    N = len(ids)
+    
+    readLengths = np.zeros(N)
+
+    mapID = {ids[i]:i for i in range(N)}
+
+    readLengths = np.asarray([len(mapSeqs[id]) for id in ids],dtype=np.int)
+    
+    dMatrix = np.zeros((N,N))
+
+    for i, iid in enumerate(ids):
+        for j, jid in enumerate(ids):
+            dMatrix[i,j] = dictDist[iid][jid]
+
+    readGraphMaps = {iid:readGraphMaps[iid] for iid in ids}
+
+    with open('selectedReads.fa','w') as f:    
+        for n in range(N):
+            f.write(">" + ids[n] + '\n')
+            f.write(mapSeqs[ids[n]] + '\n')
+
+    unitigGraph.createDirectedBiGraph()
+
+    unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
+    
+    (logLL, haplotypes, pi, epsilon) = findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
