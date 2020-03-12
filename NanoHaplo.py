@@ -5,6 +5,7 @@ import numpy as np
 import os
 import subprocess
 
+from subprocess import PIPE
 from Bio import SeqIO
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
@@ -46,16 +47,16 @@ def readDistMatrix(var_dist_file):
 
     return (dictDist, dids)
     
-def readCogStopsDead(cog_graph):
+def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
     deadEndFile = cog_graph[:-3] + "deadends"
         
     stopFile = cog_graph[:-3] + "stops"
 
     try:
-        unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.cog_graph,int(args.kmer_length), args.cov_file, tsvFile=True, bRemoveSelfLinks = True)
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(cog_graph,int(kmer_length), cov_file, tsvFile=True, bRemoveSelfLinks = True)
     except IOError:
-        print('Trouble using file {}'.format(args.cog_graph))
+        print('Trouble using file {}'.format(cog_graph))
         sys.exit()
     
         
@@ -63,18 +64,18 @@ def readCogStopsDead(cog_graph):
 
 
     try:
-        with open(args.dead_end_file) as f:
+        with open(deadEndFile) as f:
             for line in f:
                 line.strip()
                 deadEnds.append(line)
     except IOError:
-        print('Trouble using file {}'.format(args.dead_end_file))
+        print('Trouble using file {}'.format(deadEndFile))
         sys.exit()
         
     stops = []
         
     try:
-        with open(args.stop_file) as f:
+        with open(stopFile) as f:
             for line in f:
                 line = line.strip()
                 toks = line.split("\t")
@@ -83,7 +84,7 @@ def readCogStopsDead(cog_graph):
                     dirn = False
                 stops.append((toks[0],dirn))
     except IOError:
-        print('Trouble using file {}'.format(args.stop_file))
+        print('Trouble using file {}'.format(stopFile))
         sys.exit()
         
     return (unitigGraph, stops, deadEnds )
@@ -112,7 +113,7 @@ def main(argv):
 
     import ipdb; ipdb.set_trace()    
 
-    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph)
+    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
     
     cogLengths = {}
     if  args.length_list != None:
@@ -198,11 +199,12 @@ def main(argv):
     maxIter = 100
 
     deltaLL = np.finfo(float).max
+    logL = -np.finfo(float).max
     lastLL = 0.0
     minChange = 1.0e-5
     #import ipdb; ipdb.set_trace()
     i = 0 
-    while ( i < maxIter and deltaLL > minChange):
+    while ( i < 10 or deltaLL > minChange):
         print("iter: " + str(i))
         haplotypes = {}
         for g in range(G):
@@ -225,7 +227,7 @@ def main(argv):
                                     '--userout','hap.tsv','--maxaccepts','10']
         
        # with(open('vsearch.log','a')) as f: 
-        results = subprocess.run(vargs,capture_output=True)
+        subprocess.run(vargs,stdout=PIPE, stderr=PIPE)
         
         #import ipdb; ipdb.set_trace()
         misMatch = defaultdict(dict)
@@ -265,7 +267,7 @@ def main(argv):
         print(epsilon)
         print(Pi.tolist())
         logP = np.log(Pi)[np.newaxis,:] + np.log(epsilon)*m + np.log(1.0 - epsilon)*M 
-    
+        lastLL = logL
         logL = 0
         for n in range(N):
             Z[n,:] = expNormLogProb(logP[n,:])
@@ -276,7 +278,6 @@ def main(argv):
         if i > 0:
             deltaLL = logL - lastLL 
         
-        lastLL = logL
         print("LogLL: " + str(logL) + ", DeltaLL: " + str(deltaLL)) 
         
         i = i + 1
