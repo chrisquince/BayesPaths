@@ -151,7 +151,7 @@ def expLogProb(logProbs):
 
     probs = np.exp(ds)
     
-    return probs
+    return (probs, maxP)
 
 def read_unitig_order_file(unitig_order_file):
     """Read unitig directions"""
