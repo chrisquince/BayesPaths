@@ -1044,7 +1044,7 @@ class UnitigGraph():
             
             
             for predecessor in dGraph.predecessors(node):
-                weight = maxWeightNode[predecessor] + dGraph[predecessor][node]['readweight']*lengthPlus
+                weight = maxWeightNode[predecessor] + dGraph[predecessor][node][value]*lengthPlus
                 
                 if weight > maxWeight:
                     maxWeight = weight
@@ -1071,6 +1071,48 @@ class UnitigGraph():
 
         return (minPath, maxSeq)
     
+    def getHeaviestBiGraphPathNoLength(self, value,sources,sinks):
+        
+        assert nx.is_directed_acyclic_graph(self.directedUnitigBiGraphS)
+
+        dGraph = self.directedUnitigBiGraphS
+        top_sort = list(nx.topological_sort(dGraph))
+        lenSort = len(top_sort)
+            
+        maxPred = {}
+        maxWeightNode = {}
+        for node in top_sort:
+            maxWeight = 0.
+            maxPred[node] = None
+            noded = node[:-1]
+                        
+            for predecessor in dGraph.predecessors(node):
+                weight = maxWeightNode[predecessor] + dGraph[predecessor][node][value]
+                
+                if weight > maxWeight:
+                    maxWeight = weight
+                    maxPred[node] = predecessor
+            
+            maxWeightNode[node] = maxWeight
+
+
+        bestNode = None
+        maxNodeWeight = 0.
+        for node in top_sort:
+            if maxWeightNode[node] > maxNodeWeight:
+                maxNodeWeight = maxWeightNode[node] 
+                bestNode = node
+        
+        minPath = []
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
+        minPath.reverse()
+                            
+        maxSeq = self.getUnitigWalk(minPath)
+        
+
+        return (minPath, maxSeq)
     
     
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):

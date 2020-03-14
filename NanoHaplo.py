@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import os
 import subprocess
+import re 
 
 from subprocess import PIPE
 from Bio import SeqIO
@@ -90,11 +91,15 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
     return (unitigGraph, stops, deadEnds )
  
 
-def findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix, minIter = 10, maxIter = 100):
+def findGHaplotypes(N, G, ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID,
+                    source_names, sink_names, minIter = 10, maxIter = 100):
 
     Z = np.zeros((N,G))    
 
     M, C = kMedoids(dMatrix, G)
+
+
+
 
     for g in range(G):
         ass = C[g]
@@ -112,13 +117,43 @@ def findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix, minIter = 10
     while ( i < minIter or (deltaLL > minChange or i > maxIter)):
         print("iter: " + str(i))
         haplotypes = {}
+        paths = {}
+        
         for g in range(G):
             unitigGraph.clearReadWeights()
     
             unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
    
-            (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readWeight',source_names, sink_names)
+            (minPath, maxSeq) = unitigGraph.getHeaviestBiGraphPath('readweight',source_names, sink_names)
             haplotypes[g] = maxSeq
+            paths[g] = minPath
+            
+        if (i == 0):
+            with open('Haplotypes_0_' + str(G) + '.fa','w') as f:    
+                for g in range(G):
+                    f.write(">" + str(g) + '\n')
+                    f.write(haplotypes[g] + '\n')
+            
+            pathsd = defaultdict(set)
+            for g in range(G):
+                for unitig in paths[g]:
+                    pathsd[g].add(unitig[:-1])
+            
+            
+            with open('Haplotypes_0_' + str(G) + '_path.txt','w') as f:    
+
+                for unitig in unitigGraph.unitigs:
+                    vals = []
+                    for g in range(G):
+                           
+                        if unitig in pathsd[g]:
+                            vals.append(g) 
+                    
+                    vString = "\t".join([str(x) for x in vals])
+
+                    f.write(unitig + "\t" + vString + "\n")
+            
+        
     
         with open('Haplotypes.fa','w') as f:    
             for g in range(G):
@@ -165,7 +200,6 @@ def findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix, minIter = 10
         MZ = np.sum(Z*M)
     
         epsilon = mZ/(MZ + mZ)
-        #epsilon = 0.05
         Pi = np.sum(Z,axis=0)
         print(epsilon)
         print(Pi.tolist())
@@ -185,7 +219,7 @@ def findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix, minIter = 10
         
         i = i + 1
 
-    return  (logLL, haplotypes, Pi, epsilon)
+    return  (logL, haplotypes, Pi, epsilon)
 
 
 def main(argv):
@@ -236,11 +270,22 @@ def main(argv):
     
     with open(args.nanopore_maps) as f:
         for line in f:
+        
             line = line.rstrip()
             
             toks = line.split('\t')
+
+            mapTok = toks[5]
+            mapTok = mapTok.replace('>', '+')
+            mapTok = mapTok.replace('<', '-')
             
-            readGraphMaps[toks[0]] = toks[6].split(',')
+            mapList = re.split('\+|-', mapTok)
+            mapList.pop(0)
+            
+            dirList = re.split('[0-9]+', mapTok)
+            mapList.pop()
+            
+            readGraphMaps[toks[0]] = [x + y for x,y in zip(mapList,dirList)]
             
     
     mapSeqs = {}
@@ -259,6 +304,10 @@ def main(argv):
 
     ids = list(set(ids).intersection(set(dids)))
 
+    rids=list(readGraphMaps.keys())
+    ids = list(set(ids).intersection(set(rids)))
+
+
     N = len(ids)
     
     readLengths = np.zeros(N)
@@ -273,6 +322,8 @@ def main(argv):
         for j, jid in enumerate(ids):
             dMatrix[i,j] = dictDist[iid][jid]
 
+    
+
     readGraphMaps = {iid:readGraphMaps[iid] for iid in ids}
 
     with open('selectedReads.fa','w') as f:    
@@ -284,7 +335,40 @@ def main(argv):
 
     unitigGraph.setDirectedBiGraphSource(source_names, sink_names)
     
-    (logLL, haplotypes, pi, epsilon) = findGHaplotypes(N, G, ids, unitigGraph, readGraphMaps, dMatrix)
+    
+    #nanoHap = unitigGraph.getUnitigWalk(['137-','319-','329-','299-','23-'])
+    
+    #readHap = unitigGraph.getUnitigWalk(['137-', '319-', '329-', '261-', '263-', '269-', '167-', '245+', '241-', '23-'])
+    
+    #<39>37>181>177<223<135<137<319<329<261<263<297<167<131<241<23
+    
+    #print('>nanoHap\n' + nanoHap)
+    #print('>readHap\n' + readHap)
+    
+    #['137-','319-','329-'])
+    
+    logLLK = []
+    for k in range(1,args.strain_number + 1):
+    
+        (logLL, haplotypes, pi, epsilon) = findGHaplotypes(N, k, ids, 
+                                        unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
+        logLLK.append((k,logLL))
+        
+        with open('Haplotypes_' + str(k) + '.fa','w') as f:    
+            for g in range(k):
+                f.write(">" + str(g) + '\n')
+                f.write(haplotypes[g] + '\n')
+                
+        with open('Pi_' + str(k) + '.csv','w') as f:    
+            f.write(','.join([str(x) for x in pi.tolist()]))
+            f.write('\n')
+                
+    with open('LogLL.csv','w') as f:  
+        for (k,logLL) in logLLK:
+            f.write(str(k) + "," + str(logLL) + "\n")
+    
+    
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
