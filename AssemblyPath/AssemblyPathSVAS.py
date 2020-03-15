@@ -634,17 +634,17 @@ class AssemblyPathSVA():
 
         
         for node in factorGraph:            
-            if 'factor' not in factorGraph.node[node]:
+            if 'factor' not in factorGraph.nodes[node]:
                 print(str(node))
             else:
-                if not factorGraph.node[node]['factor']:
+                if not factorGraph.nodes[node]['factor']:
                 #just add edge as variable
                     probGraph.addVarNode(node,self.maxFlux)
             
 
         for node in factorGraph:
             
-            if factorGraph.node[node]['factor']:
+            if factorGraph.nodes[node]['factor']:
                 inNodes = list(factorGraph.predecessors(node))
                 
                 outNodes = list(factorGraph.successors(node))
