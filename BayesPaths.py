@@ -77,7 +77,9 @@ def assGraphWorker(gargs):
     
     assGraph.initNMF(M_train)
                 
-    assGraph.update(args.iters, True, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=args.relax_path, bMulti = False)
+    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
+
+    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
     assGraph.updateTau(False, M_test, True)
 
@@ -410,9 +412,9 @@ def main(argv):
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = assGraph.G + 1
+    Gopt = assGraph.G 
 
-    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
+    if (args.run_elbow and Gopt > 3) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
