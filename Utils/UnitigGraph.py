@@ -990,7 +990,131 @@ class UnitigGraph():
                     else:
                         newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*self.KC[node[:-1]] 
                     self.directedUnitigBiGraph.add_edge(innode, node, weight=newWeight,covweight=newSum)
-                    
+    
+    
+    def clearReadWeights(self):
+    
+        assert self.directedUnitigBiGraphS is not None
+        
+        for u,v in self.directedUnitigBiGraphS.edges():
+            self.directedUnitigBiGraphS[u][v]['readweight'] = 0.    
+        
+
+    def setReadWeights(self, readGraphMaps, weights, ids):
+    
+        for i, id in enumerate(ids):
+            map = readGraphMaps[id]
+            
+            for u, v in zip(map, map[1:]):
+                self.directedUnitigBiGraphS[u][v]['readweight'] +=   weights[i]#*self.directedUnitigBiGraphS[u][v]['weight']   
+    
+    
+    def setDirectedBiGraphSource(self, sources,sinks):
+    
+        directedUnitigBiGraphS =  None
+        undirectedUnitigBiGraph = self.directedUnitigBiGraph.to_undirected()
+        
+        for c in nx.connected_components(undirectedUnitigBiGraph):
+
+            if set(sources).issubset(set(c)) and set(sinks).issubset(set(c)):
+                self.directedUnitigBiGraphS = nx.subgraph(self.directedUnitigBiGraph, c)
+                 
+                return True
+    
+        
+    def getHeaviestBiGraphPath(self, value,sources,sinks):
+        
+        assert nx.is_directed_acyclic_graph(self.directedUnitigBiGraphS)
+
+        dGraph = self.directedUnitigBiGraphS
+        top_sort = list(nx.topological_sort(dGraph))
+        lenSort = len(top_sort)
+            
+        maxPred = {}
+        maxWeightNode = {}
+        for node in top_sort:
+            maxWeight = 0.
+            maxPred[node] = None
+            noded = node[:-1]
+            
+            if dGraph.out_degree(node) == 0:
+                lengthPlus = self.lengths[noded]
+            else:
+                lengthPlus = self.lengths[noded] - self.overlapLength
+            
+            
+            for predecessor in dGraph.predecessors(node):
+                weight = maxWeightNode[predecessor] + dGraph[predecessor][node][value]*lengthPlus
+                
+                if weight > maxWeight:
+                    maxWeight = weight
+                    maxPred[node] = predecessor
+            
+            maxWeightNode[node] = maxWeight
+
+
+        bestNode = None
+        maxNodeWeight = 0.
+        for node in top_sort:
+            if maxWeightNode[node] > maxNodeWeight:
+                maxNodeWeight = maxWeightNode[node] 
+                bestNode = node
+        
+        minPath = []
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
+        minPath.reverse()
+                            
+        maxSeq = self.getUnitigWalk(minPath)
+        
+
+        return (minPath, maxSeq)
+    
+    def getHeaviestBiGraphPathNoLength(self, value,sources,sinks):
+        
+        assert nx.is_directed_acyclic_graph(self.directedUnitigBiGraphS)
+
+        dGraph = self.directedUnitigBiGraphS
+        top_sort = list(nx.topological_sort(dGraph))
+        lenSort = len(top_sort)
+            
+        maxPred = {}
+        maxWeightNode = {}
+        for node in top_sort:
+            maxWeight = 0.
+            maxPred[node] = None
+            noded = node[:-1]
+                        
+            for predecessor in dGraph.predecessors(node):
+                weight = maxWeightNode[predecessor] + dGraph[predecessor][node][value]
+                
+                if weight > maxWeight:
+                    maxWeight = weight
+                    maxPred[node] = predecessor
+            
+            maxWeightNode[node] = maxWeight
+
+
+        bestNode = None
+        maxNodeWeight = 0.
+        for node in top_sort:
+            if maxWeightNode[node] > maxNodeWeight:
+                maxNodeWeight = maxWeightNode[node] 
+                bestNode = node
+        
+        minPath = []
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
+        minPath.reverse()
+                            
+        maxSeq = self.getUnitigWalk(minPath)
+        
+
+        return (minPath, maxSeq)
+    
+    
     def writeFlipFlopFiles(self, newsource, newsink, assGraph):
     
         biGraph = self.directedUnitigBiGraph.copy()
