@@ -17,7 +17,7 @@ from Utils.UtilsFunctions import convertNodeToName
 from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
-
+from operator import itemgetter
 
 def readDistMatrix(var_dist_file):
 
@@ -92,7 +92,7 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
  
 
 def findGHaplotypes(N, G, ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID,
-                    source_names, sink_names, minIter = 10, maxIter = 100):
+                    source_names, sink_names, minIter = 3, maxIter = 100):
 
     Z = np.zeros((N,G))    
 
@@ -244,7 +244,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(0)
 
     (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
@@ -347,27 +347,50 @@ def main(argv):
     
     #['137-','319-','329-'])
     
-    logLLK = []
+    logLLK = defaultdict(list)
+    nIters = 5
     for k in range(1,args.strain_number + 1):
     
-        (logLL, haplotypes, pi, epsilon) = findGHaplotypes(N, k, ids, 
-                                        unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
-        logLLK.append((k,logLL))
+        for n in range(nIters):
+            np.random.seed(n)
+    
+            (logLL, haplotypes, pi, epsilon) = findGHaplotypes(N, k, ids, unitigGraph, 
+                                                readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
         
-        with open('Haplotypes_' + str(k) + '.fa','w') as f:    
-            for g in range(k):
-                f.write(">" + str(g) + '\n')
-                f.write(haplotypes[g] + '\n')
-                
-        with open('Pi_' + str(k) + '.csv','w') as f:    
-            f.write(','.join([str(x) for x in pi.tolist()]))
-            f.write('\n')
+            logLLK[k].append((logLL, haplotypes, pi, epsilon))
+        
+        
+    
+    meanLL = {}
+    for (k,listK) in logLLK.items():
+        LL = [x[0] for x in listK]
+    
+        meanL = sum(LL)/len(LL)
+        
+        meanLL[k] = meanL
+        
                 
     with open('LogLL.csv','w') as f:  
-        for (k,logLL) in logLLK:
+        for k in sorted(meanLL.keys()):
+            logLL = meanLL[k]
             f.write(str(k) + "," + str(logLL) + "\n")
     
-    
+    for k in sorted(meanLL.keys()):
+        listK = logLLK[k]
+        
+        hapmax = max(listK,key=itemgetter(0))[1]
+        pimax = max(listK,key=itemgetter(0))[2]
+        
+        
+        with open('Haplotypes_' + str(k) + '.fa','w') as f:
+            for g in range(k):  
+                f.write(">" + str(g) + '\n')
+                f.write(hapmax[g] + '\n')
+                
+        with open('Pi_' + str(k) + '.csv','w') as f:
+            for g in range(k):     
+                f.write(','.join([str(x) for x in pimax.tolist()]))
+                f.write('\n')    
     
 
 if __name__ == "__main__":
