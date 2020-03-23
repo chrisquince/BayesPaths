@@ -19,6 +19,8 @@ from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
 from operator import itemgetter
 
+import uuid
+
 def readDistMatrix(var_dist_file):
 
     first = True
@@ -96,8 +98,8 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
 class NanoHap():
 
-    def __init__(self,N,G,ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID,
-                    source_names, sink_names, minIter = 3, maxIter = 100):
+    def __init__(self,N,G,ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, 
+                    source_names, sink_names, minIter = 3, maxIter = 100, minChange = 1.0e-5):
     
         self.N = N
         
@@ -105,7 +107,7 @@ class NanoHap():
         
         self.ids = ids
         
-        self.unitigGraph
+        self.unitigGraph = unitigGraph
         
         self.readLengths = readLengths
         
@@ -132,11 +134,17 @@ class NanoHap():
         self.epsilon = 0.1
         
         self.Pi = np.zeros(self.G)
+        
+        self.logL = -np.finfo(float).max
+        
+        self.minChange = minChange
+        
+        self.minIter = minIter
     
     def writeHaplotypes(self, fileName):
         
         with open(fileName,'w') as f:    
-            for g in range(G):
+            for g in range(self.G):
                 f.write(">" + str(g) + '\n')
                 f.write(self.haplotypes[g] + '\n')
     
@@ -166,7 +174,7 @@ class NanoHap():
         misMatch = defaultdict(dict)
         M = np.zeros((self.N,self.G))
         m = np.ones((self.N,self.G))
-        m = m*readLengths[:,np.newaxis]
+        m = m*self.readLengths[:,np.newaxis]
     
         with open(fileName,'r') as f:
         
@@ -193,42 +201,49 @@ class NanoHap():
     
     def findHaplotypes(self):
 
-        M, C = kMedoids(dMatrix, G)
+        M, C = kMedoids(self.dMatrix, self.G)
 
 
-        for g in range(G):
+        for g in range(self.G):
             ass = C[g]
         
-        self.Z[ass,g] = 1. 
+            self.Z[ass,g] = 1. 
 
         deltaLL = np.finfo(float).max
-        logL = -np.finfo(float).max
+
         lastLL = 0.0
-        minChange = 1.0e-5
+        
         
         #import ipdb; ipdb.set_trace()
         i = 0 
-        while ( i < minIter or (deltaLL > minChange or i > maxIter)):
+        while ( i < self.minIter or (deltaLL > self.minChange or i > self.maxIter)):
             print("iter: " + str(i))
         
-            for g in range(G):
+            for g in range(self.G):
                 self.unitigGraph.clearReadWeights()
     
-                self.unitigGraph.setReadWeights(readGraphMaps, Z[:,g], ids)
+                self.unitigGraph.setReadWeights(self.readGraphMaps, self.Z[:,g], self.ids)
    
-                (minPath, maxSeq) = self.unitigGraph.getHeaviestBiGraphPath('readweight',source_names, sink_names)
+                (minPath, maxSeq) = self.unitigGraph.getHeaviestBiGraphPath('readweight',self.source_names, self.sink_names)
                 self.haplotypes[g] = maxSeq
                 self.paths[g] = minPath
-            
-            self.writeHaplotypes('Haplotypes.fa')
+  
 
-    
+
+            temp_filename = '/tmp/' + str(uuid.uuid4())
+            
+            self.writeHaplotypes(temp_filename)
+        
+            
             vargs = ['vsearch','--usearch_global','selectedReads.fa', '--db',
-                                'Haplotypes.fa','--id','0.70','--userfields','query+target+alnlen+id+mism',
+                                temp_filename,'--id','0.70','--userfields','query+target+alnlen+id+mism',
                                 '--userout','hap.tsv','--maxaccepts','10']
         
-            # with(open('vsearch.log','a')) as f: 
+                # with(open('vsearch.log','a')) as f: 
             subprocess.run(vargs,stdout=PIPE, stderr=PIPE)
+         
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
          
             (m, M) = self.readAlignments('hap.tsv')
         
@@ -243,8 +258,8 @@ class NanoHap():
             lastLL = self.logL
             self.logL = 0
             
-            for n in range(N):
-                Z[n,:] = expNormLogProb(logP[n,:])
+            for n in range(self.N):
+                self.Z[n,:] = expNormLogProb(logP[n,:])
                 Probs, dMax = expLogProb(logP[n,:])
             
                 self.logL += np.log(np.sum(Probs)) + dMax
@@ -384,11 +399,11 @@ def main(argv):
         for n in range(nIters):
             np.random.seed(n)
     
-            nanoHap = NanoHap(N,G,ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
+            nanoHap = NanoHap(N,k,ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
         
             nanoHap.findHaplotypes()
         
-            logLLK[k].append((nanoHap.logLL, nanoHap.haplotypes, nanoHap.Pi, nanoHap.epsilon))
+            logLLK[k].append((nanoHap.logL, nanoHap.haplotypes, nanoHap.Pi, nanoHap.epsilon))
         
             
         
