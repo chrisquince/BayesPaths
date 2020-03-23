@@ -412,9 +412,9 @@ def main(argv):
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = assGraph.G 
+    Gopt = assGraph.G
 
-    if (args.run_elbow and Gopt > 3) and assGraph.S >=5:
+    if (args.run_elbow and Gopt > 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
     
         elbos = defaultdict(lambda: np.zeros(no_folds))
@@ -431,30 +431,6 @@ def main(argv):
         M = np.ones((assGraph.V,assGraph.S))
 
         (Ms_train,Ms_test) = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
-
-    #    MBubbles = np.ones((assGraph.nBubbles,assGraph.S))
-        
-        
-     #   Ms_training_and_test_bubbles = compute_folds_attempts(I=assGraph.nBubbles,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=MBubbles)
-
-        
-      #  Ms_train = []
-       # Ms_test = []
-        
-        #for f in range(no_folds):
-        
-         #   M_train = np.zeros((assGraph.V,assGraph.S))
-            
-          #  M_test = np.zeros((assGraph.V,assGraph.S))
-            
-           # train_bubble_f = Ms_training_and_test_bubbles[0][f]
-            #test_bubble_f = Ms_training_and_test_bubbles[1][f]
-            
-            #for v, mapb in assGraph.mapBubbles.items():
-             #   M_train[v,:] = train_bubble_f[mapb,:]
-              #  M_test[v,:]  = test_bubble_f[mapb,:]
-            #Ms_train.append(M_train) 
-            #Ms_test.append(M_test)
 
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
@@ -519,25 +495,17 @@ def main(argv):
         print("Using " + str(minG) + " strains")
  
         assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
-                                        ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                        ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
 
-        assGraph.update(args.iters, False, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
+        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
 
         assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
 
         assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
 
-    
-    #assGraph.bLogTau = False
-    #assGraph.bFixedTau = False
-    #assGraph.tauType = 'empirical'
-    
-    #assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
-    
-    #assGraph.update(args.iters, False,logFile=args.outFileStub + "_log7.txt",drop_strain=None,relax_path=args.relax_path)
     
     assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
     
