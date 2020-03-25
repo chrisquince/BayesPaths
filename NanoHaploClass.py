@@ -199,6 +199,76 @@ class NanoHap():
     
         return (m,M)
     
+    def removeDegenerate(self):
+        
+        dist = np.zeros((self.G,self.G))
+        
+        for g in range(self.G):
+            for h in range(g+1,self.G):
+                diff = len(set(self.paths[g]) ^ set(self.paths[h]))
+                
+                dist[g,h] = diff
+                dist[h,g] = diff    
+
+        
+        clusters = defaultdict(list)
+        
+        gSorted = np.argsort(-self.Pi)
+        
+        for g in gSorted.tolist():
+            
+            found = False
+            hclust = -1
+            for clust, members in clusters.items():
+                if dist[g][clust] == 0:
+                    found=True
+                    hclust = clust
+                    break
+        
+            if not found:
+                clusters[g].append(g) 
+            else:
+                clusters[hclust].append(g)
+        
+        nClusts = len(list(clusters.keys()))
+        
+        removed = np.zeros(self.G,dtype=bool)
+        removedClust = defaultdict(lambda: False)
+        if nClusts < self.G:
+            newPi = np.copy(self.Pi)
+            newZ = np.copy(self.Z)
+            for clust, members in clusters.items():
+                for c in members:
+                    if c != clust and removedClust[clust] == False:
+                        newPi[clust] += self.Pi[c]
+                        newZ[:,clust] += self.Z[:,c]     
+                        removed[c] = True
+                        newPi[c] = 0.
+                        newZ[:,c] = 0.
+                        removedClust[clust] = True
+        
+            h = 0
+            newHaplotypes = {}
+            newPaths = {}
+        
+            self.Pi = np.zeros(nClusts)
+            self.Z = np.zeros((self.N,nClusts))
+        
+            for g in range(self.G):
+                if removed[g]:
+                    del self.haplotypes[g]
+                    del self.paths[g]
+                else:
+                    newHaplotypes[h] = self.haplotypes[g]
+                    newPaths[h] = self.paths[g]
+                    self.Pi[h] = newPi[g]
+                    self.Z[:,h] = newZ[:,g]
+                    h += 1
+                
+            self.G = nClusts
+            self.haplotypes = newHaplotypes
+            self.paths = newPaths
+    
     def findHaplotypes(self):
 
         M, C = kMedoids(self.dMatrix, self.G)
@@ -213,6 +283,7 @@ class NanoHap():
 
         lastLL = 0.0
         
+        self.Pi = np.sum(self.Z,axis=0)
         
         #import ipdb; ipdb.set_trace()
         i = 0 
@@ -228,7 +299,7 @@ class NanoHap():
                 self.haplotypes[g] = maxSeq
                 self.paths[g] = minPath
   
-
+            self.removeDegenerate()
 
             temp_filename = '/tmp/' + str(uuid.uuid4())
             
@@ -252,7 +323,7 @@ class NanoHap():
     
             self.epsilon = mZ/(MZ + mZ)
         
-            self.Pi = np.sum(self.Z,axis=0)
+            #self.Pi = np.sum(self.Z,axis=0)
 
             logP = np.log(self.Pi)[np.newaxis,:] + np.log(self.epsilon)*m + np.log(1.0 - self.epsilon)*M 
             lastLL = self.logL
@@ -267,6 +338,8 @@ class NanoHap():
             if i > 0:
                 deltaLL = self.logL - lastLL 
         
+            self.Pi = np.sum(self.Z,axis=0)
+            print(self.Pi)
             print("LogLL: " + str(self.logL) + ", DeltaLL: " + str(deltaLL)) 
             
             i = i + 1
@@ -402,8 +475,10 @@ def main(argv):
             nanoHap = NanoHap(N,k,ids, unitigGraph, readLengths, readGraphMaps, dMatrix, mapID, source_names, sink_names)
         
             nanoHap.findHaplotypes()
-        
-            logLLK[k].append((nanoHap.logL, nanoHap.haplotypes, nanoHap.Pi, nanoHap.epsilon))
+            
+            g = nanoHap.G
+            
+            logLLK[g].append((nanoHap.logL, nanoHap.haplotypes, nanoHap.Pi, nanoHap.epsilon))
         
             
         
@@ -434,9 +509,8 @@ def main(argv):
                 f.write(hapmax[g] + '\n')
                 
         with open('Pi_' + str(k) + '.csv','w') as f:
-            for g in range(k):     
-                f.write(','.join([str(x) for x in pimax.tolist()]))
-                f.write('\n')     
+            f.write(','.join([str(x) for x in pimax.tolist()]))
+            f.write('\n')     
     
 
 if __name__ == "__main__":

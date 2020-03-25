@@ -1006,7 +1006,7 @@ class UnitigGraph():
             map = readGraphMaps[id]
             
             for u, v in zip(map, map[1:]):
-                self.directedUnitigBiGraphS[u][v]['readweight'] +=   weights[i]#*self.directedUnitigBiGraphS[u][v]['weight']   
+                self.directedUnitigBiGraphS[u][v]['readweight'] +=   weights[i]*self.directedUnitigBiGraphS[u][v]['weight']   
     
     
     def setDirectedBiGraphSource(self, sources,sinks):
