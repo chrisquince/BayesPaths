@@ -369,7 +369,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()    
+    #import ipdb; ipdb.set_trace()    
     np.random.seed(0)
 
     (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
