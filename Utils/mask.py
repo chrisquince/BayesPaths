@@ -79,7 +79,7 @@ def try_generate_M(I,J,fraction,attempts,M=None):
     assert False, "Failed to generate folds for training and test data, %s attempts, fraction %s." % (attempts,fraction)
 
 
-def compute_folds(I,J,no_folds,M=None):
+def compute_folds(prng, I,J,no_folds,M=None):
     ''' Compute :no_folds cross-validation masks.
         Return a tuple (Ms_train, Ms_test), both a list of masks.
         If M is defined, split only the 1 entries into the folds. '''
@@ -89,7 +89,7 @@ def compute_folds(I,J,no_folds,M=None):
     no_elements = M.sum()
     indices = nonzero_indices(M)
     
-    random.shuffle(indices)
+    prng.shuffle(indices)
     split_places = [int(i*no_elements/no_folds) for i in range(0,no_folds+1)] #find the indices where the next fold start
     split_indices = [indices[split_places[i]:split_places[i+1]] for i in range(0,no_folds)] #split the indices list into the folds
     
@@ -105,11 +105,11 @@ def compute_folds(I,J,no_folds,M=None):
     return (Ms_train, Ms_test)
     
 
-def compute_folds_attempts(I,J,no_folds,attempts,M=None):
+def compute_folds_attempts(prng, I,J,no_folds,attempts,M=None):
     ''' Try generate_M() :attempts times, making sure each row and column of
         M_train has at least one observed entry. '''
     for i in range(attempts):
-        Ms_train, Ms_test = compute_folds(I=I,J=J,no_folds=no_folds,M=M)
+        Ms_train, Ms_test = compute_folds(prng, I=I,J=J,no_folds=no_folds,M=M)
         success = True
         for M_train in Ms_train:
             if not check_empty_rows_columns(M_train):
