@@ -179,7 +179,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto',
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -284,6 +284,40 @@ class AssemblyPathSVA():
                 self.mapBubbles[self.V] = bubble_map[unitig]
                 
                 self.V += 1
+
+
+    
+        self.biasMap = {}
+        self.nBias = 0
+        
+        if biasType == 'bubble':
+
+            self.biasMap = self.mapBubbles
+            
+            self.nBias = self.nBubbles
+        
+        elif biasType == 'unitig':
+            self.nBias = self.V
+            
+            self.biasMap = {v:v for v in range(self.V)}
+
+        elif biasType == 'gene':
+            self.nBias = len(self.genes)
+            
+            gene_idx = 0
+            for gene, unitigs in self.mapUnitigs.items():
+                
+                for unitig in unitigs:
+                    v = self.mapGeneIdx[gene][unitig] 
+                    
+                    self.biasMap[v] = gene_idx
+                
+                gene_idx += 1
+        else:
+            print('Invalid bias type')
+            
+    
+
 
         #find degenerate unitig sequences
         (self.degenSeq, self.MaskDegen) = self.flag_degenerate_sequences()
@@ -477,16 +511,16 @@ class AssemblyPathSVA():
                 self.update_exp_lambdak(g)
         
         if self.BIAS:
-            self.expThetaCat  = np.ones(self.nBubbles)
+            self.expThetaCat  = np.ones(self.nBias)
             self.expThetaCat.fill(self.muTheta0)
             
-            self.expTheta2Cat = np.ones(self.nBubbles)
+            self.expTheta2Cat = np.ones(self.nBias)
             self.expTheta2Cat.fill(self.muTheta0*self.muTheta0)
             
-            self.muThetaCat = np.ones(self.nBubbles)
+            self.muThetaCat = np.ones(self.nBias)
             self.muThetaCat.fill(self.muTheta0)
             
-            self.tauThetaCat = np.ones(self.nBubbles)
+            self.tauThetaCat = np.ones(self.nBias)
             self.tauThetaCat.fill(self.tauTheta0)
         
         
@@ -1049,7 +1083,7 @@ class AssemblyPathSVA():
         self.tauThetaCat.fill(self.tauTheta0)
          
         for v in range(self.V):
-            b = self.mapBubbles[v]
+            b = self.biasMap[v]
             
             self.muThetaCat[b] += numer[v]
             
@@ -1064,7 +1098,7 @@ class AssemblyPathSVA():
         self.expTheta2Cat = self.varThetaCat + self.expThetaCat*self.expThetaCat
         
         for v in range(self.V):
-            b = self.mapBubbles[v]
+            b = self.biasMap[v]
         
             self.muTheta[v] = self.muThetaCat[b]
             

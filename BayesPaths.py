@@ -72,7 +72,7 @@ def assGraphWorker(gargs):
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
-                                bGam = args.usegam, tauType = args.tauType, 
+                                bGam = args.usegam, tauType = args.tauType, biasType = args. biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     assGraph.initNMF(M_train)
@@ -161,6 +161,8 @@ def main(argv):
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
     parser.add_argument('--nobias', dest='bias', action='store_false')
+    
+    parser.add_argument('--bias_type', dest='biasType', default='unitig',choices=['unitig','gene','bubble'],help='Strategy for setting coverage bias')
 
     parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto','poisson'],help='Strategy for setting precision')
 
@@ -295,7 +297,8 @@ def main(argv):
         sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
     
         assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, tauType = args.tauType, 
+                                ARD=True,BIAS=args.bias, NOISE=args.NOISE, fgExePath=args.executable_path, 
+                                bLoess = args.loess, bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
         
         
@@ -309,7 +312,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
-                                bGam = args.usegam, tauType = args.tauType,
+                                bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
@@ -357,7 +360,7 @@ def main(argv):
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                tauType = args.tauType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
+                                tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
 
     assemblyGraphs = assemblyGraphsFilter
@@ -388,7 +391,7 @@ def main(argv):
 
             assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
 
             assemblyGraphs = assemblyGraphsSelect
@@ -416,21 +419,28 @@ def main(argv):
 
     if (args.run_elbow and Gopt >= 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
-    
-        elbos = defaultdict(lambda: np.zeros(no_folds))
-        errs = defaultdict(lambda: np.zeros(no_folds))
-        errsP = defaultdict(lambda: np.zeros(no_folds))
-        divs = defaultdict(lambda: np.zeros(no_folds))
-        divFs = defaultdict(lambda: np.zeros(no_folds))
-        expLLs = defaultdict(lambda: np.zeros(no_folds))
-        Hs = defaultdict(lambda: np.zeros(no_folds))    
+        no_folds2 = 2*no_folds
+        elbos = defaultdict(lambda: np.zeros(no_folds2))
+        errs = defaultdict(lambda: np.zeros(no_folds2))
+        errsP = defaultdict(lambda: np.zeros(no_folds2))
+        divs = defaultdict(lambda: np.zeros(no_folds2))
+        divFs = defaultdict(lambda: np.zeros(no_folds2))
+        expLLs = defaultdict(lambda: np.zeros(no_folds2))
+        Hs = defaultdict(lambda: np.zeros(no_folds2))    
         
         
         M_attempts = 1000
 
         M = np.ones((assGraph.V,assGraph.S))
+    
 
-        (Ms_train,Ms_test) = compute_folds_attempts(I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+        (Ms_train1,Ms_test1) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+        (Ms_train2,Ms_test2) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+
+        Ms_train = Ms_train1 + Ms_train2 
+        
+        Ms_test = Ms_test1 + Ms_test2
 
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
@@ -447,20 +457,20 @@ def main(argv):
             
             results = []
             pargs = []
-            for f in range(no_folds):
+            for f in range(2*no_folds):
                 
                 M_train = Ms_train[f]
                 M_test = Ms_test[f]
                 
-                prng = RandomState(args.random_seed + f) 
+                prng_l = RandomState(args.random_seed + f) 
                 
-                pargs.append([prng, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples, outDir, M_train, M_test])            
+                pargs.append([prng_l, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples, outDir, M_train, M_test])            
 
             results = fold_p.amap(assGraphWorker,pargs)
 
             resultsa = list(results.get())
             
-            for f in range(no_folds):
+            for f in range(2*no_folds):
                 elbos[g][f] = resultsa[f][0]
                 errs[g][f]  =  resultsa[f][1]
                 errsP[g][f] = resultsa[f][2]
@@ -496,7 +506,7 @@ def main(argv):
  
         assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         assGraph.initNMF()
 
