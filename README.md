@@ -6,3 +6,5 @@ multiple samples on an assembly graph.
 ## Requirements
 
 Python packages: networkx# BayesAGraphSVA
+
+python3 ./BayesPaths.py Test_11 77 Debug -r 150 -g 16 -l COG0060.txt -t coreCogs.tsv
