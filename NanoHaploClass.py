@@ -233,19 +233,18 @@ class NanoHap():
         nClusts = len(list(clusters.keys()))
         
         removed = np.zeros(self.G,dtype=bool)
-        removedClust = defaultdict(lambda: False)
+        
         if nClusts < self.G:
             newPi = np.copy(self.Pi)
             newZ = np.copy(self.Z)
             for clust, members in clusters.items():
                 for c in members:
-                    if c != clust and removedClust[clust] == False:
+                    if c != clust:
                         newPi[clust] += self.Pi[c]
                         newZ[:,clust] += self.Z[:,c]     
                         removed[c] = True
                         newPi[c] = 0.
                         newZ[:,c] = 0.
-                        removedClust[clust] = True
         
             h = 0
             newHaplotypes = {}
@@ -369,7 +368,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()    
+   # import ipdb; ipdb.set_trace()    
     np.random.seed(0)
 
     (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
@@ -465,7 +464,7 @@ def main(argv):
     
     
     logLLK = defaultdict(list)
-    nIters = 5
+    nIters = 10
     
     for k in range(1,args.strain_number + 1):
     
@@ -483,15 +482,20 @@ def main(argv):
             
         
     
-    meanLL = {}
-    for (k,listK) in logLLK.items():
-        LL = [x[0] for x in listK]
+    with open('LogLL.csv','w') as f: 
+        
+        meanLL = {}
+        for (k,listK) in logLLK.items():
+            LL = [x[0] for x in listK]
     
-        meanL = sum(LL)/len(LL)
+            for y in LL:
+                f.write(str(k) + "," + str(y) + "\n")
+    
+            meanL = sum(LL)/len(LL)
         
-        meanLL[k] = meanL
+            meanLL[k] = meanL
         
-    with open('LogLL.csv','w') as f:  
+    with open('MeanLogLL.csv','w') as f:  
         for k in sorted(meanLL.keys()):
             logLL = meanLL[k]
             f.write(str(k) + "," + str(logLL) + "\n")
