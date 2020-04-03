@@ -61,7 +61,9 @@ class UnitigGraph():
         self.NC = 0 #number of components
         self.covMap = {} # coverages across samples may be null
         self.KC = {} # kmer support
-        
+        self.directedUnitigBiGraphS =  None
+        self.directedUnitigBiGraph =  None
+         
     @classmethod
     def loadGraph(cls,unitigFile, kmerLength, overlapLength = None, covFile = None):
         """Creates graphs from a Bcalm output file"""
@@ -1012,15 +1014,30 @@ class UnitigGraph():
     def setDirectedBiGraphSource(self, sources,sinks):
     
         directedUnitigBiGraphS =  None
-        undirectedUnitigBiGraph = self.directedUnitigBiGraph.to_undirected()
+        
+        tempDiGraph = self.directedUnitigBiGraph.copy()
+        
+        tempDiGraph.add_node('source+')
+        
+        tempDiGraph.add_node('sink+')
+        
+        for source in sources:
+            tempDiGraph.add_edge('source+',source)
+            
+        for sink in sinks:
+            tempDiGraph.add_edge(sink,'sink+')
+        
+        undirectedUnitigBiGraph = tempDiGraph.to_undirected()
+        
         
         for c in nx.connected_components(undirectedUnitigBiGraph):
 
             if set(sources).issubset(set(c)) and set(sinks).issubset(set(c)):
-                self.directedUnitigBiGraphS = nx.subgraph(self.directedUnitigBiGraph, c)
+                self.directedUnitigBiGraphS = nx.subgraph(tempDiGraph, c)
                  
                 return True
     
+        return False
         
     def getHeaviestBiGraphPath(self, value,sources,sinks):
         
@@ -1085,7 +1102,7 @@ class UnitigGraph():
             maxWeight = 0.
             maxPred[node] = None
             noded = node[:-1]
-                        
+            
             for predecessor in dGraph.predecessors(node):
                 weight = maxWeightNode[predecessor] + dGraph[predecessor][node][value]
                 
@@ -1107,6 +1124,65 @@ class UnitigGraph():
         while bestNode is not None:
             minPath.append(bestNode)
             bestNode = maxPred[bestNode]
+        minPath.reverse()
+                            
+        maxSeq = self.getUnitigWalk(minPath)
+        
+
+        return (minPath, maxSeq)
+        
+    
+    def getHeaviestBiGraphPathUnitigNode(self,unitigValueDir,sources,sinks):
+        
+        assert self.directedUnitigBiGraphS is not None
+
+        dGraph = self.directedUnitigBiGraphS
+        top_sort = list(nx.topological_sort(dGraph))
+        lenSort = len(top_sort)
+            
+        maxPred = {}
+        maxWeightNode = {}
+        for node in top_sort:
+        
+            pred = list(dGraph.predecessors(node))
+            
+            if len(pred) > 0:
+                maxWeightPred = maxWeightNode[pred[0]]
+                maxPred[node] = pred[0]
+                
+                        
+                for predecessor in pred[1:]:
+                    weight = maxWeightNode[predecessor] 
+                    
+                    if weight > maxWeightPred:
+                        maxWeightPred = weight
+                        maxPred[node] = predecessor
+            
+                noded = node[:-1]
+                
+                maxWeightNode[node]  = maxWeightPred + unitigValueDir[noded]
+            else:
+                maxWeightNode[node] = 0.
+                maxPred[node] = None
+            
+
+       # max_key = max(a_dictionary, key=a_dictionary.get)
+
+        #bestNode = None
+        #maxNodeWeight = 0.
+        #for node in top_sort:
+         #   if maxWeightNode[node] > maxNodeWeight:
+          #      maxNodeWeight = maxWeightNode[node] 
+           #     bestNode = node
+        
+        minPath = []
+        bestNode = 'sink+'
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
+        
+        minPath.pop(0)
+        minPath.pop()
         minPath.reverse()
                             
         maxSeq = self.getUnitigWalk(minPath)
