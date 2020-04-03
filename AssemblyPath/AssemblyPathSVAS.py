@@ -1445,7 +1445,8 @@ class AssemblyPathSVA():
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
                         print("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
-                        greedyPath = self.sampleGreedyPath(gene, g)
+                        #greedyPath = self.sampleGreedyPath(gene, g)
+                        greedyPath = self.sampleMaxWeightPath(gene, g)
                     
                         for unitig in self.assemblyGraphs[gene].unitigs:
                             if unitig in self.mapGeneIdx[gene]:
@@ -1740,6 +1741,39 @@ class AssemblyPathSVA():
             current = list(biGraph.successors(outPath))[0]
             #print(str(current))
         return path
+        
+        
+    def sampleMaxWeightPath(self, gene, g):
+            
+        unitigGraphGene =  self.assemblyGraphs[gene]
+
+       # import ipdb; ipdb.set_trace() 
+            
+        if unitigGraphGene.directedUnitigBiGraphS is None:
+            sources_gene = self.source_maps[gene]
+        
+            sinks_gene = self.sink_maps[gene] 
+        
+            source_names = [convertNodeToName(source) for source in sources_gene] 
+            
+            sink_names = [convertNodeToName(sink) for sink in sinks_gene]
+        
+            unitigGraphGene.setDirectedBiGraphSource(source_names,sink_names)        
+    
+    
+        unitigValueDir = defaultdict(lambda: float(-1000))
+    
+        for unitig, factorNode in self.unitigFactorNodes[gene].items():
+            if np.log(factorNode.P[1][0]) > -1000.0:
+                unitigValueDir[unitig] = np.log(factorNode.P[1][0])
+    
+        unitigValueDir['source+'] = 0.
+        unitigValueDir['sink+'] = 0.
+    
+        (maxPath, maxSeq) = unitigGraphGene.getHeaviestBiGraphPathUnitigNode(unitigValueDir, None, None)
+    
+        return maxPath
+        
 
     def sampleMargPath(self,margP,biGraph):
         
@@ -2023,7 +2057,8 @@ class AssemblyPathSVA():
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
                         print("Attempt greedy path: " + str(g) + " " + gene)
-                        greedyPath = self.sampleGreedyPath(gene, g)
+                        #greedyPath = self.sampleGreedyPath(gene, g)
+                        greedyPath = self.sampleMaxWeightPath(gene, g)
                     
                         for unitig in self.assemblyGraphs[gene].unitigs:
                             if unitig in self.mapGeneIdx[gene]:
@@ -2407,7 +2442,7 @@ class AssemblyPathSVA():
 
         return total_elbo
         
-    def calc_expll_poisson(self, mask = None, bMaskDegen = False):
+    def calc_expll_poisson2(self, mask = None, bMaskDegen = False):
         
         if mask is None:
             mask = np.ones((self.V,self.S))
@@ -2432,6 +2467,34 @@ class AssemblyPathSVA():
         total_elbo -= 0.5*np.sum(mask*poissonWeight*self.exp_square_diff_matrix()) #second part likelihood
 
         return total_elbo
+
+    def calc_expll_poisson(self, mask = None, bMaskDegen = False):
+        
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi[:,0:self.G], self.expGamma[0:self.G,:])
+
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+
+        R2 = (self.X - R_pred)**2
+        total_elbo = 0.
+        
+        # Log likelihood
+        nTOmega = np.sum(mask)    
+        
+        poissonWeight = 1.0/(self.X + 0.5)
+                   
+        total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*R2) #second part likelihood
+
+        return total_elbo
+
 
 
     def calc_elbo(self, mask = None, bMaskDegen = False):
