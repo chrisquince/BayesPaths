@@ -72,7 +72,7 @@ def assGraphWorker(gargs):
 
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
-                                bGam = args.usegam, tauType = args.tauType, biasType = args. biasType,
+                                bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
     assGraph.initNMF(M_train)
@@ -151,7 +151,7 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=5., type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=2., type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
@@ -419,14 +419,14 @@ def main(argv):
 
     if (args.run_elbow and Gopt >= 4) and assGraph.S >=5:
         no_folds=int(args.nofolds)
-        no_folds2 = 2*no_folds
-        elbos = defaultdict(lambda: np.zeros(no_folds2))
-        errs = defaultdict(lambda: np.zeros(no_folds2))
-        errsP = defaultdict(lambda: np.zeros(no_folds2))
-        divs = defaultdict(lambda: np.zeros(no_folds2))
-        divFs = defaultdict(lambda: np.zeros(no_folds2))
-        expLLs = defaultdict(lambda: np.zeros(no_folds2))
-        Hs = defaultdict(lambda: np.zeros(no_folds2))    
+        #no_folds2 = 2*no_folds
+        elbos = defaultdict(lambda: np.zeros(no_folds))
+        errs = defaultdict(lambda: np.zeros(no_folds))
+        errsP = defaultdict(lambda: np.zeros(no_folds))
+        divs = defaultdict(lambda: np.zeros(no_folds))
+        divFs = defaultdict(lambda: np.zeros(no_folds))
+        expLLs = defaultdict(lambda: np.zeros(no_folds))
+        Hs = defaultdict(lambda: np.zeros(no_folds))    
         
         
         M_attempts = 1000
@@ -436,11 +436,11 @@ def main(argv):
 
         (Ms_train1,Ms_test1) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
-        (Ms_train2,Ms_test2) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
+       # (Ms_train2,Ms_test2) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
-        Ms_train = Ms_train1 + Ms_train2 
+        Ms_train = Ms_train1 #+ Ms_train2 
         
-        Ms_test = Ms_test1 + Ms_test2
+        Ms_test = Ms_test1 #+ Ms_test2
 
 
         outDir = os.path.dirname(args.outFileStub  + "/CVAnalysis")
@@ -457,7 +457,7 @@ def main(argv):
             
             results = []
             pargs = []
-            for f in range(2*no_folds):
+            for f in range(no_folds):
                 
                 M_train = Ms_train[f]
                 M_test = Ms_test[f]
@@ -470,7 +470,7 @@ def main(argv):
 
             resultsa = list(results.get())
             
-            for f in range(2*no_folds):
+            for f in range(no_folds):
                 elbos[g][f] = resultsa[f][0]
                 errs[g][f]  =  resultsa[f][1]
                 errsP[g][f] = resultsa[f][2]
