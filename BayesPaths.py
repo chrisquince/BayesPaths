@@ -79,7 +79,7 @@ def assGraphWorker(gargs):
                 
     assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
-    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
+    #assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
     assGraph.updateTau(False, M_test, True)
 
@@ -87,16 +87,16 @@ def assGraphWorker(gargs):
 
     train_elbo = assGraph.calc_elbo(M_test, True)
     train_err  = assGraph.predict_sqrt(M_test,True)
-    train_errP = assGraph.predictMaximal(M_test, True)
-    train_div = assGraph.div(M_test, True)
-    train_divF = assGraph.divF(M_test, True)
-    train_ll = assGraph.calc_expll_poisson(M_test, True)
+    train_ll   = assGraph.calc_expll_poisson(M_test, True, False)
+    train_ll2  = assGraph.calc_expll_poisson_maximal(M_test, True)
+    total_ll2  = assGraph.calc_expll_poisson_maximal(mask = None, bMaskDegen = True)
     
     fitFile = outDir + "/Run" + '_g' + str(G) + "_r" + str(r) + "_fit.txt"
     with open(fitFile, 'w') as ffile:
-        ffile.write(str(train_elbo) + "," + str(train_err)  + "," + str(train_errP) + "," + str(train_div) + "," + str(train_divF) + "," + str(train_ll) + "\n")
+        ffile.write(str(train_elbo) + "," + str(train_err)  + "," + str(train_ll) + "," + str(train_ll2) + "," + str(total_ll2) + "\n")
 
-    return (train_elbo, train_err, train_errP, train_div, train_divF, train_ll, assGraph.G)
+    return (train_elbo, train_err, train_ll, train_ll2, total_ll2, assGraph.G, 
+                assGraph.expGamma,assGraph.expGamma2, assGraph.expPhi, assGraph.expPhi2, assGraph.expTheta, assGraph.expTheta2)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -151,7 +151,7 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=2., type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=2.5, type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
@@ -169,8 +169,7 @@ def main(argv):
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
     args = parser.parse_args()
-
-    #import ipdb; ipdb.set_trace()    
+    
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
     prng = RandomState(args.random_seed) #create prng from seed 
 
@@ -415,20 +414,17 @@ def main(argv):
   
     assGraph.writeOutput(args.outFileStub + "_P", False, selectedSamples)
 
-    Gopt = assGraph.G
+    Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt >= 4) and assGraph.S >=5:
+    if ((args.run_elbow and Gopt >= 5) and assGraph.S >=5) and assGraph.totalCov >= 80.:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
-        elbos = defaultdict(lambda: np.zeros(no_folds))
-        errs = defaultdict(lambda: np.zeros(no_folds))
-        errsP = defaultdict(lambda: np.zeros(no_folds))
-        divs = defaultdict(lambda: np.zeros(no_folds))
-        divFs = defaultdict(lambda: np.zeros(no_folds))
-        expLLs = defaultdict(lambda: np.zeros(no_folds))
-        Hs = defaultdict(lambda: np.zeros(no_folds))    
         
-        
+        statsH = defaultdict(list)
+                  
+        assErrors    = defaultdict(list)
+        assMapParams = defaultdict(dict)
+                
         M_attempts = 1000
 
         M = np.ones((assGraph.V,assGraph.S))
@@ -471,36 +467,40 @@ def main(argv):
             resultsa = list(results.get())
             
             for f in range(no_folds):
-                elbos[g][f] = resultsa[f][0]
-                errs[g][f]  =  resultsa[f][1]
-                errsP[g][f] = resultsa[f][2]
-                divs[g][f]  = resultsa[f][3]
-                divFs[g][f] = resultsa[f][4]
-                expLLs[g][f] = resultsa[f][5]
-                Hs[g][f] = resultsa[f][6]
+                h = resultsa[f][5]
                 
-        mean_errs = np.zeros(Gopt)
-        median_hs = np.zeros(Gopt)
+                statsH[h].append((resultsa[f][0],resultsa[f][1],resultsa[f][2],resultsa[f][3],resultsa[f][4],resultsa[f][5]))
+                
+                assErrors[h].append((g,f,resultsa[f][4])) 
+                
+                assMapParams[g][f] = (resultsa[f][6], resultsa[f][7], resultsa[f][8], resultsa[f][9], resultsa[f][10], resultsa[f][11])
+        
+        #import ipdb; ipdb.set_trace()
+        
+        mean_errs = {}
+        
         with open(args.outFileStub + "_CV.csv",'w') as f:
-            f.write("No_strains,mean_elbo,mean_err,mean_div,mean_divF,median_h\n")
-            for g in range(1,Gopt + 1):
-                mean_elbo = np.mean(elbos[g])        
-                mean_err = np.mean(errs[g])
+            f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
+            
+            for h in sorted(statsH.keys()): 
+            
+                mean_elbo = np.mean(np.asarray([x[0] for x in statsH[h]]))        
+                mean_err = np.mean(np.asarray([x[1] for x in statsH[h]])) 
+                mean_ll = np.mean(np.asarray([x[2] for x in statsH[h]])) 
+                mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+                mean_ll_total = np.mean(np.asarray([x[4] for x in statsH[h]]))
                 
-                mean_errP = np.mean(errsP[g])   
-                mean_div = np.mean(divs[g]) 
-                mean_divF = np.mean(divFs[g])     
-                median_h = np.median(Hs[g])
-                median_hs[g - 1] = median_h 
-                median_ll = np.mean(expLLs[g]) 
+                mean_errs[h] = mean_ll_maximal
                 
-                mean_errs[g - 1] = median_ll
-                f.write(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h) + '\n')
-                print(str(g) +"," + str(mean_elbo) +"," + str(mean_err) + "," + str(mean_errP) + "," + str(mean_div) + "," + str(mean_divF) + "," + str(median_ll) + "," + str(median_h))
+                oString = str(h) + "," + str(mean_elbo) + "," + str(mean_err) + "," + str(mean_ll) + "," + str(mean_ll_maximal) + "," + str(mean_ll_total)
+                
+                f.write(oString + "\n")
+                
+                print(oString)
     
         #Rerun with optimal g
     
-        minG = int(median_hs[np.argmax(mean_errs)]) 
+        minG = max(mean_errs, key=mean_errs.get)
        
         print("Using " + str(minG) + " strains")
  
@@ -508,8 +508,30 @@ def main(argv):
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
-        assGraph.initNMF()
-
+   
+        bestRun = max(assErrors[minG], key = lambda t: t[2])
+        
+        bestParams = assMapParams[bestRun[0]][bestRun[1]] 
+        
+        assert np.array_equal(assGraph.expGamma.shape, bestParams[0].shape)
+        assGraph.expGamma = np.copy(bestParams[0])
+        
+        assert np.array_equal(assGraph.expGamma2.shape, bestParams[1].shape)
+        assGraph.expGamma2 = np.copy(bestParams[1])
+        
+        assert np.array_equal(assGraph.expPhi.shape, bestParams[2].shape)
+        assGraph.expPhi = np.copy(bestParams[2])
+        
+        assert np.array_equal(assGraph.expPhi2.shape, bestParams[3].shape)
+        assGraph.expPhi2 = np.copy(bestParams[3])
+        
+        assert np.array_equal(assGraph.expTheta.shape, bestParams[4].shape)
+        assGraph.expTheta = np.copy(bestParams[4])
+        
+        assert np.array_equal(assGraph.expTheta2.shape, bestParams[5].shape)
+        assGraph.expTheta2 = np.copy(bestParams[5])
+        
+        
         assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
 
         assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
