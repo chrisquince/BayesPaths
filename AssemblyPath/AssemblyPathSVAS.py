@@ -417,14 +417,25 @@ class AssemblyPathSVA():
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
-        self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
+        
+        sumCov=np.sum(self.meanSampleCov)
+        print("SumCov=" + str(sumCov)) 
+        
+        print("ReadLength=" + str(self.readLength))
+        
+        print("kFactor=" + str(self.kFactor)) 
+        
+        self.totalCov = sumCov*self.kFactor
         self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
         
         self.NOISE = NOISE
+        
+        print("Cov=" + str(self.totalCov)) 
+        
         if self.totalCov < self.minNoiseCov:
             self.NOISE = False
             
-            print("Cov < 100, no noise")
+            print("Cov  < 100, no noise")
             
         if self.tauType == 'auto':
             xRange = np.max(self.X) - np.min(self.X[self.X > 0])
@@ -1764,8 +1775,16 @@ class AssemblyPathSVA():
         unitigValueDir = defaultdict(lambda: float(-1000))
     
         for unitig, factorNode in self.unitigFactorNodes[gene].items():
-            if np.log(factorNode.P[1][0]) > -1000.0:
-                unitigValueDir[unitig] = np.log(factorNode.P[1][0])
+            
+            if factorNode.P.ndim > 1:
+                dVal = factorNode.P[1][0]
+            elif factorNode.P.ndim == 1:
+                dVal = factorNode.P[1]
+            else:
+                dVal = -1000.0
+        
+            if np.log(dVal) > -1000.0:
+                unitigValueDir[unitig] = np.log(dVal)
     
         unitigValueDir['source+'] = 0.
         unitigValueDir['sink+'] = 0.
@@ -2252,6 +2271,8 @@ class AssemblyPathSVA():
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
         #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
         
+        
+        
         if self.BIAS:
             R = self.X[unitig_idxs,:] - self.lengths[unitig_idxs,np.newaxis]*self.expTheta[unitig_idxs,np.newaxis]*self.eLambda[unitig_idxs,:]
         else:
@@ -2277,29 +2298,44 @@ class AssemblyPathSVA():
 
         
 
-    def exp_square_diff_matrix(self): 
+    def exp_square_diff_matrix(self, bNoise = True): 
         ''' Compute: sum_Omega E_q(phi,gamma) [ ( Xvs - L_v Phi_v Gamma_s )^2 ]. '''
         #return (self.M *( ( self.R - numpy.dot(self.exp_U,self.exp_V.T) )**2 + \
         #                  ( numpy.dot(self.var_U+self.exp_U**2, (self.var_V+self.exp_V**2).T) - numpy.dot(self.exp_U**2,(self.exp_V**2).T) ) ) ).sum()
         
-        if self.BIAS:
-            R = self.X - self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*self.eLambda
-        else:
-            R = self.X - self.lengths[:,np.newaxis]*self.eLambda
+        if bNoise:
+            tPhi = self.expPhi
+            tGamma = self.expGamma
+            tPhi2 = self.expPhi2
+            tGamma2 = self.expGamma2
             
-        t1 = np.dot(self.expPhi*self.expPhi, self.expGamma*self.expGamma)
+        else:
+            tPhi = self.expPhi[:,0:self.G]
+            tPhi2 = self.expPhi2[:,0:self.G]
+            
+            tGamma = self.expGamma[0:self.G,:]
+            tGamma2 = self.expGamma2[0:self.G,:]
+             
+        tLambda = np.dot(tPhi, tGamma)
+        
+        if self.BIAS:
+            R = self.X - self.lengths[:,np.newaxis]*self.expTheta[:,np.newaxis]*tLambda
+        else:
+            R = self.X - self.lengths[:,np.newaxis]*tLambda
+            
+        t1 = np.dot(tPhi*tPhi, tGamma*tGamma)
         
         if self.BIAS:
             eT2 = self.expTheta*self.expTheta
             t1 = eT2[:,np.newaxis]*t1
         
-        diff = np.dot(self.expPhi2,self.expGamma2) - t1
+        diff = np.dot(tPhi2,tGamma2) - t1
         L2 = self.lengths*self.lengths
 
         if self.BIAS:
-            diff = np.dot(self.expPhi2,self.expGamma2)*self.expTheta2[:,np.newaxis] - t1
+            diff = np.dot(tPhi2,tGamma2)*self.expTheta2[:,np.newaxis] - t1
         else:
-            diff = np.dot(self.expPhi2,self.expGamma2) - t1
+            diff = np.dot(tPhi2,tGamma2) - t1
         
         diff2 = L2[:,np.newaxis]*diff
         
@@ -2442,18 +2478,13 @@ class AssemblyPathSVA():
 
         return total_elbo
         
-    def calc_expll_poisson2(self, mask = None, bMaskDegen = False):
+    def calc_expll_poisson(self, mask = None, bMaskDegen = False, bNoise = True):
         
         if mask is None:
             mask = np.ones((self.V,self.S))
     
         if bMaskDegen:
             mask = mask*self.MaskDegen
-        
-        R_pred = self.lengths[:,np.newaxis]*np.dot(self.expPhi, self.expGamma)
-
-        if self.BIAS:
-            R_pred = R_pred*self.expTheta[:,np.newaxis]
 
         total_elbo = 0.
         
@@ -2464,11 +2495,54 @@ class AssemblyPathSVA():
                    
         total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
         
-        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.exp_square_diff_matrix()) #second part likelihood
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*self.exp_square_diff_matrix(bNoise = bNoise)) #second part likelihood
 
         return total_elbo
+        
+    
+    def calc_expll_poisson_maximal(self, mask = None, bMaskDegen = False):
+        
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
 
-    def calc_expll_poisson(self, mask = None, bMaskDegen = False):
+        total_elbo = 0.
+        
+        # Log likelihood
+        nTOmega = np.sum(mask)    
+        
+        poissonWeight = 1.0/(self.X + 0.5)
+        
+        self.getMaximalUnitigs('Dummy', drop_strain=None,relax_path=False,writeSeq=False)
+        
+        pPhi = np.zeros((self.V,self.G))
+        
+        for gene, mapGene in self.mapGeneIdx.items(): 
+        
+            for g in range(self.G):
+                for node in self.paths[gene][g]:
+                    v_idx = mapGene[node[:-1]]
+                    pPhi[v_idx,g] = 1.
+        
+        
+        R_pred = self.lengths[:,np.newaxis]*np.dot(pPhi, self.expGamma[0:self.G,:])
+        
+        if self.BIAS:
+            R_pred = R_pred*self.expTheta[:,np.newaxis]
+        
+                   
+        total_elbo += 0.5*(np.sum(poissonWeight*mask) - nTOmega*math.log(2*math.pi)) #first part likelihood
+        
+        diff_matrix = (self.X - R_pred)**2
+        
+        total_elbo -= 0.5*np.sum(mask*poissonWeight*diff_matrix) #second part likelihood
+
+        return total_elbo
+    
+
+    def calc_expll_poisson2(self, mask = None, bMaskDegen = False):
         
         if mask is None:
             mask = np.ones((self.V,self.S))
