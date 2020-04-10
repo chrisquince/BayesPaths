@@ -70,7 +70,7 @@ def assGraphWorker(gargs):
 
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, args.readLength,
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
@@ -79,7 +79,7 @@ def assGraphWorker(gargs):
                 
     assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
-    #assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
+    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
     assGraph.updateTau(False, M_test, True)
 
@@ -151,7 +151,7 @@ def main(argv):
     parser.add_argument('-e','--executable_path',nargs='?', default='./runfg_source/', type=str,
         help=("path to factor graph executable"))
 
-    parser.add_argument('-u','--uncertain_factor',nargs='?', default=2.5, type=float,
+    parser.add_argument('-u','--uncertain_factor',nargs='?', default=2.0, type=float,
         help=("penalisation on uncertain strains"))
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
@@ -507,7 +507,6 @@ def main(argv):
         assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
-   
    
         bestRun = max(assErrors[minG], key = lambda t: t[2])
         

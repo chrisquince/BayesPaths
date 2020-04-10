@@ -417,14 +417,25 @@ class AssemblyPathSVA():
             for gene, unitigFluxNode in self.unitigFluxNodes.items():
                 self.removeNoise(unitigFluxNode, self.mapUnitigs[gene], gene, self.minSumCov)
         
-        self.totalCov = np.sum(self.meanSampleCov)*self.kFactor
+        
+        sumCov=np.sum(self.meanSampleCov)
+        print("SumCov=" + str(sumCov)) 
+        
+        print("ReadLength=" + str(self.readLength))
+        
+        print("kFactor=" + str(self.kFactor)) 
+        
+        self.totalCov = sumCov*self.kFactor
         self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
         
         self.NOISE = NOISE
+        
+        print("Cov=" + str(self.totalCov)) 
+        
         if self.totalCov < self.minNoiseCov:
             self.NOISE = False
             
-            print("Cov < 100, no noise")
+            print("Cov  < 100, no noise")
             
         if self.tauType == 'auto':
             xRange = np.max(self.X) - np.min(self.X[self.X > 0])
