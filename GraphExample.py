@@ -21,6 +21,34 @@ from operator import itemgetter
 
 import uuid
 import networkx as nx
+
+#from abc import ABC, abstractmethod
+
+#class Convex1DFunction(ABC):
+ #   @abstractmethod
+  #  def F(self,x):
+   #     pass
+    
+    #def D(self,x):
+     #   pass
+
+def gaussianNLL_F(x,f,L):
+
+    return 0.5*(x - f*L)**2
+
+def gaussianNLL_D(x,f,L):
+
+    return -(x - f*L)
+    
+
+def initialiseFlows():
+
+
+def setWeightsD(graph, derivF):
+
+    
+    set_edge_attributes(G, values, name=None)[source]
+  
     
 def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
@@ -66,7 +94,6 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
  
  
 #def removeDegenerate(haplotypes,paths):
-
 
 
 
@@ -117,7 +144,13 @@ def main(argv):
         
             covSum = np.sum(unitigGraph.covMap[unitig])*kFactor
             
-            f.write(unitig + ',' + str(covSum) + ',' + str(readSum) + '\n') 
+            f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
+
+    augmentedBiGraph = unitigGraph.getAugmentedBiGraphSource(source_names,sink_names)
+
+nx.write_graphml(unitigGraph.augmentedUnitigBiGraphS,"test.graphml")
+
+    def dijkstra_path(G, source, target, weight='weight')
 
 if __name__ == "__main__":
     main(sys.argv[1:])

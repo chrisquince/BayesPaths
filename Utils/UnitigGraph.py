@@ -1039,6 +1039,45 @@ class UnitigGraph():
     
         return False
         
+    def getAugmentedBiGraphSource(self, sources,sinks):
+    
+        if self.directedUnitigBiGraphS is None:
+            self.setDirectedBiGraphSource(sources,sinks)
+        
+        tempDiGraph = self.directedUnitigBiGraphS.copy()
+        
+        top_sort = list(nx.topological_sort(self.directedUnitigBiGraphS))
+        
+        self.sEdges = set()
+        for node in top_sort:
+            
+            pred = list(self.directedUnitigBiGraphS.predecessors(node))
+            
+            if len(pred) > 1 and node != 'sink+':
+                newNode = node + 's' 
+            
+                tempDiGraph.add_node(newNode)
+                
+                for pnode in pred:
+                
+                    tempDiGraph.add_edge(pnode,newNode,weight=self.directedUnitigBiGraphS[pnode][node]['weight'],
+                                            covweight=self.directedUnitigBiGraphS[pnode][node]['covweight'])
+                                            
+                    tempDiGraph.remove_edge(pnode,node)
+                
+                tempDiGraph.add_edge(newNode,node)
+                self.sEdges.add((newNode,node))
+            
+            elif len(pred) == 1:
+                self.sEdges.add((pred[0],node))
+        
+        
+        return tempDiGraph
+
+
+    
+
+        
     def getHeaviestBiGraphPath(self, value,sources,sinks):
         
         assert nx.is_directed_acyclic_graph(self.directedUnitigBiGraphS)
@@ -1053,11 +1092,14 @@ class UnitigGraph():
             maxWeight = 0.
             maxPred[node] = None
             noded = node[:-1]
+            lengthPlus = 0.
             
             if dGraph.out_degree(node) == 0:
-                lengthPlus = self.lengths[noded]
+                if noded in self.lengths:
+                    lengthPlus = self.lengths[noded]
             else:
-                lengthPlus = self.lengths[noded] - self.overlapLength
+                if noded in self.lengths:
+                    lengthPlus = self.lengths[noded] - self.overlapLength
             
             
             for predecessor in dGraph.predecessors(node):
@@ -1069,23 +1111,18 @@ class UnitigGraph():
             
             maxWeightNode[node] = maxWeight
 
-
-        bestNode = None
-        maxNodeWeight = 0.
-        for node in top_sort:
-            if maxWeightNode[node] > maxNodeWeight:
-                maxNodeWeight = maxWeightNode[node] 
-                bestNode = node
-        
         minPath = []
+        bestNode = 'sink+'
         while bestNode is not None:
             minPath.append(bestNode)
             bestNode = maxPred[bestNode]
+        
+        minPath.pop(0)
+        minPath.pop()
         minPath.reverse()
-                            
+                    
         maxSeq = self.getUnitigWalk(minPath)
         
-
         return (minPath, maxSeq)
     
     def getHeaviestBiGraphPathNoLength(self, value,sources,sinks):
