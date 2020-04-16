@@ -8,7 +8,7 @@ import re
 from Utils.mask import compute_folds_attempts
 from collections import defaultdict
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAV import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 from pathos.multiprocessing import ProcessingPool 
@@ -421,7 +421,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if ((args.run_elbow and Gopt >= 5) and assGraph.S >=5) and assGraph.totalCov >= 80.:
+    if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
         
