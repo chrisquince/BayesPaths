@@ -49,6 +49,7 @@ from Utils.UtilsFunctions import TN_vector_variance
 from Utils.UtilsFunctions import readRefAssign
 from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.NMFM import NMF
+from AssemblyPath.nmf_np import nmf_np
  
 import subprocess
 import shlex
@@ -2008,21 +2009,45 @@ class AssemblyPathSVA():
         
         return treeWidths
         
-    def initNMF(self, mask = None):
+    def initNMF(self, mask = None, bMaskDegen = True):
     
         if mask is None:
             mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
         
-        covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
+        selectV = np.sum(mask,axis=1) > 0
+        XC = self.XN[selectV,:]
+        MC = mask[selectV,:]
+        
+        #covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
+        covNMF = nmf_np(XC,MC,self.G)
+        
+        covNMF.train(1000)
     
-        covNMF.factorize()
-        covNMF.factorizeH()
-
-        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
-        self.expGamma2 = self.expGamma*self.expGamma
-        covNMF.factorizeW()
+        covNMF.factorizeV(1000)
         
-        initEta = covNMF.W
+        covNMF.factorizeU(1000)
+    
+        #covNMF.factorize()
+        #covNMF.factorizeH()
+
+        self.expGamma[0:self.G,:] = np.copy(covNMF.V.transpose())
+        self.expGamma2 = self.expGamma*self.expGamma
+        #covNMF.factorizeW()
+        
+        initEta = np.zeros((self.V,self.G))
+        
+        u = 0
+        for v in range(self.V):
+            if selectV[v]:
+                initEta[v,:] = covNMF.U[u,:]
+                u += 1
+        
+        for v, vmap in self.degenSeq.items():
+            initEta[v,:] = initEta[vmap,:]
+                
         
         for g in range(self.G):
             treeWidths = {}
