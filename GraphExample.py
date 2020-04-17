@@ -38,16 +38,52 @@ def gaussianNLL_F(x,f,L):
 
 def gaussianNLL_D(x,f,L):
 
-    return -(x - f*L)
+    return -(x - f*L)*L
     
 
-def initialiseFlows():
+def initialiseFlows(graph):
 
+    for e in graph.edges:
+        graph[e[0]][e[1]]['flow'] = 0.
 
-def setWeightsD(graph, derivF):
+def addFlowPath(graph, path, pflow):
 
+    for u,v in zip(path,path[1:]):
+        graph[u][v]['flow'] += pflow
+
+def evalPathWeight(graph, path, weight):
+
+    D  = 0.0
+
+    for u,v in zip(path,path[1:]):
+        D += graph[u][v][weight]
     
-    set_edge_attributes(G, values, name=None)[source]
+    return D
+
+
+def evalDF(graph, fF, derivF, sedges, xVals, Lengths):
+
+    D = 0.
+    F = 0.
+    
+    for e in sedges:
+        D += derivF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
+        F += fF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
+    
+    return (D, F)
+
+
+def setWeightsD(graph, derivF, sedges, xVals, Lengths):
+    
+    for e in graph.edges:
+        
+        dVal = 0.
+    
+        if e in sedges:
+            dVal = derivF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
+        
+        graph[e[0]][e[1]]['dweight'] = dVal
+        graph[e[0]][e[1]]['rweight'] = -dVal
   
     
 def readCogStopsDead(cog_graph,kmer_length,cov_file):
@@ -138,19 +174,74 @@ def main(argv):
                     
         covMapAdj[unitig] = unitigGraph.covMap[unitig] * float(adjLengths[unitig])*(kFactor/readLength)
     
+    xValsU = {}
+    
     with open('coverage.csv','w') as f:            
         for unitig in unitigGraph.unitigs:
             readSum = np.sum(covMapAdj[unitig])
-        
+            xValsU[unitig] = readSum 
             covSum = np.sum(unitigGraph.covMap[unitig])*kFactor
             
             f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
 
     augmentedBiGraph = unitigGraph.getAugmentedBiGraphSource(source_names,sink_names)
+    
+    sedges = unitigGraph.sEdges
+    
+    xVals = {}
+    Lengths = {}
+    
+    for edge in sedges:
+        unitigd = edge[1][:-1]
+        xVals[edge] = xValsU[unitigd]
+        Lengths[edge] = adjLengths[unitigd]
+        
+    initialiseFlows(augmentedBiGraph)  
+   
+    dF = 0.
+    F = 0.
+    rho = 1.0e7
+    
+    i = 0
+    
+    while i < 1000:
+   
+        setWeightsD(augmentedBiGraph, gaussianNLL_D, sedges, xVals, Lengths)
+    
+        path = nx.bellman_ford_path(augmentedBiGraph, 'source+', 'sink+', weight='dweight')
+    
+        weight = evalPathWeight(augmentedBiGraph, path, 'dweight')
 
-nx.write_graphml(unitigGraph.augmentedUnitigBiGraphS,"test.graphml")
+        #rpath = nx.bellman_ford_path(augmentedBiGraph, 'source+', 'sink+', weight='rweight')
+    
+        #rweight = evalPathWeight(augmentedBiGraph, path, 'rweight')
 
-    def dijkstra_path(G, source, target, weight='weight')
+        #if abs(weight) > abs(rweight):
+            
+        pflow = -weight/rho
+
+        if pflow > 0.:
+            addFlowPath(augmentedBiGraph, path, pflow)
+            print("pflow: " +  str(pflow))
+        
+        #else:
+            
+         #   rflow = -rweight/rho
+                
+          #  if rflow < 0.:
+           #     addFlowPath(augmentedBiGraph, path, rflow)
+            #    print("rflow: " +  str(rflow))
+
+        (dF, F) = evalDF(augmentedBiGraph, gaussianNLL_F, gaussianNLL_D, sedges, xVals, Lengths)
+
+        print(str(i) + "," + str(dF) + "," + str(F))
+
+        i+=1
+
+    import ipdb; ipdb.set_trace()
+    #nx.write_graphml(unitigGraph.augmentedUnitigBiGraphS,"test.graphml")
+
+    #def dijkstra_path(G, source, target, weight='weight')
 
 if __name__ == "__main__":
     main(sys.argv[1:])
