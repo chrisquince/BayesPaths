@@ -80,24 +80,7 @@ class NMF():
         bestW = self.W
         bestH = self.H
         
-    def factorize_euc(self):
-    
-        for run in range(self.n_run):
-            self.random_initialize()
         
-            divl = 0.0
-            div = self.fro_objective()
-            iter=0
-            while iter < self.max_iter and math.fabs(divl - div) > self.min_change:
-                self.euc_update()
-                self._adjustment()
-                divl = div
-                div = self.fro_objective()
- 
-                print(str(iter) + "," + str(div))
-
-                iter += 1
-
     def factorizeH(self):
         divl = 0.0
         div = self.div_objective()
@@ -135,16 +118,6 @@ class NMF():
 
             iter += 1
 
-    
-    def factorizeH_euc(self):
-        iter=0
-        while iter < self.max_iter:
-            self.updateH()
-            
-            div = self.fro_objective()
-            print("IterH="+ str(iter) + " div=" + str(div))
-            iter += 1
-
 
     def random_initialize(self):
         self.max = (self.M*self.V).max()
@@ -161,22 +134,26 @@ class NMF():
         self.H = np.maximum(self.H, np.finfo(self.H.dtype).eps)
         self.W = np.maximum(self.W, np.finfo(self.W.dtype).eps)
 
-    def euc_update(self):
-        """Update basis and mixture matrix based on Euclidean distance multiplicative update rules."""
-        self.H = np.multiply(
-            self.H, elop(np.dot(self.W.T, self.V*self.M), np.dot(self.W.T, np.dot(self.W, self.H)), truediv))
-        self.W = np.multiply(
-            self.W, elop(np.dot(self.V*self.M, self.H.T), np.dot(self.W, np.dot(self.H, self.H.T)), truediv))
+
 
     def div_update(self):
         """Update basis and mixture matrix based on divergence multiplicative update rules."""
-        H1 = np.tile(self.W.sum(0)[:,np.newaxis],(1, self.V.shape[1]))
-        self.H = np.multiply(
-            self.H, elop(np.dot(self.W.T, elop(self.V*self.M, np.dot(self.W, self.H), truediv)), H1, truediv))
-
-        W1 = np.tile(self.H.sum(1)[np.newaxis,:],(self.V.shape[0], 1))
-        self.W = np.multiply(
-            self.W, elop(np.dot(elop(self.V*self.M, np.dot(self.W, self.H), truediv), self.H.T), W1, truediv))  
+        H1 = np.dot(self.W.T,self.M)
+        
+        factorS = elop(self.V, np.dot(self.W, self.H), truediv)*self.M
+        
+        factorT = elop(np.dot(self.W.T, factorS), H1, truediv)
+        
+        self.H = np.multiply(self.H, factorT)
+            
+            
+        W1 = np.dot(self.M,self.H.T)
+        
+        TW = elop(self.V, np.dot(self.W, self.H), truediv)*self.M
+        
+        factorW = elop(np.dot(TW, self.H.T), W1, truediv)
+        
+        self.W = np.multiply(self.W, factorW)  
         
     def div_updateHZ(self):
         """Update basis and mixture matrix based on divergence multiplicative update rules."""
@@ -207,15 +184,26 @@ class NMF():
         self.W = scaledW
 
     def div_updateW(self):
-        W1 = np.tile(self.H.sum(1)[np.newaxis,:],(self.V.shape[0], 1))
-        self.W = np.multiply(
-            self.W, elop(np.dot(elop(self.V*self.M, np.dot(self.W, self.H), truediv), self.H.T), W1, truediv))
+    
+        W1 = np.dot(self.M,self.H.T)
+        
+        TW = elop(self.V, np.dot(self.W, self.H), truediv)*self.M
+        
+        factorW = elop(np.dot(TW, self.H.T), W1, truediv)
+        
+        self.W = np.multiply(self.W, factorW)  
+        
  
     def div_updateH(self):
-        H1 = np.tile(self.W.sum(0)[:,np.newaxis],(1, self.V.shape[1]))
+    
+        H1 = np.dot(self.W.T,self.M)
         
-        self.H = np.multiply(
-            self.H, elop(np.dot(self.W.T, elop(self.V*self.M, np.dot(self.W, self.H), truediv)), H1, truediv))
+        factorS = elop(self.V, np.dot(self.W, self.H), truediv)*self.M
+        
+        factorT = elop(np.dot(self.W.T, factorS), H1, truediv)
+        
+        self.H = np.multiply(self.H, factorT)
+        
     
     def collapse(self):
         select = self.W.sum(axis=0) > 1.0e-3
