@@ -8,7 +8,7 @@ import re
 from Utils.mask import compute_folds_attempts
 from collections import defaultdict
 from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAS import AssemblyPathSVA
+from AssemblyPath.AssemblyPathSVAV import AssemblyPathSVA
 from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 from pathos.multiprocessing import ProcessingPool 
@@ -75,7 +75,9 @@ def assGraphWorker(gargs):
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
-    assGraph.initNMF(M_train)
+    assGraph.initNMF(M_train, True)
+                
+    assGraph.writeOutput(outDir + "/RunN" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
                 
     assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
@@ -307,7 +309,7 @@ def main(argv):
                 
                 assGraph.updateExpPhi(unitigs,assGraph.mapGeneIdx[gene],margPhiFixed[g][gene],g)
         
-        
+    #import ipdb; ipdb.set_trace() 
     
     assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
@@ -372,7 +374,7 @@ def main(argv):
         gIter = 0
 
         while nChange > 0 and gIter < maxGIter:
-            assGraph.initNMF()
+            assGraph.initNMF(None, True)
             print("Round " + str(gIter) + " of gene filtering")
             assGraph.update(args.iters*2, True, None, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
@@ -400,7 +402,10 @@ def main(argv):
             gIter += 1
     
 
-    assGraph.initNMF()
+    #import ipdb; ipdb.set_trace()
+    assGraph.initNMF(None, True)
+    
+    assGraph.writeOutput(args.outFileStub + "_N", False, selectedSamples)
 
     assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
@@ -416,7 +421,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-    if ((args.run_elbow and Gopt >= 5) and assGraph.S >=5) and assGraph.totalCov >= 80.:
+    if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
         

@@ -48,8 +48,10 @@ from Utils.UtilsFunctions import TN_vector_expectation
 from Utils.UtilsFunctions import TN_vector_variance
 from Utils.UtilsFunctions import readRefAssign
 from Utils.UnitigGraph import UnitigGraph
+
 from AssemblyPath.NMFM import NMF
 from AssemblyPath.nmf_np import nmf_np
+from AssemblyPath.NMF_NNLS import NMF_NNLS
  
 import subprocess
 import shlex
@@ -2022,18 +2024,19 @@ class AssemblyPathSVA():
         MC = mask[selectV,:]
         
         #covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
-        covNMF = nmf_np(XC,MC,self.G)
+        
+        #import ipdb; ipdb.set_trace()
+        
+        covNMF = NMF_NNLS(XC,MC,self.G)
         
         covNMF.train(1000)
-    
-        covNMF.factorizeV(1000)
         
-        covNMF.factorizeU(1000)
-    
-        #covNMF.factorize()
-        #covNMF.factorizeH()
+        covNMF.factorizeG(1000)
+        
+        covNMF.factorizeP(1000)
+        
 
-        self.expGamma[0:self.G,:] = np.copy(covNMF.V.transpose())
+        self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
         self.expGamma2 = self.expGamma*self.expGamma
         #covNMF.factorizeW()
         
@@ -2042,7 +2045,7 @@ class AssemblyPathSVA():
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                initEta[v,:] = covNMF.U[u,:]
+                initEta[v,:] = covNMF.P[u,:]
                 u += 1
         
         for v, vmap in self.degenSeq.items():
