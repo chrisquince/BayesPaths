@@ -2013,6 +2013,8 @@ class AssemblyPathSVA():
         
     def initNMF(self, mask = None, bMaskDegen = True):
     
+        #import ipdb; ipdb.set_trace()
+    
         if mask is None:
             mask = np.ones((self.V, self.S))
             
@@ -2023,21 +2025,28 @@ class AssemblyPathSVA():
         XC = self.XN[selectV,:]
         MC = mask[selectV,:]
         
-        #covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
+        covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
+        
+        covNMF.factorize()
+        covNMF.factorizeH()
+
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        self.expGamma2 = self.expGamma*self.expGamma
+        
+        covNMF.factorizeW()       
         
         #import ipdb; ipdb.set_trace()
         
-        covNMF = NMF_NNLS(XC,MC,self.G)
+        #covNMF = NMF_NNLS(XC,MC,self.G)
         
-        covNMF.train(1000)
+        #covNMF.train(1000)
         
-        covNMF.factorizeG(1000)
+        #covNMF.factorizeG(1000)
         
-        covNMF.factorizeP(1000)
+        #covNMF.factorizeP(1000)
         
-
-        self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
-        self.expGamma2 = self.expGamma*self.expGamma
+        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
+        #self.expGamma2 = self.expGamma*self.expGamma
         #covNMF.factorizeW()
         
         initEta = np.zeros((self.V,self.G))
@@ -2045,13 +2054,12 @@ class AssemblyPathSVA():
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                initEta[v,:] = covNMF.P[u,:]
+                initEta[v,:] = covNMF.W[u,:]
                 u += 1
         
         for v, vmap in self.degenSeq.items():
             initEta[v,:] = initEta[vmap,:]
                 
-        
         for g in range(self.G):
             treeWidths = {}
             for gene, factorGraph in self.factorGraphs.items():
