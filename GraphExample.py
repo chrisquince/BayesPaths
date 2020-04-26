@@ -84,7 +84,50 @@ def setWeightsD(graph, derivF, sedges, xVals, Lengths):
         
         graph[e[0]][e[1]]['dweight'] = dVal
         graph[e[0]][e[1]]['rweight'] = -dVal
-  
+
+def getMaxMinFlowPathDAG(dGraph):
+    
+    assert nx.is_directed_acyclic_graph(dGraph)
+    
+    top_sort = list(nx.topological_sort(dGraph))
+    lenSort = len(top_sort)
+            
+    maxPred = {}
+    maxFlowNode = {}
+    
+    for node in top_sort:
+        pred = list(dGraph.predecessors(node))
+            
+        if len(pred) > 0:
+            maxFlowPred = min(maxFlowNode[pred[0]],dGraph[pred[0]][node]['flow'])
+            maxPred[node] = pred[0]
+                
+            for predecessor in pred[1:]:
+            #    print (node + "," + predecessor + "," + str(dGraph[predecessor][node]['flow']))
+                
+                weight =  min(maxFlowNode[predecessor],dGraph[predecessor][node]['flow'])
+                
+                if weight > maxFlowPred:
+                    maxFlowPred = weight
+                    maxPred[node] = predecessor
+                
+            maxFlowNode[node]  = maxFlowPred
+        else:
+            maxFlowNode[node] = sys.float_info.max
+            maxPred[node] = None
+            
+    minPath = []
+    bestNode = 'sink+'
+    while bestNode is not None:
+        minPath.append(bestNode)
+        bestNode = maxPred[bestNode]
+        
+    minPath.pop(0)
+    minPath.pop()
+    minPath.reverse()
+                            
+    return (minPath, maxFlowNode['sink+'])
+        
     
 def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
@@ -165,14 +208,18 @@ def main(argv):
     covMapAdj = {}
     
     readLength = 150.
-    
+    #readLength = 1
     kFactor = readLength/(readLength - unitigGraph.overlapLength + 1.)
     
+    kFactor = 1.
     for unitig in unitigGraph.unitigs:
  
         adjLengths[unitig] =  unitigGraph.lengths[unitig] - 2.0*unitigGraph.overlapLength + readLength
-                    
+        
+        #adjLengths[unitig] = 1.
         covMapAdj[unitig] = unitigGraph.covMap[unitig] * float(adjLengths[unitig])*(kFactor/readLength)
+        
+        
     
     xValsU = {}
     
@@ -200,9 +247,17 @@ def main(argv):
    
     dF = 0.
     F = 0.
-    rho = 1.0e7
+    
+    (dF, F) = evalDF(augmentedBiGraph, gaussianNLL_F, gaussianNLL_D, sedges, xVals, Lengths)
+    
+    rho = 1.0e2
     
     i = 0
+    
+    Beta = 0.6
+    Tau = 0.5
+    
+    ssedges = set(sedges) 
     
     while i < 1000:
    
@@ -212,26 +267,33 @@ def main(argv):
     
         weight = evalPathWeight(augmentedBiGraph, path, 'dweight')
 
-        #rpath = nx.bellman_ford_path(augmentedBiGraph, 'source+', 'sink+', weight='rweight')
-    
-        #rweight = evalPathWeight(augmentedBiGraph, path, 'rweight')
-
-        #if abs(weight) > abs(rweight):
-            
-        pflow = -weight/rho
-
-        if pflow > 0.:
-            addFlowPath(augmentedBiGraph, path, pflow)
-            print("pflow: " +  str(pflow))
+        epath = [(u,v) for u,v in zip(path,path[1:])]
         
-        #else:
+        spath = set(epath) & ssedges 
+        
+        if weight < 0.0:
+            pflow = 0.1 
             
-         #   rflow = -rweight/rho
+            
+            DeltaF = 0.
+            for es in spath:
+                fC = augmentedBiGraph[es[0]][es[1]]['flow']
+                DeltaF += gaussianNLL_F(xVals[es],fC + pflow,Lengths[es]) - gaussianNLL_F(xVals[es],fC,Lengths[es])
+            
+            while DeltaF > pflow*weight*Beta:
+                pflow *= Tau
                 
-          #  if rflow < 0.:
-           #     addFlowPath(augmentedBiGraph, path, rflow)
-            #    print("rflow: " +  str(rflow))
+                DeltaF = 0.       
+                for es in spath:
+                    fC = augmentedBiGraph[es[0]][es[1]]['flow']
+                    DeltaF += gaussianNLL_F(xVals[es],fC + pflow,Lengths[es]) - gaussianNLL_F(xVals[es],fC,Lengths[es])
 
+
+            if pflow > 0.:
+                addFlowPath(augmentedBiGraph, path, pflow)
+        else:
+            print("Debug")
+        
         (dF, F) = evalDF(augmentedBiGraph, gaussianNLL_F, gaussianNLL_D, sedges, xVals, Lengths)
 
         print(str(i) + "," + str(dF) + "," + str(F))
@@ -239,6 +301,17 @@ def main(argv):
         i+=1
 
     import ipdb; ipdb.set_trace()
+
+
+    maxFlow = 1.0
+    while maxFlow > 0.:
+    
+        (maxPath, maxFlow) = getMaxMinFlowPathDAG(augmentedBiGraph)
+        
+        addFlowPath(augmentedBiGraph, maxPath, -maxFlow)
+        
+        print(str(maxFlow))
+        
     #nx.write_graphml(unitigGraph.augmentedUnitigBiGraphS,"test.graphml")
 
     #def dijkstra_path(G, source, target, weight='weight')
