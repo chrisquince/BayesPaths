@@ -52,7 +52,8 @@ from Utils.UnitigGraph import UnitigGraph
 from AssemblyPath.NMFM import NMF
 from AssemblyPath.nmf_np import nmf_np
 from AssemblyPath.NMF_NNLS import NMF_NNLS
- 
+from BNMF_ARD.bnmf_vb import bnmf_vb
+
 import subprocess
 import shlex
 
@@ -2010,6 +2011,40 @@ class AssemblyPathSVA():
                     
         
         return treeWidths
+ 
+    def initNMFVB(self, mask = None, bMaskDegen = True, bARD = True):
+    
+        #import ipdb; ipdb.set_trace()
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        selectV = np.sum(mask,axis=1) > 0
+        XC = self.XN[selectV,:]
+        MC = mask[selectV,:]
+        LC = self.lengths[selectV]
+        
+        hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
+        
+        BNMF = bnmf_vb(XC,MC,self.G,bARD,hyperparameters=hyperp)
+        
+        BNMF.initialise()      
+        
+        BNMF.run(1000)
+ 
+        self.expGamma[0:self.G,:] = np.copy(BNMF.exp_V.T)
+        self.expGamma2 = self.expGamma*self.expGamma
+        
+        u = 0
+        for v in range(self.V):
+            if selectV[v]:
+                self.expPhi[v,0:self.G] = BNMF.exp_U[u,:]
+                u += 1
+        
+        self.expPhi2 = self.expPhi*self.expPhi
         
     def initNMF(self, mask = None, bMaskDegen = True):
     
@@ -2024,37 +2059,31 @@ class AssemblyPathSVA():
         selectV = np.sum(mask,axis=1) > 0
         XC = self.XN[selectV,:]
         MC = mask[selectV,:]
+        LC = self.lengths[selectV]
         
-        covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
+        #covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
+        #covNMF = NMF_NNLS(XC,MC,self.G,LC)
+        covNMF = NMF_NNLS(XC,MC,self.G)
         
-        covNMF.factorize()
-        covNMF.factorizeH()
-
-        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        #covNMF.factorize()
+        #covNMF.factorizeH()
+        import ipdb; ipdb.set_trace()
+        covNMF.train(1000,no_runs = 1)
+        covNMF.factorizeG()  
+        covNMF.factorizeP()
+        
+        #self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
         self.expGamma2 = self.expGamma*self.expGamma
         
-        covNMF.factorizeW()       
-        
-        #import ipdb; ipdb.set_trace()
-        
-        #covNMF = NMF_NNLS(XC,MC,self.G)
-        
-        #covNMF.train(1000)
-        
-        #covNMF.factorizeG(1000)
-        
-        #covNMF.factorizeP(1000)
-        
-        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
-        #self.expGamma2 = self.expGamma*self.expGamma
-        #covNMF.factorizeW()
+        #covNMF.factorizeW()       
         
         initEta = np.zeros((self.V,self.G))
         
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                initEta[v,:] = covNMF.W[u,:]
+                initEta[v,:] = covNMF.P[u,:]
                 u += 1
         
         for v, vmap in self.degenSeq.items():
@@ -2298,6 +2327,48 @@ class AssemblyPathSVA():
             gene_means[gene] = mean_dev/len(unitigs)
                 
         return gene_means
+     
+    def gene_mean_poisson(self, mask = None, bMaskDegen = False, bNoise = True):
+    
+        if mask is None:
+            mask = np.ones((self.V,self.S))
+    
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+    
+    
+       # import ipdb; ipdb.set_trace()
+    
+        poissonWeight = 1.0/(self.X + 0.5)
+    
+        sd_matrix = self.exp_square_diff_matrix(bNoise = bNoise)
+    
+        gene_means = {}
+        
+        for gene in self.genes:
+            unitigs = self.mapUnitigs[gene]
+            
+            mean_dev = 0.
+            v_ids = []
+            for unitig in unitigs:
+                v_idx = self.mapGeneIdx[gene][unitig]
+                v_ids.append(v_idx)
+            
+            maskU = mask[v_ids,]
+            weightU = poissonWeight[v_ids,]
+            
+            Omega = np.sum(maskU)
+            
+            total_elbo = 0.5*(np.sum(weightU*maskU) - Omega*math.log(2*math.pi))
+            
+            total_elbo -= 0.5*np.sum(maskU*weightU*sd_matrix[v_ids,])
+            
+            
+            gene_means[gene] = -total_elbo/Omega
+                
+        return gene_means
+        
+        
         
         
     
@@ -3434,7 +3505,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
 
     np.random.seed(2)
     prng = RandomState(238329)
