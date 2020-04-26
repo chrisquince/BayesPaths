@@ -18,7 +18,7 @@ COG_COV_DEV = 2.5
 def filterGenes(assGraph, bGeneDev):
     gene_mean_error = assGraph.gene_mean_diff()
     gene_mean_elbo = assGraph.gene_mean_elbo()
-    gene_mean_dev = assGraph.gene_mean_deviance()
+    gene_mean_dev = assGraph.gene_mean_poisson()
     
     if bGeneDev:
         eval_error = gene_mean_dev
@@ -75,9 +75,9 @@ def assGraphWorker(gargs):
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
-    assGraph.initNMF(M_train, True)
+    assGraph.initNMFVB(M_train, True)
                 
-    assGraph.writeOutput(outDir + "/RunN" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
+    #assGraph.writeOutput(outDir + "/RunN" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
                 
     assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
 
@@ -402,10 +402,8 @@ def main(argv):
             gIter += 1
     
 
-    #import ipdb; ipdb.set_trace()
-    assGraph.initNMF(None, True)
-    
-    assGraph.writeOutput(args.outFileStub + "_N", False, selectedSamples)
+    import ipdb; ipdb.set_trace()
+    assGraph.initNMFVB(None, True)
 
     assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
 
