@@ -1068,7 +1068,7 @@ class UnitigGraph():
                 tempDiGraph.add_edge(newNode,node)
                 self.sEdges.add((newNode,node))
             
-            elif len(pred) == 1:
+            elif len(pred) == 1 and node != 'sink+':
                 self.sEdges.add((pred[0],node))
         
         
