@@ -35,6 +35,7 @@ def gaussianNLL_D(x,f,L):
 
 BETA = 0.6
 TAU  = 0.5
+MAX_INT_FLOW = 100000
         
 
 class AugmentedBiGraph():
@@ -76,6 +77,8 @@ class AugmentedBiGraph():
         
         self.diGraph = tempDiGraph
         
+        self.rGraph = self.diGraph.reverse(copy=True)
+        
     def initialiseFlows(self):
 
         for e in self.diGraph.edges:
@@ -85,6 +88,12 @@ class AugmentedBiGraph():
 
         for u,v in zip(path,path[1:]):
             self.diGraph[u][v]['flow'] += pflow
+
+    def addEdgePath(self, path, pflow):
+    
+        for e in path:
+            self.diGraph[e[0]][e[1]]['flow'] += pflow
+            
 
     def evalPathWeight(self, path, weight):
 
@@ -118,6 +127,25 @@ class AugmentedBiGraph():
                 dVal = derivF(self.X[e],self.diGraph[e[0]][e[1]]['flow'],self.L[e])
         
             self.diGraph[e[0]][e[1]]['dweight'] = dVal
+
+    def setResidualGraph(self):
+    
+        fMax = max(dict(self.diGraph.edges).items(), key=lambda x: x[1]['flow'])[1]['flow']
+        
+        wMax = max(dict(self.diGraph.edges).items(), key=lambda x: x[1]['dweight'])[1]['dweight']
+        
+        wMin = min(dict(self.diGraph.edges).items(), key=lambda x: x[1]['dweight'])[1]['dweight']
+        
+        wRange = wMax - wMin 
+    
+        for e in self.diGraph.edges:
+            self.rGraph[e[1]][e[0]]['capacity'] = int((self.diGraph[e[0]][e[1]]['flow']/fMax)*MAX_INT_FLOW)  
+    
+            if e in self.sEdges:
+                self.rGraph[e[1]][e[0]]['rweight'] = int((-self.diGraph[e[0]][e[1]]['dweight']/wRange)*MAX_INT_FLOW)
+    
+        return (fMax,wRange)
+
 
     def getMaxMinFlowPathDAG(self):
     
@@ -217,6 +245,37 @@ class AugmentedBiGraph():
 
                 if pflow > 0.:
                     self.addFlowPath(path, pflow)
+            else:
+                (fMax, rMax) = self.setResidualGraph()
+                
+                ds = {'sink+': -1,  'source+': 1}
+                
+                nx.set_node_attributes(self.rGraph, ds, 'demand')
+                
+                (mf,pf) = nx.network_simplex(self.rGraph, demand='demand', capacity='capacity', weight='rweight')
+
+                epath = []
+                for k, v in pf.items():
+                    for k2, v2 in v.items():
+                        if int(v2) > 0:
+                            epath.append((k2,k))
+                
+                pflow = 1.0/fMax
+                
+                spath = set(epath) & ssedges 
+                
+                DeltaF = self.deltaF(spath, -pflow, NLL_F)
+                
+                while DeltaF > pflow*weight*BETA:
+                    pflow *= TAU
+                
+                    DeltaF = self.deltaF(spath, -pflow, NLL_F)
+                    
+                  #  print(str(pflow) + ',' + str(DeltaF))
+ 
+                if pflow > 0.:
+                    self.addEdgePath(epath, -pflow)
+                    
 
             (dF, F) = self.evalDF(NLL_F, NLL_D)
         
@@ -373,7 +432,7 @@ def main(argv):
     augmentedBiGraph.X = xVals
     augmentedBiGraph.L = Lengths
     
-    augmentedBiGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 200)
+    augmentedBiGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 500)
 
     augmentedBiGraph.decomposeFlows()
         
