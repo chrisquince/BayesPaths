@@ -1073,10 +1073,6 @@ class UnitigGraph():
         
         
         return tempDiGraph
-
-
-    
-
         
     def getHeaviestBiGraphPath(self, value,sources,sinks):
         
