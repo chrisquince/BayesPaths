@@ -18,19 +18,11 @@ from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
 from operator import itemgetter
+from BNMF_ARD.bnmf_vb import bnmf_vb
 
 import uuid
 import networkx as nx
 
-#from abc import ABC, abstractmethod
-
-#class Convex1DFunction(ABC):
- #   @abstractmethod
-  #  def F(self,x):
-   #     pass
-    
-    #def D(self,x):
-     #   pass
 
 def gaussianNLL_F(x,f,L):
 
@@ -39,95 +31,212 @@ def gaussianNLL_F(x,f,L):
 def gaussianNLL_D(x,f,L):
 
     return -(x - f*L)*L
-    
-
-def initialiseFlows(graph):
-
-    for e in graph.edges:
-        graph[e[0]][e[1]]['flow'] = 0.
-
-def addFlowPath(graph, path, pflow):
-
-    for u,v in zip(path,path[1:]):
-        graph[u][v]['flow'] += pflow
-
-def evalPathWeight(graph, path, weight):
-
-    D  = 0.0
-
-    for u,v in zip(path,path[1:]):
-        D += graph[u][v][weight]
-    
-    return D
 
 
-def evalDF(graph, fF, derivF, sedges, xVals, Lengths):
-
-    D = 0.
-    F = 0.
-    
-    for e in sedges:
-        D += derivF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
-        F += fF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
-    
-    return (D, F)
-
-
-def setWeightsD(graph, derivF, sedges, xVals, Lengths):
-    
-    for e in graph.edges:
+BETA = 0.6
+TAU  = 0.5
         
-        dVal = 0.
-    
-        if e in sedges:
-            dVal = derivF(xVals[e],graph[e[0]][e[1]]['flow'],Lengths[e])
-        
-        graph[e[0]][e[1]]['dweight'] = dVal
-        graph[e[0]][e[1]]['rweight'] = -dVal
 
-def getMaxMinFlowPathDAG(dGraph):
-    
-    assert nx.is_directed_acyclic_graph(dGraph)
-    
-    top_sort = list(nx.topological_sort(dGraph))
-    lenSort = len(top_sort)
+class AugmentedBiGraph():
+    """Creates unitig graph"""
+
+    def __init__(self,unitigGraph):
+
+        assert hasattr(unitigGraph, 'directedUnitigBiGraphS')
+        
+        tempDiGraph = unitigGraph.directedUnitigBiGraphS.copy()
+        
+        self.directedUnitigBiGraphS = unitigGraph.directedUnitigBiGraphS
+        
+        top_sort = list(nx.topological_sort(unitigGraph.directedUnitigBiGraphS))
+        
+        self.sEdges = set()
+        
+        for node in top_sort:
             
-    maxPred = {}
-    maxFlowNode = {}
-    
-    for node in top_sort:
-        pred = list(dGraph.predecessors(node))
+            pred = list(self.directedUnitigBiGraphS.predecessors(node))
             
-        if len(pred) > 0:
-            maxFlowPred = min(maxFlowNode[pred[0]],dGraph[pred[0]][node]['flow'])
-            maxPred[node] = pred[0]
+            if len(pred) > 1 and node != 'sink+':
+                newNode = node + 's' 
+            
+                tempDiGraph.add_node(newNode)
                 
-            for predecessor in pred[1:]:
+                for pnode in pred:
+                
+                    tempDiGraph.add_edge(pnode,newNode,weight=self.directedUnitigBiGraphS[pnode][node]['weight'],
+                                            covweight=self.directedUnitigBiGraphS[pnode][node]['covweight'])
+                                            
+                    tempDiGraph.remove_edge(pnode,node)
+                
+                tempDiGraph.add_edge(newNode,node)
+                self.sEdges.add((newNode,node))
+            
+            elif len(pred) == 1 and node != 'sink+':
+                self.sEdges.add((pred[0],node))
+        
+        self.diGraph = tempDiGraph
+        
+    def initialiseFlows(self):
+
+        for e in self.diGraph.edges:
+            self.diGraph[e[0]][e[1]]['flow'] = 0.
+
+    def addFlowPath(self, path, pflow):
+
+        for u,v in zip(path,path[1:]):
+            self.diGraph[u][v]['flow'] += pflow
+
+    def evalPathWeight(self, path, weight):
+
+        D  = 0.0
+
+        for u,v in zip(path,path[1:]):
+            D += self.diGraph[u][v][weight]
+    
+        return D
+
+
+    def evalDF(self, fF, derivF):
+
+        D = 0.
+        F = 0.
+    
+        for e in self.sEdges:
+            D += derivF(self.X[e],self.diGraph[e[0]][e[1]]['flow'],self.L[e])
+            F += fF(self.X[e],self.diGraph[e[0]][e[1]]['flow'],self.L[e])
+    
+        return (D, F)
+
+
+    def setWeightsD(self, derivF):
+    
+        for e in self.diGraph.edges:
+        
+            dVal = 0.
+    
+            if e in self.sEdges:
+                dVal = derivF(self.X[e],self.diGraph[e[0]][e[1]]['flow'],self.L[e])
+        
+            self.diGraph[e[0]][e[1]]['dweight'] = dVal
+
+    def getMaxMinFlowPathDAG(self):
+    
+        #self.initialiseFlows()  
+    
+        self.top_sort = list(nx.topological_sort(self.diGraph))
+    
+        lenSort = len(self.top_sort)
+            
+        maxPred = {}
+        maxFlowNode = {}
+    
+        for node in self.top_sort:
+            pred = list(self.diGraph.predecessors(node))
+            
+            if len(pred) > 0:
+                maxFlowPred = min(maxFlowNode[pred[0]],self.diGraph[pred[0]][node]['flow'])
+                maxPred[node] = pred[0]
+                
+                for predecessor in pred[1:]:
             #    print (node + "," + predecessor + "," + str(dGraph[predecessor][node]['flow']))
                 
-                weight =  min(maxFlowNode[predecessor],dGraph[predecessor][node]['flow'])
+                    weight =  min(maxFlowNode[predecessor],self.diGraph[predecessor][node]['flow'])
                 
-                if weight > maxFlowPred:
-                    maxFlowPred = weight
-                    maxPred[node] = predecessor
+                    if weight > maxFlowPred:
+                        maxFlowPred = weight
+                        maxPred[node] = predecessor
                 
-            maxFlowNode[node]  = maxFlowPred
-        else:
-            maxFlowNode[node] = sys.float_info.max
-            maxPred[node] = None
+                maxFlowNode[node]  = maxFlowPred
+            else:
+                maxFlowNode[node] = sys.float_info.max
+                maxPred[node] = None
             
-    minPath = []
-    bestNode = 'sink+'
-    while bestNode is not None:
-        minPath.append(bestNode)
-        bestNode = maxPred[bestNode]
+        minPath = []
+        bestNode = 'sink+'
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
         
-    minPath.pop(0)
-    minPath.pop()
-    minPath.reverse()
+        minPath.pop(0)
+        minPath.pop()
+        minPath.reverse()
                             
-    return (minPath, maxFlowNode['sink+'])
         
+        return (minPath, maxFlowNode['sink+'])
+    
+    
+    def deltaF(self, spath, pflow, NLL_F):
+    
+        DeltaF = 0.       
+        
+        for es in spath:
+            fC = self.diGraph[es[0]][es[1]]['flow']
+            
+            DeltaF += NLL_F(self.X[es],fC + pflow,self.L[es]) - NLL_F(self.X[es],fC,self.L[es])
+
+        return DeltaF
+        
+    def optimseFlows(self, NLL_F, NLL_D, maxIter):
+    
+        self.initialiseFlows()  
+   
+        dF = 0.
+        F = 0.
+    
+        (dF, F) = self.evalDF(NLL_F, NLL_D)
+    
+        rho = 1.0e2
+    
+        i = 0
+    
+        ssedges = set(self.sEdges) 
+    
+        init_pflow = 0.1*max(self.X.items(), key=itemgetter(1))[1]
+    
+        while i < maxIter:
+   
+            self.setWeightsD(NLL_D)
+    
+            path = nx.bellman_ford_path(self.diGraph, 'source+', 'sink+', weight='dweight')
+    
+            weight = self.evalPathWeight(path, 'dweight')
+
+            epath = [(u,v) for u,v in zip(path,path[1:])]
+        
+            spath = set(epath) & ssedges 
+        
+            if weight < 0.0:
+                pflow = init_pflow 
+            
+                DeltaF = self.deltaF(spath, pflow, NLL_F)
+            
+                while DeltaF > pflow*weight*BETA:
+                    pflow *= TAU
+                
+                    DeltaF = self.deltaF(spath, pflow, NLL_F)
+
+                if pflow > 0.:
+                    self.addFlowPath(path, pflow)
+
+            (dF, F) = self.evalDF(NLL_F, NLL_D)
+        
+            print(str(i) + "," + str(dF) + "," + str(F))
+
+            i+=1
+
+    def decomposeFlows(self):
+      
+        maxFlow = 1.0
+        
+        while maxFlow > 0.:
+    
+            (maxPath, maxFlow) = self.getMaxMinFlowPathDAG()
+        
+            self. addFlowPath(maxPath, -maxFlow)
+        
+            print(str(maxFlow))
+
+
     
 def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
@@ -220,97 +329,53 @@ def main(argv):
         covMapAdj[unitig] = unitigGraph.covMap[unitig] * float(adjLengths[unitig])*(kFactor/readLength)
         
         
-    
+    V = len(unitigGraph.unitigs)
+    S = unitigGraph.covMap[unitigGraph.unitigs[0]].shape[0]
     xValsU = {}
-    
+    X = np.zeros((V,S))
+    M = np.ones((V,S))
+    v = 0
+    mapUnitigs = {}
     with open('coverage.csv','w') as f:            
         for unitig in unitigGraph.unitigs:
             readSum = np.sum(covMapAdj[unitig])
+            mapUnitigs[unitig] = v
             xValsU[unitig] = readSum 
             covSum = np.sum(unitigGraph.covMap[unitig])*kFactor
-            
+            X[v,:] = unitigGraph.covMap[unitig]/adjLengths[unitig]
             f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
-
-    augmentedBiGraph = unitigGraph.getAugmentedBiGraphSource(source_names,sink_names)
+            v+=1
     
-    sedges = unitigGraph.sEdges
+    
+    hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
+        
+    BNMF = bnmf_vb(X,M,10,True,hyperparameters=hyperp)
+        
+    BNMF.initialise()      
+        
+    BNMF.run(1000)
+    
+    unitigGraph.setDirectedBiGraphSource(source_names,sink_names)
     
     xVals = {}
     Lengths = {}
     
-    for edge in sedges:
+    augmentedBiGraph = AugmentedBiGraph(unitigGraph)
+    
+    for edge in augmentedBiGraph.sEdges:
         unitigd = edge[1][:-1]
-        xVals[edge] = xValsU[unitigd]
-        Lengths[edge] = adjLengths[unitigd]
-        
-    initialiseFlows(augmentedBiGraph)  
-   
-    dF = 0.
-    F = 0.
+        v = mapUnitigs[unitigd]
+        xVals[edge] = BNMF.exp_U[v,0]
+        #xVals[edge] = xValsU[unitigd]
+        #Lengths[edge] = adjLengths[unitigd]
+        Lengths[edge] = 1.
     
-    (dF, F) = evalDF(augmentedBiGraph, gaussianNLL_F, gaussianNLL_D, sedges, xVals, Lengths)
+    augmentedBiGraph.X = xVals
+    augmentedBiGraph.L = Lengths
     
-    rho = 1.0e2
-    
-    i = 0
-    
-    Beta = 0.6
-    Tau = 0.5
-    
-    ssedges = set(sedges) 
-    
-    while i < 1000:
-   
-        setWeightsD(augmentedBiGraph, gaussianNLL_D, sedges, xVals, Lengths)
-    
-        path = nx.bellman_ford_path(augmentedBiGraph, 'source+', 'sink+', weight='dweight')
-    
-        weight = evalPathWeight(augmentedBiGraph, path, 'dweight')
+    augmentedBiGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 200)
 
-        epath = [(u,v) for u,v in zip(path,path[1:])]
-        
-        spath = set(epath) & ssedges 
-        
-        if weight < 0.0:
-            pflow = 0.1 
-            
-            
-            DeltaF = 0.
-            for es in spath:
-                fC = augmentedBiGraph[es[0]][es[1]]['flow']
-                DeltaF += gaussianNLL_F(xVals[es],fC + pflow,Lengths[es]) - gaussianNLL_F(xVals[es],fC,Lengths[es])
-            
-            while DeltaF > pflow*weight*Beta:
-                pflow *= Tau
-                
-                DeltaF = 0.       
-                for es in spath:
-                    fC = augmentedBiGraph[es[0]][es[1]]['flow']
-                    DeltaF += gaussianNLL_F(xVals[es],fC + pflow,Lengths[es]) - gaussianNLL_F(xVals[es],fC,Lengths[es])
-
-
-            if pflow > 0.:
-                addFlowPath(augmentedBiGraph, path, pflow)
-        else:
-            print("Debug")
-        
-        (dF, F) = evalDF(augmentedBiGraph, gaussianNLL_F, gaussianNLL_D, sedges, xVals, Lengths)
-
-        print(str(i) + "," + str(dF) + "," + str(F))
-
-        i+=1
-
-    import ipdb; ipdb.set_trace()
-
-
-    maxFlow = 1.0
-    while maxFlow > 0.:
-    
-        (maxPath, maxFlow) = getMaxMinFlowPathDAG(augmentedBiGraph)
-        
-        addFlowPath(augmentedBiGraph, maxPath, -maxFlow)
-        
-        print(str(maxFlow))
+    augmentedBiGraph.decomposeFlows()
         
     #nx.write_graphml(unitigGraph.augmentedUnitigBiGraphS,"test.graphml")
 
