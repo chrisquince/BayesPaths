@@ -115,15 +115,18 @@ class NMF_NNLS:
         
         self.P[v,:] = nnls(GTM, XTM)[0]
     
-    def factorizeG(self, iterations):
+    def factorizeG(self):
 
        
         for g in range(self.G):
             Wg = self.P[:,g]
-            qW = np.quantile(Wg, MED_MIN_Q)
+            #qW = np.quantile(Wg, )
+            medW = np.median(Wg) 
+            Wg[Wg <= 0.1*medW] = np.finfo(self.P.dtype).eps
+            Wg[Wg > 0.1*medW]  = 1.0 
              
-            Wg[Wg <= qW] = 1.0e-10
-            Wg[Wg > qW]  = 1.0
+            #Wg[Wg <= qW] = 1.0e-10
+            #Wg[Wg > qW]  = 1.0
             
             self.P[:,g] = Wg
         
@@ -134,7 +137,7 @@ class NMF_NNLS:
         self.give_update(-1)
                 
     
-    def factorizeP(self,iterations):
+    def factorizeP(self):
         for v in range(self.V):
             self.update_P(v)
             
