@@ -56,25 +56,17 @@ class AugmentedBiGraph():
 
         assert hasattr(unitigGraph, 'directedUnitigBiGraphS')
         
-        tempDiGraph = unitigGraph.directedUnitigBiGraphS.copy()
+        tempDiGraph = AugmentedBiGraph.removeCycles(unitigGraph.directedUnitigBiGraphS)
         
-        #if unitigs is not None:
-         #   snodes = set(tempDiGraph.nodes)
-            
-          #  rnodes = snodes - set(unitigs)
-            
-           # tempDiGraph.remove_nodes_from(rnodes)
-            
+        copyDiGraph = tempDiGraph.copy()
         
-        directedUnitigBiGraphS = unitigGraph.directedUnitigBiGraphS
-        
-        top_sort = list(nx.topological_sort(unitigGraph.directedUnitigBiGraphS))
+        top_sort = list(nx.topological_sort(tempDiGraph))
         
         sEdges = set()
         
         for node in top_sort:
             
-            pred = list(directedUnitigBiGraphS.predecessors(node))
+            pred = list(copyDiGraph.predecessors(node))
             
             if len(pred) > 1 and node != 'sink+':
                 newNode = node + 's' 
@@ -83,8 +75,8 @@ class AugmentedBiGraph():
                 
                 for pnode in pred:
                 
-                    tempDiGraph.add_edge(pnode,newNode,weight=directedUnitigBiGraphS[pnode][node]['weight'],
-                                            covweight=directedUnitigBiGraphS[pnode][node]['covweight'])
+                    tempDiGraph.add_edge(pnode,newNode,weight=copyDiGraph[pnode][node]['weight'],
+                                            covweight=copyDiGraph[pnode][node]['covweight'])
                                             
                     tempDiGraph.remove_edge(pnode,node)
                 
@@ -97,6 +89,29 @@ class AugmentedBiGraph():
         biGraph = cls(tempDiGraph, sEdges)
         
         return biGraph
+   
+    @classmethod
+    def removeCycles(cls, inGraph):
+        
+        diGraph = inGraph.copy()
+        
+        while not nx.is_directed_acyclic_graph(diGraph):
+        
+            cycle = nx.find_cycle(diGraph)
+            
+            weakestLink = sys.float_info.max
+            weakestEdge = None
+            
+            for edge in cycle:
+                weight = diGraph[edge[0]][edge[1]]['covweight']
+            
+                if weight < weakestLink:
+                    weakestEdge = edge
+                    weakestLink = weight
+            
+            diGraph.remove_edge(weakestEdge[0],weakestEdge[1])
+   
+        return diGraph
    
     @classmethod
     def combineGraphs(cls,dictBiGraphs,geneList):
@@ -125,13 +140,14 @@ class AugmentedBiGraph():
             
             tempGraph = nx.relabel_nodes(dictBiGraphs[gene].diGraph, mapNodes)
  
-            cGraph = compose(cGraph, tempGraph)
+            cGraph = nx.algorithms.operators.binary.compose(cGraph, tempGraph)
             
             if lastGene is not None:
-                lastSink = lastGene + '_source+'
+                lastSink = lastGene + '_sink+'
                 
                 cGraph.add_edge(lastSink,gene + '_source+', weight=0.,covweight=0.)
-        
+            
+            lastGene = gene
         
         biGraph = cls(cGraph, sEdges)
         
@@ -202,10 +218,13 @@ class AugmentedBiGraph():
         wRange = wMax - wMin 
     
         for e in self.diGraph.edges:
-            self.rGraph[e[1]][e[0]]['capacity'] = int((self.diGraph[e[0]][e[1]]['flow']/fMax)*MAX_INT_FLOW)  
+        
+            if fMax > 0:    
+                self.rGraph[e[1]][e[0]]['capacity'] = int((self.diGraph[e[0]][e[1]]['flow']/fMax)*MAX_INT_FLOW)  
+            
     
-            if e in self.sEdges:
-                self.rGraph[e[1]][e[0]]['rweight'] = int((-self.diGraph[e[0]][e[1]]['dweight']/wRange)*MAX_INT_FLOW)
+            if e in self.sEdges and wRange > 0:
+                    self.rGraph[e[1]][e[0]]['rweight'] = int((-self.diGraph[e[0]][e[1]]['dweight']/wRange)*MAX_INT_FLOW)
     
         return (fMax,wRange)
 
@@ -290,7 +309,7 @@ class AugmentedBiGraph():
         while i < maxIter:
    
             self.setWeightsD(NLL_D)
-    
+            
             path = nx.bellman_ford_path(self.diGraph, 'source+', 'sink+', weight='dweight')
     
             weight = self.evalPathWeight(path, 'dweight')
@@ -303,13 +322,16 @@ class AugmentedBiGraph():
         
                 (fMax, rMax) = self.setResidualGraph()
                 
-                ds = {'sink+': -MAX_REV_FLOW,  'source+': MAX_REV_FLOW}
+                if fMax > 1.0e-6 and rMax > 1.0e-6:
+                    ds = {'sink+': -MAX_REV_FLOW,  'source+': MAX_REV_FLOW}
                 
-                nx.set_node_attributes(self.rGraph, ds, 'demand')
+                    nx.set_node_attributes(self.rGraph, ds, 'demand')
                 
-                (mf,pf) = nx.network_simplex(self.rGraph, demand='demand', capacity='capacity', weight='rweight')
+                    (mf,pf) = nx.network_simplex(self.rGraph, demand='demand', capacity='capacity', weight='rweight')
             
-                fCost = (mf*rMax)/(MAX_INT_FLOW*MAX_REV_FLOW)
+                    fCost = (mf*rMax)/(MAX_INT_FLOW*MAX_REV_FLOW)
+                else:
+                    fCost = 1.0e6
             else:
                 fCost = 1.0e6
                 
@@ -354,7 +376,7 @@ class AugmentedBiGraph():
 
             (dF, F) = self.evalDF(NLL_F, NLL_D)
         
-            print(str(i) + "," + str(dF) + "," + str(F))
+            #print(str(i) + "," + str(dF) + "," + str(F))
 
             i+=1
 

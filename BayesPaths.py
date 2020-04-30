@@ -374,7 +374,7 @@ def main(argv):
         gIter = 0
 
         while nChange > 0 and gIter < maxGIter:
-            assGraph.initNMF(None, True)
+            assGraph.initNMFVB(None, True)
             print("Round " + str(gIter) + " of gene filtering")
             assGraph.update(args.iters*2, True, None, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
@@ -402,7 +402,7 @@ def main(argv):
             gIter += 1
     
 
-    import ipdb; ipdb.set_trace()
+   
     assGraph.initNMFVB(None, True)
 
     assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)

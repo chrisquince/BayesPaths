@@ -53,6 +53,9 @@ from AssemblyPath.NMFM import NMF
 from AssemblyPath.nmf_np import nmf_np
 from AssemblyPath.NMF_NNLS import NMF_NNLS
 from BNMF_ARD.bnmf_vb import bnmf_vb
+from GraphExample2 import AugmentedBiGraph
+from GraphExample2 import gaussianNLL_F
+from GraphExample2 import gaussianNLL_D
 
 import subprocess
 import shlex
@@ -250,9 +253,21 @@ class AssemblyPathSVA():
         bFirst = True
         self.nBubbles = 0
         self.mapBubbles = {}
+        self.augmentedBiGraphs = {}
+        
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
+            
             assemblyGraph = assemblyGraphs[gene]
+            
+            source_names = [convertNodeToName(source) for source in source_maps[gene]] 
+        
+            sink_names = [convertNodeToName(sink) for sink in sink_maps[gene]]
+            
+            assemblyGraph.setDirectedBiGraphSource(source_names,sink_names)
+
+            self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
+                
             self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.)
             (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
            
@@ -289,8 +304,8 @@ class AssemblyPathSVA():
                 
                 self.V += 1
 
-
-    
+        self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
+  
         self.biasMap = {}
         self.nBias = 0
         
@@ -2012,9 +2027,62 @@ class AssemblyPathSVA():
         
         return treeWidths
  
+ 
+    def graphNormMatrix(self, uMap, BNMF, selectV):
+        
+        gGamma = np.zeros((self.G,self.S))
+        
+        gPhi = np.zeros((self.V,self.G))
+        
+        for g in range(self.G):
+        
+            xVals = {}
+            Lengths = {}
+            
+            maxFlow = 0.
+            
+            mapSedge = {}
+            for edge in self.cGraph.sEdges:
+                unitigd = edge[1][:-1]
+                v = self.mapIdx[unitigd]
+            
+                if selectV[v]:
+                    u             = uMap[v]
+                    xVals[edge]   = BNMF.exp_U[u,g]
+                    Lengths[edge] = 1.0
+                    mapSedge[v] = edge
+                    
+                else:
+                    u = uMap[self.degenSeq[v]]
+                    xVals[edge]   = BNMF.exp_U[u,g]
+                    Lengths[edge] = 1.0
+                    mapSedge[v] = edge
+                
+            self.cGraph.X = xVals
+            self.cGraph.L = Lengths
+                
+            self.cGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 100)
+                
+            (maxFlow,maxFlows) = nx.maximum_flow(self.cGraph.diGraph, 'source+','sink+', capacity='flow')
+            
+            gGamma[g,:] = BNMF.exp_V.T[g,:]*maxFlow
+            
+            for v in range(self.V):
+                if v in mapSedge:
+                    vedge = mapSedge[v]
+                
+                    fFlow = self.cGraph.diGraph[vedge[0]][vedge[1]]['flow']
+                
+                    gPhi[v,g] = fFlow/maxFlow
+                else:
+                    gPhi[v,g] = 0.
+    
+        return (gGamma, gPhi)
+    
+ 
     def initNMFVB(self, mask = None, bMaskDegen = True, bARD = True):
     
-        #import ipdb; ipdb.set_trace()
+        
     
         if mask is None:
             mask = np.ones((self.V, self.S))
@@ -2029,22 +2097,47 @@ class AssemblyPathSVA():
         
         hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
         
-        BNMF = bnmf_vb(XC,MC,self.G,bARD,hyperparameters=hyperp)
+        no_runs = 1
         
-        BNMF.initialise()      
+        bestGamma = None
+        bestErr = 1.0e10
+        bestPhi = None
         
-        BNMF.run(1000)
- 
-        self.expGamma[0:self.G,:] = np.copy(BNMF.exp_V.T)
-        self.expGamma2 = self.expGamma*self.expGamma
-        
+        uMap = {}
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                self.expPhi[v,0:self.G] = BNMF.exp_U[u,:]
-                u += 1
+                uMap[v] = u
+                u = u+1    
+        n = 0
+        while n < no_runs:
+            BNMF = bnmf_vb(XC,MC,self.G,bARD,hyperparameters=hyperp)
         
-        self.expPhi2 = self.expPhi*self.expPhi
+            #BNMF.initialise(init_UV='random')      
+            BNMF.initialise()
+            BNMF.run(1000)
+ 
+            (gGamma, gPhi) = self.graphNormMatrix(uMap, BNMF, selectV)
+            
+            XN_pred = np.dot(gPhi,gGamma)
+            
+            err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
+            
+            print(str(n) + "," + str(err))
+            
+            if err < bestErr:
+                bestGamma = gGamma
+                bestPhi   = gPhi
+                bestErr = err
+            
+            n += 1
+        
+        self.expGamma[0:self.G,:] = bestGamma
+        self.expPhi[:,0:self.G] = bestPhi
+            
+        self.expGamma2 = self.expGamma*self.expGamma
+        self.expPhi2 = self.expPhi*self.expPhi   
+ 
         
     def initNMF(self, mask = None, bMaskDegen = True):
     
@@ -2067,7 +2160,7 @@ class AssemblyPathSVA():
         
         #covNMF.factorize()
         #covNMF.factorizeH()
-        import ipdb; ipdb.set_trace()
+        
         covNMF.train(1000,no_runs = 1)
         covNMF.factorizeG()  
         covNMF.factorizeP()
