@@ -18,7 +18,6 @@ from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
 from operator import itemgetter
-from BNMF_ARD.bnmf_vbp import bnmf_vb
 
 import uuid
 import networkx as nx
