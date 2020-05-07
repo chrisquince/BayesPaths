@@ -3452,7 +3452,7 @@ class AssemblyPathSVA():
 
         cmd = self.fgExePath + 'runfg_flex ' + graphFileName + ' ' + outFileName + ' 1 -1' 
 
-        p = Popen(cmd, stdout=DEVNULL,shell=True)
+        p = Popen(cmd, stdout=DEVNULL,stderr=DEVNULL,shell=True)
              
         p.wait()
 
