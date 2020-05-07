@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import os
 import re
+import logging
 
 from Utils.mask import compute_folds_attempts
 from collections import defaultdict
@@ -75,7 +76,7 @@ def assGraphWorker(gargs):
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
-    assGraph.initNMFVB(M_train, True)
+    assGraph.initNMFVB2(M_train, True)
                 
     #assGraph.writeOutput(outDir + "/RunN" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
                 
@@ -99,6 +100,94 @@ def assGraphWorker(gargs):
 
     return (train_elbo, train_err, train_ll, train_ll2, total_ll2, assGraph.G, 
                 assGraph.expGamma,assGraph.expGamma2, assGraph.expPhi, assGraph.expPhi2, assGraph.expTheta, assGraph.expTheta2)
+
+def readCogLengthFile(cogFile):
+    
+    cogLengths = {}        
+
+    with open(cogFile,'r') as cog_file:
+        for line in cog_file:
+            line = line.rstrip()
+            toks = line.split('\t') 
+            cogLengths[toks[0]] = float(toks[1])
+
+    return cogLengths
+    
+def readGFA(gfaFiles, kMerLength, cogLengths):
+
+    assemblyGraphs = {} #dictionary of assembly graphs by gene name
+    sink_maps = {} # sinks (in future these defined outside)
+    source_maps = {} #sources
+    cov_maps = {} #coverages
+    
+    gfaFiles.sort()
+    for gfaFile in gfaFiles:
+        fileName = os.path.basename(gfaFile)
+
+        p = re.compile('COG[0-9]+')
+
+        m = p.search(gfaFile)
+        
+        if m is None:
+            raise ValueError
+
+        gene = m.group()
+        
+        covFile = gfaFile[:-3] + "tsv"
+        
+        try:
+            logging.info('Reading %s gfa file', gfaFile)
+            unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,kMerLength, covFile, tsvFile=True, bRemoveSelfLinks = True)
+        except IOError:
+            logging.ERROR('Trouble using file {}'.format(gfaFile))
+            continue
+             
+        deadEndFile = gfaFile[:-3] + "deadends"
+        
+        stopFile = gfaFile[:-3] + "stops"
+        
+        deadEnds = []
+        
+        try:
+            with open(deadEndFile) as f:
+                for line in f:
+                    line.strip()
+                    deadEnds.append(line)
+        except IOError:
+            logging.ERROR('Trouble using file {}'.format(deadEndFile))
+            continue
+        
+        stops = []
+        
+        try:
+            with open(stopFile) as f:
+                for line in f:
+                    line = line.strip()
+                    toks = line.split("\t")
+                    dirn = True
+                    if toks[1] == '-':
+                        dirn = False
+                    stops.append((toks[0],dirn))
+        except IOError:
+            logging.ERROR('Trouble using file {}'.format(stopFile))
+            continue
+             
+        if gene in cogLengths:
+            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
+        else:
+            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
+        
+
+        source_names = [convertNodeToName(source) for source in source_list] 
+        sink_names = [convertNodeToName(sink) for sink in sink_list]
+        
+        if len(sink_list) > 0 and len(source_list) > 0:        
+            sink_maps[gene] = sink_list
+            source_maps[gene] = source_list
+            assemblyGraphs[gene] = unitigGraph
+            
+
+    return (assemblyGraphs,  sink_maps, source_maps, cov_maps)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -127,8 +216,6 @@ def main(argv):
 
     parser.add_argument('-g','--strain_number',nargs='?', default=5, type=int, 
         help=("maximum number of strains"))
-
-    parser.add_argument('-p','--paths_file',nargs='?', default=None)
         
     parser.add_argument('--loess', dest='loess', action='store_true')
     
@@ -173,146 +260,39 @@ def main(argv):
     args = parser.parse_args()
     
     np.random.seed(args.random_seed) #set numpy random seed not needed hopefully
+    
+    np.seterr(divide='ignore', invalid='ignore') #tired of all those warnings :(
+    
     prng = RandomState(args.random_seed) #create prng from seed 
+
+    #set log file
+    logFile=args.outFileStub + "_log.txt"
+    logging.basicConfig(format='%(asctime)s %(message)s',filename=logFile, filemode='w', level=logging.DEBUG)
+    logging.getLogger().addHandler(logging.StreamHandler())
 
     cogLengths = {}
     if  args.length_list != None:
-        with open(args.length_list,'r') as cog_file:
-            for line in cog_file:
-                line = line.rstrip()
-                toks = line.split('\t') 
-                cogLengths[toks[0]] = float(toks[1])
-        
+        logging.info('Reading from cog length file %s', args.length_list)
+        cogLengths = readCogLengthFile(args.length_list)
+        logging.info('Read %d cog lengths', len(cogLengths))
     
     if args.cog_list == None:
-        gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')    
+        gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')
+        logging.info('Processing %d .gfa files from directory %s', len(gfaFiles),args.Gene_dir)
     else:
         with open(args.cog_list,'r') as cog_file:
             cogs = [line.rstrip() for line in cog_file]
         gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
-
-    assemblyGraphs = {} #dictionary of assembly graphs by gene name
-    sink_maps = {} # sinks (in future these defined outside)
-    source_maps = {} #sources
-    cov_maps = {} #coverages
-    gfaFiles.sort()
-    for gfaFile in gfaFiles:
-        fileName = os.path.basename(gfaFile)
-
-        p = re.compile('COG[0-9]+')
-
-        m = p.search(gfaFile)
-        
-        if m is None:
-            raise ValueError
-
-        gene = m.group()
-        
-        covFile = gfaFile[:-3] + "tsv"
-        
-        try:
-            unitigGraph = UnitigGraph.loadGraphFromGfaFile(gfaFile,int(args.kmer_length), covFile, tsvFile=True, bRemoveSelfLinks = True)
-        except IOError:
-             print('Trouble using file {}'.format(gfaFile))
-             continue
-             
-        deadEndFile = gfaFile[:-3] + "deadends"
-        
-        stopFile = gfaFile[:-3] + "stops"
-        
-        deadEnds = []
-        
-        try:
-            with open(deadEndFile) as f:
-                for line in f:
-                    line.strip()
-                    deadEnds.append(line)
-        except IOError:
-             print('Trouble using file {}'.format(deadEndFile))
-             continue
-        
-        stops = []
-        
-        try:
-            with open(stopFile) as f:
-                for line in f:
-                    line = line.strip()
-                    toks = line.split("\t")
-                    dirn = True
-                    if toks[1] == '-':
-                        dirn = False
-                    stops.append((toks[0],dirn))
-        except IOError:
-            print('Trouble using file {}'.format(stopFile))
-            continue
-             
-        if gene in cogLengths:
-            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, cogLengths[gene]*3)
-        else:
-            (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds)
-        
-
-        source_names = [convertNodeToName(source) for source in source_list] 
-        sink_names = [convertNodeToName(sink) for sink in sink_list]
-        
-        if len(sink_list) > 0 and len(source_list) > 0:        
-            sink_maps[gene] = sink_list
-            source_maps[gene] = source_list
-            assemblyGraphs[gene] = unitigGraph
+        logging.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
+    
+    
+    (assemblyGraphs,  sink_maps, source_maps, cov_maps) = readGFA(gfaFiles,int(args.kmer_length),cogLengths)
     
     #import ipdb; ipdb.set_trace() 
     
-    if  args.paths_file != None:
-    
-        margPhiFixed = defaultdict(lambda: defaultdict(dict))
-        strains = set()
-        cogs = set()
-        
-        with open(args.paths_file,'r') as paths_file:
-
-            for line in paths_file:
-                line = line.rstrip()
-                
-                if line.startswith('>'):
-                    toks = line[1:].split('_')
-                    
-                    g = int(toks[1])
-                    strains.add(g)
-                    
-                    cog = toks[0]
-                    cogs.add(cog)
-                    
-                    line = paths_file.readline()
-                    
-                    line = line.rstrip()
-                    
-                    toks = line.split(',')
-                    
-                    for tok in toks:
-                        margPhiFixed[g][cog][tok[:-1]] = np.asarray([0.0,1.0])
-                
-        G = len(strains)
-        genesFilter = list(cogs)
-        assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
-        source_maps_filter = {s:source_maps[s] for s in genesFilter} 
-        sink_maps_filter = {s:sink_maps[s] for s in genesFilter}
-    
-        assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias, NOISE=args.NOISE, fgExePath=args.executable_path, 
-                                bLoess = args.loess, bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
-                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
-        
-        
-        for g in strains:
-            for gene, factorGraph in assGraph.factorGraphs.items():
-                unitigs = assGraph.assemblyGraphs[gene].unitigs
-                
-                assGraph.updateExpPhi(unitigs,assGraph.mapGeneIdx[gene],margPhiFixed[g][gene],g)
-        
-    #import ipdb; ipdb.set_trace() 
-    
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
+    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, 
+                                readLength=args.readLength, ARD=True,BIAS=args.bias,  NOISE=args.NOISE, 
+                                fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
@@ -358,7 +338,7 @@ def main(argv):
     
     for gene, graph in assemblyGraphsFilter.items():
         graph.selectSamples(selectedSamples)
-    
+    #import ipdb; ipdb.set_trace()
     assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                 tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
@@ -374,7 +354,7 @@ def main(argv):
         gIter = 0
 
         while nChange > 0 and gIter < maxGIter:
-            assGraph.initNMFVB(None, True)
+            assGraph.initNMFVB2(None, True)
             print("Round " + str(gIter) + " of gene filtering")
             assGraph.update(args.iters*2, True, None, True, logFile=args.outFileStub + "_log1.txt",drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
@@ -402,10 +382,11 @@ def main(argv):
             gIter += 1
     
 
-   
-    assGraph.initNMFVB(None, True)
+    #import ipdb; ipdb.set_trace()
+    assGraph.initNMFVB2(None, True)
 
     assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=False,bMulti=True)
+
 
     assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log2.txt",drop_strain=None,relax_path=args.relax_path)
 
