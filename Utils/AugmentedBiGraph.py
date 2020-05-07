@@ -18,11 +18,11 @@ from Utils.UtilsFunctions import expNormLogProb
 from Utils.UtilsFunctions import expLogProb
 from kmedoids.kmedoids import kMedoids
 from operator import itemgetter
-from BNMF_ARD.bnmf_vb import bnmf_vb
+from BNMF_ARD.bnmf_vbp import bnmf_vb
 
 import uuid
 import networkx as nx
-
+import logging
 
 def gaussianNLL_F(x,f,L):
 
@@ -305,7 +305,9 @@ class AugmentedBiGraph():
         ssedges = set(self.sEdges) 
     
         init_pflow = 0.1*max(self.X.items(), key=itemgetter(1))[1]
-    
+        logging.info("Performing %d iterations of graph normalisation: ",maxIter)
+        logging.info("Iter, dF, F")
+        
         while i < maxIter:
    
             self.setWeightsD(NLL_D)
@@ -376,7 +378,9 @@ class AugmentedBiGraph():
 
             (dF, F) = self.evalDF(NLL_F, NLL_D)
         
-            #print(str(i) + "," + str(dF) + "," + str(F))
+            if i % 10 == 0:
+                logging.info("%d, %f, %f", i, dF, F)
+            
 
             i+=1
 
