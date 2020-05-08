@@ -446,7 +446,7 @@ def main(argv):
 
     mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
 
- #   assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
     outDir = dir + "/" + stub + "_U"
     mainLogger.info("Write output prior uncertainty filter to %s", outDir)
@@ -460,9 +460,9 @@ def main(argv):
     
     mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
     
-  #  assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-   # assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
   
     outDir = dir + "/" + stub + "_P"
     mainLogger.info("Write output after uncertainty filter to %s", outDir)
@@ -476,8 +476,7 @@ def main(argv):
 
     Gopt = assGraph.G + 1
 
-  #  if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
-    if True:
+    if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
         
