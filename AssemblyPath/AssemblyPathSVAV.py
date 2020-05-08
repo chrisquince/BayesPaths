@@ -187,13 +187,15 @@ class AssemblyPathSVA():
     xRangeFixed = 100.
     minStrainCoverage = 2.
     
-    def __init__(self, prng, assemblyGraphs, source_maps, sink_maps, G = 2, maxFlux=2, 
+    def __init__(self, prng, logger, assemblyGraphs, source_maps, sink_maps, G = 2, logFile = None, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
+
+        self.logger = logger                
 
         self.readLength = readLength #sequencing read length
  
@@ -261,7 +263,7 @@ class AssemblyPathSVA():
         
         for gene in sorted(assemblyGraphs):
             self.genes.append(gene)
-            logging.info('Construct factor graph for: %s', gene)
+            self.logger.info('Construct factor graph for: %s', gene)
             assemblyGraph = assemblyGraphs[gene]
             
             source_names = [convertNodeToName(source) for source in source_maps[gene]] 
@@ -337,16 +339,16 @@ class AssemblyPathSVA():
                 
                 gene_idx += 1
         else:
-            logging.error('Invalid bias type')
+            self.logger.error('Invalid bias type')
         
         self.biasType = biasType
-        logging.info('Using bias type: %s', self.biasType)
+        self.logger.info('Using bias type: %s', self.biasType)
 
 
         #find degenerate unitig sequences
         (self.degenSeq, self.MaskDegen) = self.flag_degenerate_sequences()
         self.VDash = self.V - len(self.degenSeq.keys())
-        logging.info('Using %d of %d non-degenerate unitigs',self.VDash,self.V)
+        self.logger.info('Using %d of %d non-degenerate unitigs',self.VDash,self.V)
         
         self.X = np.zeros((self.V,self.S))
         self.XN = np.zeros((self.V,self.S))
@@ -363,7 +365,7 @@ class AssemblyPathSVA():
             if v in self.covMapAdj:
                 covName = self.covMapAdj[v]
             else:
-                logging.error('Cannot get coverage for unitig: %s',v)
+                self.logger.error('Cannot get coverage for unitig: %s',v)
                 
             self.lengths[idx] = self.adjLengths[v]
             self.X[idx,:] = covName
@@ -447,37 +449,37 @@ class AssemblyPathSVA():
         sumCov=np.sum(self.meanSampleCov)
     
         
-        logging.info('Read length used %d', self.readLength)
+        self.logger.info('Read length used %d', self.readLength)
         
-        logging.info('Kmer coverage conversion factor %.3f', self.kFactor)
+        self.logger.info('Kmer coverage conversion factor %.3f', self.kFactor)
         
         
         self.totalCov = sumCov*self.kFactor
         
-        logging.info('Total sum of sample coverages: %.3f', self.totalCov)
+        self.logger.info('Total sum of sample coverages: %.3f', self.totalCov)
         
         self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
         
-        logging.info('Set minimum intensity/cov for strain: %.3f,%.3f', self.minIntensity, self.minIntensity*self.readLength)
+        self.logger.info('Set minimum intensity/cov for strain: %.3f,%.3f', self.minIntensity, self.minIntensity*self.readLength)
         
         self.NOISE = NOISE
         
         if self.totalCov < self.minNoiseCov:
             self.NOISE = False
             
-            logging.info('Coverage < %.3f no noise', self.minNoiseCov)
+            self.logger.info('Coverage < %.3f no noise', self.minNoiseCov)
         
-        logging.info('Applying noise: %s', str(self.NOISE))
+        self.logger.info('Applying noise: %s', str(self.NOISE))
             
         if self.tauType == 'auto':
             xRange = np.max(self.X) - np.min(self.X[self.X > 0])
-            logging.info('Automatically set precision')
+            self.logger.info('Automatically set precision')
 
             if xRange < AssemblyPathSVA.xRangeFixed:
-                logging.info('Xrange %.3f < %.3f used fixed precision',xRange, AssemblyPathSVA.xRangeFixed)
+                self.logger.info('Xrange %.3f < %.3f used fixed precision',xRange, AssemblyPathSVA.xRangeFixed)
                 self.tauType = 'fixed'
             else:
-                logging.info('Xrange %.3f > %.3f used log-scaled precision',xRange, AssemblyPathSVA.xRangeFixed)
+                self.logger.info('Xrange %.3f > %.3f used log-scaled precision',xRange, AssemblyPathSVA.xRangeFixed)
                 self.tauType = 'log'   
         
         if self.tauType == 'fixed':
@@ -501,9 +503,9 @@ class AssemblyPathSVA():
             self.expLogTau = np.log(self.expTau)
             
         else:
-            logging.error("Hmm... impossible tau strategy disturbing")
+            self.logger.error("Hmm... impossible tau strategy disturbing")
             
-        logging.info('Precision type: %s', self.tauType)
+        self.logger.info('Precision type: %s', self.tauType)
 
         #create mask matrices
         self.Identity = np.ones((self.V,self.S))
@@ -1315,7 +1317,7 @@ class AssemblyPathSVA():
             if self.bLoess:
                 assert(bMaskDegen == False)
                             
-                logging.info("Attemptimg Loess smooth")
+                self.logger.info("Attemptimg Loess smooth")
                 
                 yest_sm = lowess(X1D,mLogExpTau, f=0.75, iter=3)
                 
@@ -1327,7 +1329,7 @@ class AssemblyPathSVA():
                 yest_sm = self.gam.predict(X1D)
                 
             else:
-                logging.info("Attemptimg linear regression")
+                self.logger.info("Attemptimg linear regression")
                     
                 model = LinearRegression()
             
@@ -1341,7 +1343,7 @@ class AssemblyPathSVA():
             
                 yest_sm  = model.predict(X_poly_est)
         except ValueError:
-            logging.info("Performing fixed tau")
+            self.logger.info("Performing fixed tau")
                     
             self.updateFixedTau(mask,bMaskDegen)
                     
@@ -1385,7 +1387,7 @@ class AssemblyPathSVA():
                 self.gam = LinearGAM(s(0,n_splines=5,constraints='monotonic_inc')).fit(logX1DFit,logMFitFit)
             
             except ValueError:
-                logging.info("Performing fixed tau")
+                self.logger.info("Performing fixed tau")
                     
                 self.updateFixedTau(mask)
                     
@@ -1491,7 +1493,7 @@ class AssemblyPathSVA():
                 
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
-                        logging.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
+                        self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
                         #greedyPath = self.sampleGreedyPath(gene, g)
                         greedyPath = self.sampleMaxWeightPath(gene, g)
                     
@@ -1510,7 +1512,7 @@ class AssemblyPathSVA():
                                 self.expPhi[v_idx,g] = 1.
                                 self.expPhi2[v_idx,g] = 1.  
                     else:
-                        logging.warning("Cannot attempt greedy path")
+                        self.logger.warning("Cannot attempt greedy path")
                         
                     fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
                     if os.path.exists(fgFile):
@@ -1530,7 +1532,7 @@ class AssemblyPathSVA():
         self.updateTau(True, mask, bMaskDegen) 
         diffElbo = 1.0
         currElbo=self.calc_elbo(mask, bMaskDegen)
-        logging.info("Iter, G, Div, DivF, total_elbo, diffElbo")
+        self.logger.info("Iter, G, Div, DivF, total_elbo, diffElbo")
         while iter < 200 or (iter < maxIter and diffElbo > minDiff):
             #update phi marginals
             if removeRedundant:
@@ -1602,7 +1604,7 @@ class AssemblyPathSVA():
             Div  = self.div(mask)
             
             if iter % 10 == 0:
-                logging.info("%d, %d, %f, %f, %f, %f", iter, self.G, Div, DivF, total_elbo, diffElbo)
+                self.logger.info("%d, %d, %f, %f, %f, %f", iter, self.G, Div, DivF, total_elbo, diffElbo)
                 
             iter += 1
     
@@ -1861,7 +1863,7 @@ class AssemblyPathSVA():
                 visited.add(inPaths[selectIn[0]])
             else:
                 path.append(current)
-                logging.warning("Warning: Ended up in errorenous terminal node sampleMargPath")
+                self.logger.warning("Warning: Ended up in errorenous terminal node sampleMargPath")
                 break
             
         path.reverse()
@@ -2128,7 +2130,7 @@ class AssemblyPathSVA():
             self.cGraph.X = xVals
             self.cGraph.L = Lengths
             
-            logging.info("Graph norm for haplo: %d",g)
+            self.logger.info("Graph norm for haplo: %d",g)
             self.cGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 100)
                 
             (maxFlow,maxFlows) = nx.maximum_flow(self.cGraph.diGraph, 'source+','sink+', capacity='flow')
@@ -2183,19 +2185,19 @@ class AssemblyPathSVA():
         while n < no_runs:
             BNMF = NMF_VB(self.prng, XC, XCN, self.lengths[selectV], self.G, tauType=self.tauType)
         
-            logging.info("Round: %d of NMF",n)
+            self.logger.info("Round: %d of NMF",n)
             BNMF.initialise(init_UV='random',mask=MC)
             BNMF.update(500, mask=MC)
  
-            logging.info("Graph normalise NMF")
+            self.logger.info("Graph normalise NMF")
             (gGamma, gPhi) = self.graphNormMatrix2(uMap, BNMF, selectV)
             
             XN_pred = np.dot(gPhi,gGamma)
             
             err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
             
-            logging.info("Error round %d of NMF: %f",n, err)
-            logging.info(str(n) + "," + str(err))
+            self.logger.info("Error round %d of NMF: %f",n, err)
+            self.logger.info(str(n) + "," + str(err))
             
             if err < bestErr:
                 bestGamma = gGamma
@@ -2204,7 +2206,7 @@ class AssemblyPathSVA():
             
             n += 1
         
-        logging.info("Best error: %f",bestErr)
+        self.logger.info("Best error: %f",bestErr)
         self.expGamma[0:self.G,:] = bestGamma
         self.expPhi[:,0:self.G] = bestPhi
             
@@ -2266,7 +2268,7 @@ class AssemblyPathSVA():
                 self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
                   
                 factorGraph.reset()
-                logging.info(gene) 
+                self.logger.info(gene) 
                 factorGraph.var['zero+source+'].condition(1)
 
                 factorGraph.var['sink+infty+'].condition(1)
@@ -2309,7 +2311,7 @@ class AssemblyPathSVA():
 
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
-                        logging.info("Attempt greedy path: " + str(g) + " " + gene)
+                        self.logger.info("Attempt greedy path: " + str(g) + " " + gene)
                         #greedyPath = self.sampleGreedyPath(gene, g)
                         greedyPath = self.sampleMaxWeightPath(gene, g)
                     
@@ -2328,10 +2330,10 @@ class AssemblyPathSVA():
                                 self.expPhi[v_idx,g] = 1.
                                 self.expPhi2[v_idx,g] = 1.  
                     else:
-                        logging.warning("Cannot attempt greedy path")
+                        self.logger.warning("Cannot attempt greedy path")
                 
             self.addGamma(g)    
-        logging.info("-1,"+ str(self.div())) 
+        self.logger.info("-1,"+ str(self.div())) 
         return treeWidths
 
     def initNMFGamma(self,assCopyGamma):
@@ -2388,7 +2390,7 @@ class AssemblyPathSVA():
                 os.remove(outFileName)
                              
             self.addGamma(g)    
-        logging.info("-1,"+ str(self.div())) 
+        self.logger.info("-1,"+ str(self.div())) 
 
 
     def exp_square_lambda(self):
@@ -2652,7 +2654,7 @@ class AssemblyPathSVA():
         for gene in self.genes:
             current_gene_elbo = self.calc_unitig_elbo(gene, self.mapUnitigs[gene])
             current_gene_elbos[gene] = current_gene_elbo             
-            logging.info(gene + "," + str(current_gene_elbo) + "," + str(current_gene_elbo/float(len(self.mapUnitigs[gene]))))
+            self.logger.info(gene + "," + str(current_gene_elbo) + "," + str(current_gene_elbo/float(len(self.mapUnitigs[gene]))))
 
         diff_elbo = defaultdict(list)
         for g in range(self.G):
@@ -2667,7 +2669,7 @@ class AssemblyPathSVA():
                 else:
                     diff_elbo[gene].append(True)
                     
-                logging.info(gene + "," + str(g) + "," + str(diff_elbof))
+                self.logger.info(gene + "," + str(g) + "," + str(diff_elbof))
 
             self.addGamma(g)
             
@@ -3091,7 +3093,7 @@ class AssemblyPathSVA():
     def filterHaplotypes(self,retained,gammaIter,mask=None,bMaskDegen=False):
         nNewG = np.sum(retained[0:self.G])
         if nNewG < self.G:
-            logging.info("New strain number " + str(nNewG))
+            self.logger.info("New strain number " + str(nNewG))
             oldG = self.G
             if self.NOISE:
                 self.G = nNewG
@@ -3475,7 +3477,7 @@ class AssemblyPathSVA():
                 os.remove(graphFileName)
             
         except FileNotFoundError:
-            logging.error("Failed to find maximal path for haplotype " + str(g))
+            self.logger.error("Failed to find maximal path for haplotype " + str(g))
             
             if os.path.exists(graphFileName):
                 os.remove(graphFileName)

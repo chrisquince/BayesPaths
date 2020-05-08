@@ -17,6 +17,19 @@ from pathlib import Path
 
 COG_COV_DEV = 2.5
 
+formatter = logging.Formatter('%(asctime)s %(message)s')
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """To setup as many loggers as you want"""
+
+    handler = logging.FileHandler(log_file)        
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 def filterGenes(assGraph, bGeneDev):
     gene_mean_error = assGraph.gene_mean_diff()
@@ -74,22 +87,33 @@ def assGraphWorker(gargs):
 
     (prng, assemblyGraphs, source_maps, sink_maps, G, r, args, selectedSamples, outDir, M_train, M_test) = gargs 
 
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
+
+    name =  "/Run" + '_g' + str(G) + "_r" + str(r)
+
+    logFile=outDir + "/" + name + ".log"
+    
+    logger = setup_logger(name, logFile, level=logging.DEBUG)
+
+    logger.info('Start running: %s', name)
+
+    assGraph = AssemblyPathSVA(prng, logger, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
+    logger.info('Perform NMF VB initialisation')
+    
     assGraph.initNMFVB(M_train, True)
                 
-    #assGraph.writeOutput(outDir + "/RunN" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
-                
-    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
-
-    assGraph.update(args.iters, False, M_train, True, args.outFileStub + "_log4.txt",drop_strain=None,relax_path=False, bMulti = False)
+    logger.info('Run %d SVI iterations',2*args.iters)
+    
+    assGraph.update(2*args.iters, False, M_train, True, drop_strain=None,relax_path=False, bMulti = False)
 
     assGraph.updateTau(False, M_test, True)
 
-    assGraph.writeOutput(outDir + "/Run" + '_g' + str(G) + "_r" + str(r), False, selectedSamples, M_test)
+    logger.info('Write output to %s', outDir + "/" + name)
+
+    assGraph.writeOutput(outDir + "/" + name, False, selectedSamples, M_test)
 
     train_elbo = assGraph.calc_elbo(M_test, True)
     train_err  = assGraph.predict_sqrt(M_test,True)
@@ -270,31 +294,37 @@ def main(argv):
 
     #set log file
     logFile=args.outFileStub + ".log"
-    logging.basicConfig(format='%(asctime)s %(message)s',filename=logFile, filemode='w', level=logging.DEBUG)
-    logging.getLogger().addHandler(logging.StreamHandler())
+    
+    handler = logging.FileHandler(logFile)        
+    handler.setFormatter(formatter)
+
+    mainLogger = logging.getLogger('main')
+    mainLogger.setLevel(logging.DEBUG)
+    mainLogger.addHandler(handler)
+   # mainLogger.addHandler(logging.StreamHandler())
 
     cogLengths = {}
     if  args.length_list != None:
-        logging.info('Reading from cog length file %s', args.length_list)
+        mainLogger.info('Reading from cog length file %s', args.length_list)
         cogLengths = readCogLengthFile(args.length_list)
-        logging.info('Read %d cog lengths', len(cogLengths))
+        mainLogger.info('Read %d cog lengths', len(cogLengths))
     
     if args.cog_list == None:
         gfaFiles = glob.glob(args.Gene_dir + '/*.gfa')
-        logging.info('Processing %d .gfa files from directory %s', len(gfaFiles),args.Gene_dir)
+        mainLogger.info('Processing %d .gfa files from directory %s', len(gfaFiles),args.Gene_dir)
     else:
         with open(args.cog_list,'r') as cog_file:
             cogs = [line.rstrip() for line in cog_file]
         gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
-        logging.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
+        mainLogger.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
     
     
     (assemblyGraphs,  sink_maps, source_maps, cov_maps) = readGFA(gfaFiles,int(args.kmer_length),cogLengths)
     
     #import ipdb; ipdb.set_trace() 
-    logging.info('Create first AssemblyPathSVA object just for sample selection')
+    mainLogger.info('Create first AssemblyPathSVA object just for sample selection')
      
-    assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, 
+    assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, 
                                 readLength=args.readLength, ARD=True,BIAS=args.bias,  NOISE=args.NOISE, 
                                 fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
@@ -313,10 +343,10 @@ def main(argv):
 
     selectedSamples = selectSamples(assGraph, genesFilter, float(args.readLength),float(args.kmer_length),float(args.min_cov),float(args.min_frac_cov))
     
-    logging.info('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
+    mainLogger.info('Selecting ' + str(np.sum(selectedSamples)) + ' samples:')
         
     if np.sum(selectedSamples) < 2:
-        logging.info("Not recommended to use bias with fewer than 2 samples setting bias to false and using fixed tau")
+        mainLogger.info("Not recommended to use bias with fewer than 2 samples setting bias to false and using fixed tau")
         args.bias = False
         args.tauType = 'fixed'
 
@@ -324,14 +354,14 @@ def main(argv):
         summaryFile=args.outFileStub + "_summary.txt"
         with open(summaryFile,'w') as f:
             f.write('Not recommended to run BayesPaths.py with fewer than 1 samples exiting..\n')
-            logging.warning("Not recommended to run BayesPaths.py with fewer than 1 samples exiting...")
+            mainLogger.warning("Not recommended to run BayesPaths.py with fewer than 1 samples exiting...")
         sys.exit(0)
 
     selectedIndices = np.where(selectedSamples)
     
     sString = ','.join([str(s) for s in selectedIndices])
     
-    logging.info('Samples selected: %s', sString)
+    mainLogger.info('Samples selected: %s', sString)
    
     assemblyGraphsFilter = {s:assemblyGraphs[s] for s in genesFilter}
     source_maps_filter = {s:source_maps[s] for s in genesFilter} 
@@ -340,8 +370,8 @@ def main(argv):
     for gene, graph in assemblyGraphsFilter.items():
         graph.selectSamples(selectedSamples)
     
-    logging.info('Create second AssemblyPathSVA object for gene filtering')
-    assGraph = AssemblyPathSVA(prng, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
+    mainLogger.info('Create second AssemblyPathSVA object for gene filtering')
+    assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                 tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
@@ -360,13 +390,13 @@ def main(argv):
         gIter = 0
 
         while nChange > 0 and gIter < maxGIter:
-            logging.info("Round " + str(gIter) + " of gene filtering")
+            mainLogger.info("Round " + str(gIter) + " of gene filtering")
         
-            logging.info("Perform NMF VB initialisation")
+            mainLogger.info("Perform NMF VB initialisation")
             
             assGraph.initNMFVB(None, True)
             
-            logging.info("Run %d iter SVI", args.iters*2)
+            mainLogger.info("Run %d iter SVI", args.iters*2)
             
             assGraph.update(args.iters*2, True, None, True, drop_strain=None,relax_path=False)
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
@@ -377,9 +407,9 @@ def main(argv):
             try:
                 os.mkdir(outDir)
             except FileExistsError:
-                logging.warning('Directory %s not created', outDir)
+                mainLogger.warning('Directory %s not created', outDir)
             
-            logging.info("Write output to %s", outDir)
+            mainLogger.info("Write output to %s", outDir)
             
             assGraph.writeGeneError(outDir + '/' + stub + "_geneError.csv")
         
@@ -387,12 +417,12 @@ def main(argv):
 
             genesSelect = filterGenes(assGraph,args.bGeneDev)
             nChange = -len(genesSelect) + len(assGraph.genes)
-            logging.info("Removed: " + str(nChange) + " genes")
+            mainLogger.info("Removed: " + str(nChange) + " genes")
             assemblyGraphsSelect = {s:assemblyGraphs[s] for s in genesSelect}
             source_maps_select = {s:source_maps[s] for s in genesSelect} 
             sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
-            assGraph = AssemblyPathSVA(prng, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
+            assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
@@ -406,47 +436,48 @@ def main(argv):
 
     #import ipdb; ipdb.set_trace()
      
-    logging.info("Perform NMF VB initialisation")
+    mainLogger.info("Perform NMF VB initialisation")
     
     assGraph.initNMFVB(None, True)
 
-    logging.info("Run %d iter SVI", args.iters)
+    mainLogger.info("Run %d iter SVI", args.iters)
     
     assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
 
-    logging.info("Run %d iter SVI with relaxed path", args.iters)
+    mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+ #   assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
     outDir = dir + "/" + stub + "_U"
-    logging.info("Write output prior uncertainty filter to %s", outDir)
+    mainLogger.info("Write output prior uncertainty filter to %s", outDir)
     try:
         os.mkdir(outDir)
     except FileExistsError:
-        logging.warning('Directory %s not created', outDir)
+        mainLogger.warning('Directory %s not created', outDir)
                 
 
     assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
     
-    logging.info("Run %d iter SVI with uncertainty filtering", args.iters)
+    mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
     
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+  #  assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+   # assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
   
     outDir = dir + "/" + stub + "_P"
-    logging.info("Write output after uncertainty filter to %s", outDir)
+    mainLogger.info("Write output after uncertainty filter to %s", outDir)
     try:
         os.mkdir(outDir)
     except FileExistsError:
-        logging.warning('Directory %s not created', outDir)
+        mainLogger.warning('Directory %s not created', outDir)
   
   
     assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
 
     Gopt = assGraph.G + 1
 
-    if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
+  #  if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
+    if True:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
         
@@ -459,15 +490,7 @@ def main(argv):
 
         M = np.ones((assGraph.V,assGraph.S))
     
-
-        (Ms_train1,Ms_test1) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
-
-       # (Ms_train2,Ms_test2) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
-
-        Ms_train = Ms_train1 #+ Ms_train2 
-        
-        Ms_test = Ms_test1 #+ Ms_test2
-
+        (Ms_train,Ms_test) = compute_folds_attempts(prng, I=assGraph.V,J=assGraph.S,no_folds=no_folds,attempts=M_attempts,M=M)
 
         outDir = dir + "/" + stub + "_CV"
         
@@ -475,7 +498,7 @@ def main(argv):
             os.mkdir(outDir)
 
         except FileExistsError:
-            print('Directory not created.')
+            mainLogger.warning('Directory not created: %s', outDir)
 
 
         for g in range(1,Gopt + 1):
@@ -533,9 +556,9 @@ def main(argv):
     
         minG = max(mean_errs, key=mean_errs.get)
        
-        logging.info("Using " + str(minG) + " strains")
+        mainLogger.info("Using " + str(minG) + " strains")
  
-        assGraph = AssemblyPathSVA(prng, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
+        assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
@@ -562,19 +585,22 @@ def main(argv):
         assGraph.expTheta2 = np.copy(bestParams[5])
         
         
-        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)    
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)    
 
-        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=False,bMulti=True)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
 
-        assGraph.update(args.iters, True, None, True, logFile=args.outFileStub + "_log6.txt",drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
+    
+    mainLogger.info("Write final output to %s ...", args.outFileStub + "_Q")
     
     assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
     
     
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:
-        print("BayesPaths finished")
+        mainLogger.logging("BayesPaths finished resolving " + str(Gopt) + " strains")
+
         f.write("BayesPaths finished resolving " + str(Gopt) + " strains")
     sys.exit(0)
 
