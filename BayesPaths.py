@@ -103,7 +103,7 @@ def assGraphWorker(gargs):
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB(M_train, True)
+    assGraph.initNMFVB2(M_train, True)
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -272,7 +272,7 @@ def main(argv):
 
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
-    parser.add_argument('--no_run_elbow', dest='run_elbow', action='store_false')
+    parser.add_argument('--norun_elbow', dest='run_elbow', action='store_false')
 
     parser.add_argument('--norelax', dest='relax_path', action='store_false')
 
@@ -325,7 +325,7 @@ def main(argv):
     mainLogger.info('Create first AssemblyPathSVA object just for sample selection')
      
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, 
-                                readLength=args.readLength, ARD=True,BIAS=args.bias,  NOISE=args.NOISE, 
+                                readLength=args.readLength, ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, 
                                 fgExePath=args.executable_path, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
@@ -372,7 +372,7 @@ def main(argv):
     
     mainLogger.info('Create second AssemblyPathSVA object for gene filtering')
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
-                                ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                 tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
     assemblyGraphs = assemblyGraphsFilter
@@ -394,7 +394,7 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB(None, True)
+            assGraph.initNMFVB2(None, True)
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -423,7 +423,7 @@ def main(argv):
             sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
             assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                        ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
 
@@ -438,7 +438,7 @@ def main(argv):
      
     mainLogger.info("Perform NMF VB initialisation")
     
-    assGraph.initNMFVB(None, True)
+    assGraph.initNMFVB2(None, True)
 
     mainLogger.info("Run %d iter SVI", args.iters)
     
@@ -558,7 +558,7 @@ def main(argv):
         mainLogger.info("Using " + str(minG) + " strains")
  
         assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
-                                        ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         bestRun = max(assErrors[minG], key = lambda t: t[2])
@@ -598,7 +598,7 @@ def main(argv):
     
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:
-        mainLogger.logging("BayesPaths finished resolving " + str(Gopt) + " strains")
+        mainLogger.info("BayesPaths finished resolving " + str(Gopt) + " strains")
 
         f.write("BayesPaths finished resolving " + str(Gopt) + " strains")
     sys.exit(0)
