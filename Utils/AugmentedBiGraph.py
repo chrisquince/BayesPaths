@@ -385,15 +385,21 @@ class AugmentedBiGraph():
 
     def decomposeFlows(self):
       
+        paths = {}
+      
         maxFlow = 1.0
         
         while maxFlow > 0.:
     
             (maxPath, maxFlow) = self.getMaxMinFlowPathDAG()
         
-            self. addFlowPath(maxPath, -maxFlow)
+            self.addFlowPath(maxPath, -maxFlow)
+        
+            paths[tuple(maxPath)] = maxFlow
         
             print(str(maxFlow))
+    
+        return paths
 
 
     
