@@ -2092,12 +2092,12 @@ class AssemblyPathSVA():
             self.cGraph.X = xVals
             self.cGraph.L = Lengths
                 
-            self.cGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 100)
+            self.cGraph.optimseFlows(self.logger, gaussianNLL_F, gaussianNLL_D, 200)
                 
             (maxFlow,maxFlows) = nx.maximum_flow(self.cGraph.diGraph, 'source+','sink+', capacity='flow')
             
             #maxFlow = max(maxFlow,0.01)
-            print('%d %f',g,maxFlow)
+            #self.logger('%d %f',g,maxFlow)
             if maxFlow > 1.0e-6:
                 gGamma[g,:] = BNMF.exp_V.T[g,:]*maxFlow
             
@@ -2154,7 +2154,7 @@ class AssemblyPathSVA():
             self.cGraph.L = Lengths
             
             self.logger.info("Graph norm for haplo: %d",g)
-            self.cGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 100)
+            self.cGraph.optimseFlows(self.logger,gaussianNLL_F, gaussianNLL_D, 200)
             
             copyGraph = self.cGraph.diGraph.copy()
             
@@ -2216,7 +2216,7 @@ class AssemblyPathSVA():
             self.cGraph.L = Lengths
             
             self.logger.info("Graph norm for haplo: %d",g)
-            self.cGraph.optimseFlows(gaussianNLL_F, gaussianNLL_D, 100)
+            self.cGraph.optimseFlows(self.logger,gaussianNLL_F, gaussianNLL_D, 200)
             
             copyGraph = self.cGraph.diGraph.copy()
             
@@ -2277,11 +2277,11 @@ class AssemblyPathSVA():
         
             XCNDash = (100*XCN)/XSum[np.newaxis,:]
         
-            BNMF =  bnmf_vb(XCNDash,MC,self.G,ARD = True,hyperparameters=hyperp)
+            BNMF =  bnmf_vb(self.prng,self.logger,XCNDash,MC,self.G,ARD = True,hyperparameters=hyperp)
             
             self.logger.info("Round: %d of NMF",n)
             
-            BNMF.initialise()      
+            BNMF.initialise(init_UV='random')      
         
             BNMF.run(1000)
 

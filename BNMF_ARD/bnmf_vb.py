@@ -42,19 +42,34 @@ Finally, we can return the goodness of fit of the data using the quality(metric)
          = 'ELBO'       -> return Evidence Lower Bound
 """
 
+""" Adapted from original code by Tomas Brouwer by Chris Quince """
+
 from BNMF_ARD.gamma import gamma_expectation, gamma_expectation_log
 from BNMF_ARD.truncated_normal_vector import TN_vector_expectation, TN_vector_variance
-from BNMF_ARD.exponential import exponential_draw
 
 import numpy, itertools, math, scipy, time
+
+import logging 
 
 ALL_METRICS = ['MSE','R^2','Rp']
 ALL_QUALITY = ['loglikelihood','BIC','AIC','MSE','ELBO']
 OPTIONS_INIT_UV = ['random', 'exp']
 
+from numpy.random import exponential
+
+# Exponential draws
+def exponential_draw(prng,lambdax):
+    scale = 1.0 / lambdax
+    return prng.exponential(scale=scale,size=None)
+    
+    
+
 class bnmf_vb:
-    def __init__(self,R,M,K,ARD,hyperparameters):
+    def __init__(self,prng, logger, R,M,K,ARD,hyperparameters):
         ''' Set up the class and do some checks on the values passed. '''
+        self.prng   = prng
+        self.logger = logger
+        
         self.R = numpy.array(R,dtype=float)
         self.M = numpy.array(M,dtype=float)
         self.K = K
@@ -122,11 +137,11 @@ class bnmf_vb:
         for i,k in itertools.product(range(self.I),range(self.K)):  
             self.tau_U[i,k] = 1.
             hyperparam = self.exp_lambdak[k] if self.ARD else self.lambdaU[i,k]
-            self.mu_U[i,k] = exponential_draw(hyperparam) if init_UV == 'random' else 1.0/hyperparam
+            self.mu_U[i,k] = exponential_draw(self.prng,hyperparam) if init_UV == 'random' else 1.0/hyperparam
         for j,k in itertools.product(range(self.J),range(self.K)):
             self.tau_V[j,k] = 1.
             hyperparam = self.exp_lambdak[k] if self.ARD else self.lambdaV[j,k]
-            self.mu_V[j,k] = exponential_draw(hyperparam) if init_UV == 'random' else 1.0/hyperparam
+            self.mu_V[j,k] = exponential_draw(self.prng,hyperparam) if init_UV == 'random' else 1.0/hyperparam
         
         # Compute expectations and variances U, V
         self.exp_U, self.var_U = numpy.zeros((self.I,self.K)), numpy.zeros((self.I,self.K))
@@ -180,8 +195,9 @@ class bnmf_vb:
             perf, elbo = self.predict(self.M), self.elbo()
             for metric in ALL_METRICS:
                 self.all_performances[metric].append(perf[metric])
-                
-            print ("Iteration %s. ELBO: %s. MSE: %s. R^2: %s. Rp: %s." % (it+1,elbo,perf['MSE'],perf['R^2'],perf['Rp']))
+            
+            if it % 10 == 0:
+                self.logger.info("Iteration %s. ELBO: %s. MSE: %s. R^2: %s. Rp: %s." % (it+1,elbo,perf['MSE'],perf['R^2'],perf['Rp']))
             
             # Store time taken for iteration
             time_iteration = time.time()
