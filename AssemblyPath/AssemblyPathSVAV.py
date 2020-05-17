@@ -2271,7 +2271,7 @@ class AssemblyPathSVA():
                 u = u+1    
         n = 0
         while n < no_runs:
-            hyperp =     hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
+            hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
         
             XSum = np.sum(XCN,axis=0)
         
