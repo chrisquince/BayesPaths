@@ -288,7 +288,7 @@ class AugmentedBiGraph():
 
         return DeltaF
         
-    def optimseFlows(self, NLL_F, NLL_D, maxIter):
+    def optimseFlows(self, logger,  NLL_F, NLL_D, maxIter):
     
         self.initialiseFlows()  
    
@@ -304,8 +304,8 @@ class AugmentedBiGraph():
         ssedges = set(self.sEdges) 
     
         init_pflow = 0.1*max(self.X.items(), key=itemgetter(1))[1]
-        logging.info("Performing %d iterations of graph normalisation: ",maxIter)
-        logging.info("Iter, dF, F")
+        logger.info("Performing %d iterations of graph normalisation: ",maxIter)
+        logger.info("Iter, dF, F")
         
         while i < maxIter:
    
@@ -378,7 +378,7 @@ class AugmentedBiGraph():
             (dF, F) = self.evalDF(NLL_F, NLL_D)
         
             if i % 10 == 0:
-                logging.info("%d, %f, %f", i, dF, F)
+                logger.info("%d, %f, %f", i, dF, F)
             
 
             i+=1
