@@ -44,8 +44,8 @@ Finally, we can return the goodness of fit of the data using the quality(metric)
 
 """ Adapted from original code by Tomas Brouwer by Chris Quince """
 
-from BNMF_ARD.gamma import gamma_expectation, gamma_expectation_log
-from BNMF_ARD.truncated_normal_vector import TN_vector_expectation, TN_vector_variance
+from BayesPaths.gamma import gamma_expectation, gamma_expectation_log
+from BayesPaths.truncated_normal_vector import TN_vector_expectation, TN_vector_variance
 
 import numpy, itertools, math, scipy, time
 

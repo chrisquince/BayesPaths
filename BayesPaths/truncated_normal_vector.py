@@ -30,7 +30,7 @@ import math, numpy, time
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, norm
 from scipy.special import erfc
-import BNMF_ARD.rtnorm
+import BayesPaths.rtnorm
 
 
 # TN draws

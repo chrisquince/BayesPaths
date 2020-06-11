@@ -53,9 +53,9 @@ from BayesPaths.NMFM import NMF
 from BayesPaths.NMF_VB import NMF_VB
 from BayesPaths.bnmf_vb import bnmf_vb
 
-from Utils.AugmentedBiGraph import AugmentedBiGraph
-from Utils.AugmentedBiGraph import gaussianNLL_F
-from Utils.AugmentedBiGraph import gaussianNLL_D
+from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
+from BayesPaths.AugmentedBiGraph import gaussianNLL_F
+from BayesPaths.AugmentedBiGraph import gaussianNLL_D
 
 import subprocess
 import shlex
