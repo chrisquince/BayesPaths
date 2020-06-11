@@ -35,18 +35,18 @@ from collections import defaultdict
 from collections import Counter
 from numpy.random import RandomState
 
-from Utils.UtilsFunctions import convertNodeToName
-from Utils.UtilsFunctions import elop
-from Utils.UtilsFunctions import expNormLogProb
-from Utils.UtilsFunctions import TN_vector_expectation
-from Utils.UtilsFunctions import TN_vector_variance
-from Utils.UtilsFunctions import readRefAssign
-from Utils.UnitigGraph import UnitigGraph
-from BNMF_ARD.exponential import exponential_draw
+from BayesPaths.UtilsFunctions import convertNodeToName
+from BayesPaths.UtilsFunctions import elop
+from BayesPaths.UtilsFunctions import expNormLogProb
+from BayesPaths.UtilsFunctions import TN_vector_expectation
+from BayesPaths.UtilsFunctions import TN_vector_variance
+from BayesPaths.UtilsFunctions import readRefAssign
+from BayesPaths.UnitigGraph import UnitigGraph
+from BayesPaths.exponential import exponential_draw
 
-from Utils.AugmentedBiGraph import AugmentedBiGraph
-from Utils.AugmentedBiGraph import gaussianNLL_F
-from Utils.AugmentedBiGraph import gaussianNLL_D
+from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
+from BayesPaths.AugmentedBiGraph import gaussianNLL_F
+from BayesPaths.AugmentedBiGraph import gaussianNLL_D
 
 import subprocess
 import shlex
