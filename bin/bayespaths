@@ -602,9 +602,9 @@ def main(argv):
     
     summaryFile=args.outFileStub + "_summary.txt"
     with open(summaryFile,'w') as f:
-        mainLogger.info("BayesPaths finished resolving " + str(Gopt) + " strains")
+        mainLogger.info("BayesPaths finished resolving " + str(assGraph.G) + " strains")
 
-        f.write("BayesPaths finished resolving " + str(Gopt) + " strains")
+        f.write("BayesPaths finished resolving " + str(assGraph.G) + " strains")
     sys.exit(0)
 
 if __name__ == "__main__":
