@@ -10,9 +10,9 @@ from subprocess import PIPE
 from collections import defaultdict
 
 from BayesPaths.UnitigGraph import UnitigGraph
-from Utils.UtilsFunctions import convertNodeToName
-from Utils.UtilsFunctions import expNormLogProb
-from Utils.UtilsFunctions import expLogProb
+from BayesPaths.UtilsFunctions import convertNodeToName
+from BayesPaths.UtilsFunctions import expNormLogProb
+from BayesPaths.UtilsFunctions import expLogProb
 from operator import itemgetter
 
 import uuid
