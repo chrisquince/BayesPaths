@@ -6,11 +6,13 @@ import os
 import re
 import logging
 
-from Utils.mask import compute_folds_attempts
+#BayesPaths imports
+from BayesPaths.UnitigGraph import UnitigGraph
+from BayesPaths.AssemblyPathSVA import AssemblyPathSVA
+from BayesPaths.UtilsFunctions import convertNodeToName
+from BayesPaths.mask import compute_folds_attempts
+
 from collections import defaultdict
-from Utils.UnitigGraph import UnitigGraph
-from AssemblyPath.AssemblyPathSVAV import AssemblyPathSVA
-from Utils.UtilsFunctions import convertNodeToName
 from numpy.random import RandomState
 from pathos.multiprocessing import ProcessingPool 
 from pathlib import Path
