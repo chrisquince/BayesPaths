@@ -101,7 +101,7 @@ def assGraphWorker(gargs):
     logger.info('Start running: %s', name)
 
     assGraph = AssemblyPathSVA(prng, logger, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
-                                ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, 
+                                ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
@@ -274,6 +274,9 @@ def main(argv):
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=2.0, type=float,
         help=("penalisation on uncertain strains"))
 
+    parser.add_argument('-nr', '--nmf_iters', default=10, type=int,
+        help="number of runs for NMF")
+
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
     parser.add_argument('--norun_elbow', dest='run_elbow', action='store_false')
@@ -330,7 +333,7 @@ def main(argv):
      
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = args.strain_number, 
                                 readLength=args.readLength, ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, 
-                                fgExePath=args.executable_path, bLoess = args.loess, 
+                                fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov, noiseFrac = args.noise_frac)
     
@@ -376,7 +379,7 @@ def main(argv):
     
     mainLogger.info('Create second AssemblyPathSVA object for gene filtering')
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
-                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
                                 tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
 
     assemblyGraphs = assemblyGraphsFilter
@@ -427,7 +430,7 @@ def main(argv):
             sink_maps_select = {s:sink_maps[s] for s in genesSelect}
 
             assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
-                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
 
 
@@ -562,7 +565,7 @@ def main(argv):
         mainLogger.info("Using " + str(minG) + " strains")
  
         assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
-                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, bLoess = args.loess, bGam = args.usegam, 
+                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
                                         tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
    
         bestRun = max(assErrors[minG], key = lambda t: t[2])

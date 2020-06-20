@@ -204,7 +204,7 @@ class AssemblyPathSVA():
     def __init__(self, prng, logger, assemblyGraphs, source_maps, sink_maps, G = 2, logFile = None, maxFlux=2, 
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
-                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
+                minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, nNmfIters=10, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
                 working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
                 
         self.prng = prng #random state to store
@@ -260,6 +260,8 @@ class AssemblyPathSVA():
             self.tauTheta0 = tauTheta0
 
         self.tauType = tauType
+
+        self.nNmfIters = nNmfIters
 
         self.V = 0
         self.mapIdx = {}
@@ -2257,7 +2259,7 @@ class AssemblyPathSVA():
         MC = mask[selectV,:]
         LC = self.lengths[selectV]
         
-        no_runs = 10
+        no_runs = self.nNmfIters
         
         bestGamma = None
         bestErr = 1.0e10
