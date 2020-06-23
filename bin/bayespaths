@@ -412,7 +412,7 @@ def main(argv):
             #MSEP = assGraph.predictMaximal(np.ones((assGraph.V,assGraph.S)))
             #MSE = assGraph.predict(np.ones((assGraph.V,assGraph.S)))
             
-            outDir = dir + "/" + stub + "Gene_F" + str(gIter)
+            outDir = dir + "/" + stub + "Gene_Filter" + str(gIter)
         
             try:
                 os.mkdir(outDir)
@@ -458,7 +458,7 @@ def main(argv):
 
     assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
-    outDir = dir + "/" + stub + "_U"
+    outDir = dir + "/" + stub + "_PreUFilter"
     mainLogger.info("Write output prior uncertainty filter to %s", outDir)
     try:
         os.mkdir(outDir)
@@ -474,7 +474,7 @@ def main(argv):
 
     assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
   
-    outDir = dir + "/" + stub + "_P"
+    outDir = dir + "/" + stub + "_PostUFilter"
     mainLogger.info("Write output after uncertainty filter to %s", outDir)
     try:
         os.mkdir(outDir)
@@ -601,9 +601,9 @@ def main(argv):
         assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
     
-    mainLogger.info("Write final output to %s ...", args.outFileStub + "_Q")
+    mainLogger.info("Write final output to %s ...", args.outFileStub)
     
-    assGraph.writeOutput(args.outFileStub + "_Q", False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
     
     
     summaryFile=args.outFileStub + "_summary.txt"

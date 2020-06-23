@@ -3663,26 +3663,26 @@ class AssemblyPathSVA():
         
         self.writeGeneError(outFileStub + "geneError.csv")
 
-        self.writeMarginals(outFileStub + "margFile.csv")
+        self.writeMarginals(outFileStub + "margProb.csv")
    
         self.getMaximalUnitigs(outFileStub + "Haplo_" + str(self.G),drop_strain=None, relax_path=relax_path_out)
     
-        self.writeMaximals(outFileStub + "maxFile.tsv",drop_strain=None)
+        self.writeMaximals(outFileStub + "maxPath.tsv",drop_strain=None)
    
         selectedIndices = np.where(selectedSamples)
    
-        self.writeGammaMatrix(outFileStub + "Gamma.csv", selectedIndices) 
+        self.writeGammaMatrix(outFileStub + "Intensity.csv", selectedIndices) 
 
-        self.writeGammaVarMatrix(outFileStub + "varGamma.csv", selectedIndices) 
+        self.writeGammaVarMatrix(outFileStub + "varIntensity.csv", selectedIndices) 
     
         if self.BIAS:
-            self.writeTheta(outFileStub + "Theta.csv") 
+            self.writeTheta(outFileStub + "Bias.csv") 
 
-        self.writeTau(outFileStub + "Tau.csv")
+        self.writeTau(outFileStub + "Precision.csv")
 
-        self.writePathDivergence(outFileStub + "Diver.csv",relax_path=relax_path_out)
+        self.writePathDivergence(outFileStub + "Divergence.csv",relax_path=relax_path_out)
         
-        self.writeMargMarginal(outFileStub + "MmargFile.csv")
+        self.writeMargMarginal(outFileStub + "maxMargProb.csv")
 
         self.writePredictions(outFileStub + "Pred.csv" , mask, drop_strain=None)
 
