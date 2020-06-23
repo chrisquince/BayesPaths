@@ -302,8 +302,9 @@ class AugmentedBiGraph():
         init_pflow = 0.1*max(self.X.items(), key=itemgetter(1))[1]
         logger.info("Performing %d iterations of graph normalisation: ",maxIter)
         logger.info("Iter, dF, F")
-        
-        while i < maxIter:
+        ChangeF = 1.0
+        F = -1.
+        while i < maxIter and abs(ChangeF) > 1.0e-3:
    
             self.setWeightsD(NLL_D)
             
@@ -370,9 +371,9 @@ class AugmentedBiGraph():
                     if pflow > 0.:
                         self.addEdgePath(epath, -pflow)
          
-
+            lastF = F
             (dF, F) = self.evalDF(NLL_F, NLL_D)
-        
+            ChangeF = F - lastF
             if i % 10 == 0:
                 logger.info("%d, %f, %f", i, dF, F)
             
