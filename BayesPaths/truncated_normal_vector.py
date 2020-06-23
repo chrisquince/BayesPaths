@@ -27,7 +27,7 @@ This means that we need to use the mean and variance of an exponential when
 Therefore we use it when |mu| < 30*std.
 """
 import math, numpy, time
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, norm
 from scipy.special import erfc
 import BayesPaths.rtnorm
