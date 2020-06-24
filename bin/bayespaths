@@ -603,7 +603,7 @@ def main(argv):
     
     mainLogger.info("Write final output to %s ...", args.outFileStub)
     
-    assGraph.writeOutput(args.outFileStub, False, selectedSamples)
+    assGraph.writeOutput(args.outFileStub + "F_", False, selectedSamples)
     
     
     summaryFile=args.outFileStub + "_summary.txt"
