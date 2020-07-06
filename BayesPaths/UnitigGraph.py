@@ -1022,10 +1022,10 @@ class UnitigGraph():
         tempDiGraph.add_node('sink+')
         
         for source in sources:
-            tempDiGraph.add_edge('source+',source)
+            tempDiGraph.add_edge('source+',source,weight=0.,covweight=0.)
             
         for sink in sinks:
-            tempDiGraph.add_edge(sink,'sink+')
+            tempDiGraph.add_edge(sink,'sink+',weight=0.,covweight=0.)
         
         undirectedUnitigBiGraph = tempDiGraph.to_undirected()
         
