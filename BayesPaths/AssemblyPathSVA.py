@@ -213,11 +213,11 @@ class AssemblyPathSVA():
 
         self.readLength = readLength #sequencing read length
  
-        self.assemblyGraphs = assemblyGraphs
+        self.assemblyGraphs = dict(assemblyGraphs)
         
-        self.source_maps = source_maps
+        self.source_maps = dict(source_maps)
         
-        self.sink_maps = sink_maps
+        self.sink_maps = dict(sink_maps)
  
         self.fgExePath = fgExePath
 
@@ -230,6 +230,8 @@ class AssemblyPathSVA():
         self.unitigFluxNodes = {}
         
         self.maxFlux = 2
+        
+        self.maxTotal = 16
         
         self.working_dir = working_dir
 
@@ -277,21 +279,31 @@ class AssemblyPathSVA():
         self.mapBubbles = {}
         self.augmentedBiGraphs = {}
         
-        for gene in sorted(assemblyGraphs):
-            self.genes.append(gene)
+        geneList = sorted(assemblyGraphs)
+        genesRemove = []  
+        for gene in geneList:
+
             self.logger.info('Construct factor graph for: %s', gene)
-            assemblyGraph = assemblyGraphs[gene]
+            assemblyGraph = self.assemblyGraphs[gene]
             
             source_names = [convertNodeToName(source) for source in source_maps[gene]] 
         
             sink_names = [convertNodeToName(sink) for sink in sink_maps[gene]]
             
             assemblyGraph.setDirectedBiGraphSource(source_names,sink_names)
-
-            self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
                 
             self.kFactor = self.readLength/(self.readLength - assemblyGraph.overlapLength + 1.)
-            (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
+            
+            try:
+                (factorGraph, unitigFactorNode, unitigFluxNode, factorDiGraph, bubble_map) = self.createFactorGraph(assemblyGraph, source_maps[gene], sink_maps[gene])
+            except ValueError as e:
+                print('COG ' + gene + ' too large not processing')
+                genesRemove.append(gene)
+                continue
+           
+            self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
+            
+            self.genes.append(gene)
            
             unitigsDash = list(unitigFactorNode.keys())
             unitigsDash.sort(key=int) 
@@ -325,6 +337,12 @@ class AssemblyPathSVA():
                 self.mapBubbles[self.V] = bubble_map[unitig]
                 
                 self.V += 1
+
+        for gene in genesRemove:
+            del self.assemblyGraphs[gene]
+            del self.sink_maps[gene]
+            del self.source_maps[gene]
+        
 
         self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
   
@@ -402,7 +420,7 @@ class AssemblyPathSVA():
         self.geneDegenerate = {}
         self.gene_maps = defaultdict(set)
         
-        for gene, sources in source_maps.items():
+        for gene, sources in self.source_maps.items():
             for source in sources:
                 sunitig = source[0]
                 sumSourceCovs[gene] += np.sum(self.assemblyGraphs[gene].covMap[sunitig])
@@ -414,7 +432,7 @@ class AssemblyPathSVA():
                     self.gene_maps[mapGene].add(gene)
                     self.geneDegenerate[gene] = mapGene
                      
-        for gene, sinks in sink_maps.items():
+        for gene, sinks in self.sink_maps.items():
             #print(gene)
             for sink in sinks:
                 sunitig = sink[0]
@@ -664,16 +682,20 @@ class AssemblyPathSVA():
         tempUFactor = tempGraph.to_undirected()
         
         compFactor = sorted(nx.connected_components(tempUFactor),key = len, reverse=True)
+        
+        for c in compFactor:
+
+            if 'source+' in c and 'sink+' in c:
+                largestFactor = c
+                break
+                        
         fNodes = list(tempGraph.nodes())
-        if len(compFactor) > 1:
-            largestFactor = compFactor[0]
-            
-            for node in fNodes:
-                if node not in largestFactor:
-                    tempGraph.remove_node(node)
+
+        for node in fNodes:
+            if node not in largestFactor:
+                tempGraph.remove_node(node)
         
         #self.writeNetworkGraph(tempGraph,"temp.graphml")
-        
         
         bubble_list = []
         
@@ -688,8 +710,14 @@ class AssemblyPathSVA():
             else:
                 break
     
-        (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
-    
+        try:
+            (factorGraph, unitigFactorNodes, unitigFluxNodes) = self.generateFactorGraph(tempGraph, assemblyGraph.unitigs)
+        except ValueError as e:
+            
+            print('Not using COG as factor graph too large')
+            
+            raise
+            
     
         unitigsDash = list(unitigFactorNodes.keys())
                 
@@ -749,28 +777,32 @@ class AssemblyPathSVA():
                 
                 Ntotal = nIn + nOut
                 
-                factorMatrix = np.zeros([self.maxFlux]*Ntotal)
+                if Ntotal < self.maxTotal:
                 
-                for indices, value in np.ndenumerate(factorMatrix):
+                    factorMatrix = np.zeros([self.maxFlux]*Ntotal)
                 
-                    fIn = sum(indices[0:nIn])
-                    fOut = sum(indices[nIn:])
+                    for indices, value in np.ndenumerate(factorMatrix):
+                
+                        fIn = sum(indices[0:nIn])
+                        fOut = sum(indices[nIn:])
                     
-                    if node == self.sourceNode: 
-                        if fIn == fOut:
-                            if fIn == 0:
+                        if node == self.sourceNode: 
+                            if fIn == fOut:
+                                if fIn == 0:
+                                    factorMatrix[indices] = 1.0
+                                else:
+                                    factorMatrix[indices] = 1.0
+                        
+                        else:
+                            if fIn == fOut:
                                 factorMatrix[indices] = 1.0
-                            else:
-                                factorMatrix[indices] = 1.0
                         
-                    else:
-                        if fIn == fOut:
-                            factorMatrix[indices] = 1.0
+                    mapNodeList = [probGraph.mapNodes[x] for x in inNodes + outNodes]
                         
-                mapNodeList = [probGraph.mapNodes[x] for x in inNodes + outNodes]
-                        
-                #mapNodes[node] = probGraph.addFacNode(factorMatrix, *mapNodeList)
-                probGraph.addFacNode(factorMatrix, *mapNodeList)
+                    #mapNodes[node] = probGraph.addFacNode(factorMatrix, *mapNodeList)
+                    probGraph.addFacNode(factorMatrix, *mapNodeList)
+                else:
+                    raise ValueError('Too many inputs links to node')
     
         unitigFacNodes = {}
         unitigFluxNodes = {}
