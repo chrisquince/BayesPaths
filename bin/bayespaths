@@ -107,7 +107,7 @@ def assGraphWorker(gargs):
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB2(M_train, True)
+    assGraph.initNMFVB(M_train, True)
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -403,7 +403,7 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB2(None, True)
+            assGraph.initNMFVB(None, True)
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -447,7 +447,7 @@ def main(argv):
      
     mainLogger.info("Perform NMF VB initialisation")
     
-    assGraph.initNMFVB2(None, True)
+    assGraph.initNMFVB(None, True)
 
     mainLogger.info("Run %d iter SVI", args.iters)
     
