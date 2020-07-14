@@ -2307,11 +2307,11 @@ class AssemblyPathSVA():
         while n < no_runs:
             hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
         
-            XSum = np.sum(XCN,axis=0)
+           # XSum = np.sum(XCN,axis=0)
         
-            XCNDash = (100*XCN)/XSum[np.newaxis,:]
+            #XCNDash = (100*XCN)/XSum[np.newaxis,:]
         
-            BNMF =  bnmf_vb(self.prng,self.logger,XCNDash,MC,self.G,ARD = True,hyperparameters=hyperp)
+            BNMF =  bnmf_vb(self.prng,self.logger,XCN,MC,self.G,ARD = True,hyperparameters=hyperp)
             
             self.logger.info("Round: %d of NMF",n)
             
@@ -2322,7 +2322,7 @@ class AssemblyPathSVA():
             
             self.logger.info("Graph normalise NMF")
             (gGamma, gPhi) = self.graphNormMatrix(uMap, BNMF, selectV)
-            gGamma = gGamma*XSum[np.newaxis,:]
+            #gGamma = gGamma #*XSum[np.newaxis,:]
             XN_pred = np.dot(gPhi,gGamma)
             
             err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
