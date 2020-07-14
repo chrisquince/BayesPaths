@@ -2277,7 +2277,7 @@ class AssemblyPathSVA():
      #           maxSampleCov = 0., tauType='poisson', ARD = True, BIAS = False, NOISE = False):
  
  
-    def initNMFVB2(self, mask = None, bMaskDegen = True, bARD = True):
+    def initNMFVB(self, mask = None, bMaskDegen = True, bARD = True, bScale = False):
     
         if mask is None:
             mask = np.ones((self.V, self.S))
@@ -2307,9 +2307,10 @@ class AssemblyPathSVA():
         while n < no_runs:
             hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
         
-           # XSum = np.sum(XCN,axis=0)
+            XSum = np.sum(XCN,axis=0)
         
-            #XCNDash = (100*XCN)/XSum[np.newaxis,:]
+            if bScale:
+                XCNDash = (100*XCN)/XSum[np.newaxis,:]
         
             BNMF =  bnmf_vb(self.prng,self.logger,XCN,MC,self.G,ARD = True,hyperparameters=hyperp)
             
@@ -2322,7 +2323,10 @@ class AssemblyPathSVA():
             
             self.logger.info("Graph normalise NMF")
             (gGamma, gPhi) = self.graphNormMatrix(uMap, BNMF, selectV)
-            #gGamma = gGamma #*XSum[np.newaxis,:]
+            
+            if bScale:
+                gGamma = (gGamma*XSum[np.newaxis,:])/100.
+                
             XN_pred = np.dot(gPhi,gGamma)
             
             err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
@@ -2343,156 +2347,6 @@ class AssemblyPathSVA():
             
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
- 
- 
-    def initNMFVB3(self, mask = None, bMaskDegen = True, bARD = True):
-    
-    
-        if mask is None:
-            mask = np.ones((self.V, self.S))
-            
-        if bMaskDegen:
-            mask = mask*self.MaskDegen
-        
-        selectV = np.sum(mask,axis=1) > 0
-        XC = self.X[selectV,:]
-        XCN = self.XN[selectV,:]
-        MC = mask[selectV,:]
-        LC = self.lengths[selectV]
-        
-        no_runs = 1
-        
-        bestGamma = None
-        bestErr = 1.0e10
-        bestPhi = None
-        
-        uMap = {}
-        u = 0
-        for v in range(self.V):
-            if selectV[v]:
-                uMap[v] = u
-                u = u+1    
-        n = 0
-        while n < no_runs:
-            BNMF = NMF_VB(self.prng, self.logger, XC, XCN, self.lengths[selectV], self.G, tauType=self.tauType, ARD = self.ARD)
-        
-            self.logger.info("Round: %d of NMF",n)
-            BNMF.initialise(init_UV='random',mask=MC)
-            BNMF.update(500, mask=MC)
- 
-            self.logger.info("Graph normalise NMF")
-            (gGamma, gPhi, gPaths) = self.graphNormMatrix2(uMap, BNMF, selectV)
-            
-            
-            
-            XN_pred = np.dot(gPhi,gGamma)
-            
-            err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
-            
-            self.logger.info("Error round %d of NMF: %f",n, err)
-            self.logger.info(str(n) + "," + str(err))
-            
-            if err < bestErr:
-                bestGamma = gGamma
-                bestPhi   = gPhi
-                bestErr = err
-            
-            n += 1
-        
-        
-        bestGamma = np.zeros((self.G,self.S))
-        bestPhi = np.zeros((self.V,self.G))
-
-        gSort = sorted(gPaths.items(), key = lambda x: np.sum(x[1]), reverse=True)
-        
-        g = 0
-        for (path, vals) in gSort:
-            
-            if g == self.G:
-                break
-    
-            bestGamma[g,:] = gPaths[path]
-            
-            for node in path:
-                noded = node[:-1]
-                
-                if noded in self.mapIdx:
-                    v = self.mapIdx[noded]
-            
-                    bestPhi[v,g] = 1.
-        
-            g = g + 1
-        
-        self.logger.info("Best error: %f",bestErr)
-        self.expGamma[0:self.G,:] = bestGamma
-        self.expPhi[:,0:self.G] = bestPhi
-            
-        self.expGamma2 = self.expGamma*self.expGamma
-        self.expPhi2 = self.expPhi*self.expPhi   
- 
- 
-     
-     
-    def initNMFVB(self, mask = None, bMaskDegen = True, bARD = True):
-    
-    
-        if mask is None:
-            mask = np.ones((self.V, self.S))
-            
-        if bMaskDegen:
-            mask = mask*self.MaskDegen
-        
-        selectV = np.sum(mask,axis=1) > 0
-        XC = self.X[selectV,:]
-        XCN = self.XN[selectV,:]
-        MC = mask[selectV,:]
-        LC = self.lengths[selectV]
-        
-        no_runs = 10
-                
-        bestGamma = None
-        bestErr = 1.0e10
-        bestPhi = None
-        
-        uMap = {}
-        u = 0
-        for v in range(self.V):
-            if selectV[v]:
-                uMap[v] = u
-                u = u+1    
-        n = 0
-        while n < no_runs:
-            BNMF = NMF_VB(self.prng, self.logger, XC, XCN, self.lengths[selectV], self.G, tauType=self.tauType, ARD = self.ARD)
-        
-            self.logger.info("Round: %d of NMF",n)
-            BNMF.initialise(init_UV='random',mask=MC)
-            BNMF.update(500, mask=MC)
- 
-            self.logger.info("Graph normalise NMF")
-            (gGamma, gPhi) = self.graphNormMatrix3(uMap, BNMF, selectV)
-            
-            XN_pred = np.dot(gPhi,gGamma)
-            
-            err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
-            
-            self.logger.info("Error round %d of NMF: %f",n, err)
-            self.logger.info(str(n) + "," + str(err))
-            
-            if err < bestErr:
-                bestGamma = gGamma
-                bestPhi   = gPhi
-                bestErr = err
-            
-            n += 1
-        
-        self.logger.info("Best error: %f",bestErr)
-        self.expGamma[0:self.G,:] = bestGamma
-        self.expPhi[:,0:self.G] = bestPhi
-            
-        self.expGamma2 = self.expGamma*self.expGamma
-        self.expPhi2 = self.expPhi*self.expPhi  
- 
- 
  
         
     def initNMF(self, mask = None, bMaskDegen = True):
