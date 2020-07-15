@@ -107,7 +107,7 @@ def assGraphWorker(gargs):
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB(M_train, True)
+    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, ARD=False)
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -280,6 +280,8 @@ def main(argv):
     parser.add_argument('-ngf', '--max_giter', default=4, type=int,
         help="number of rounds of gene filtering")
 
+    parser.add_argument('--noscale_nmf', dest='scale_nmf', action='store_false')
+
     parser.add_argument('--nofilter', dest='filter', action='store_false')
 
     parser.add_argument('--norun_elbow', dest='run_elbow', action='store_false')
@@ -403,7 +405,7 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB(None, True)
+            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -447,7 +449,7 @@ def main(argv):
      
     mainLogger.info("Perform NMF VB initialisation")
     
-    assGraph.initNMFVB(None, True)
+    assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
 
     mainLogger.info("Run %d iter SVI", args.iters)
     

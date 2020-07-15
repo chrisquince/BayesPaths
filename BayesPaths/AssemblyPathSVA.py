@@ -2277,7 +2277,7 @@ class AssemblyPathSVA():
      #           maxSampleCov = 0., tauType='poisson', ARD = True, BIAS = False, NOISE = False):
  
  
-    def initNMFVB(self, mask = None, bMaskDegen = True, bARD = True, bScale = False):
+    def initNMFVB(self, mask = None, bMaskDegen = True, bScale = False, bARD = True):
     
         if mask is None:
             mask = np.ones((self.V, self.S))
@@ -2312,7 +2312,7 @@ class AssemblyPathSVA():
             if bScale:
                 XCNDash = (100*XCN)/XSum[np.newaxis,:]
         
-            BNMF =  bnmf_vb(self.prng,self.logger,XCN,MC,self.G,ARD = True,hyperparameters=hyperp)
+            BNMF =  bnmf_vb(self.prng,self.logger,XCN,MC,self.G, ARD = bARD, hyperparameters=hyperp)
             
             self.logger.info("Round: %d of NMF",n)
             
