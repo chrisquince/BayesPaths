@@ -53,9 +53,10 @@ from BayesPaths.NMFM import NMF
 from BayesPaths.NMF_VB import NMF_VB
 from BayesPaths.bnmf_vb import bnmf_vb
 
-from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
-from BayesPaths.AugmentedBiGraph import gaussianNLL_F
-from BayesPaths.AugmentedBiGraph import gaussianNLL_D
+#from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
+#from BayesPaths.AugmentedBiGraph import gaussianNLL_F
+#from BayesPaths.AugmentedBiGraph import gaussianNLL_D
+from BayesPaths.ResidualBiGraph2 import ResidualBiGraph
 
 import subprocess
 import shlex
@@ -277,7 +278,7 @@ class AssemblyPathSVA():
         bFirst = True
         self.nBubbles = 0
         self.mapBubbles = {}
-        self.augmentedBiGraphs = {}
+        self.residualBiGraphs = {}
         
         geneList = sorted(assemblyGraphs)
         genesRemove = []  
@@ -301,7 +302,7 @@ class AssemblyPathSVA():
                 genesRemove.append(gene)
                 continue
            
-            self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
+            self.residualBiGraphs[gene] = ResidualBiGraph.createFromUnitigGraph(assemblyGraph)
             
             self.genes.append(gene)
            
@@ -344,7 +345,7 @@ class AssemblyPathSVA():
             del self.source_maps[gene]
         
 
-        self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
+        self.cGraph = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes)
   
         self.biasMap = {}
         self.nBias = 0
@@ -2347,6 +2348,66 @@ class AssemblyPathSVA():
             
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
+ 
+     def initNMFGraph(self, mask = None, bMaskDegen = True, bScale = False, bARD = True):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+                
+        no_runs = self.nNmfIters
+        
+        bestGamma = None
+        bestErr = 1.0e10
+        bestPhi = None
+        
+        uMap = {}
+        u = 0
+        for v in range(self.V):
+            if selectV[v]:
+                uMap[v] = u
+                u = u+1    
+        n = 0
+        while n < no_runs:
+            
+            for sel
+            mapIdx
+            
+            nmfGraph = NMFGraph(self.cGraph, self.prng, self.X, self.G, lengths, mapIdx, bARD = True,alphaG=1.0e-6,betaG=1.0e-
+        
+
+
+            
+            self.logger.info("Graph normalise NMF")
+            (gGamma, gPhi) = self.graphNormMatrix(uMap, BNMF, selectV)
+            
+            if bScale:
+                gGamma = (gGamma*XSum[np.newaxis,:])/100.
+                
+            XN_pred = np.dot(gPhi,gGamma)
+            
+            err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
+            
+            self.logger.info("Error round %d of NMF: %f",n, err)
+            self.logger.info(str(n) + "," + str(err))
+            
+            if err < bestErr:
+                bestGamma = gGamma
+                bestPhi   = gPhi
+                bestErr = err
+            
+            n += 1
+        
+        self.logger.info("Best error: %f",bestErr)
+        self.expGamma[0:self.G,:] = bestGamma
+        self.expPhi[:,0:self.G] = bestPhi
+            
+        self.expGamma2 = self.expGamma*self.expGamma
+        self.expPhi2 = self.expPhi*self.expPhi  
+ 
+ 
  
         
     def initNMF(self, mask = None, bMaskDegen = True):

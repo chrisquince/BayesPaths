@@ -292,9 +292,7 @@ class NMFGraph():
     EPSILON = 1.0e-5
     PRECISION = 1.0e-15
 
-    def __init__(self, prng, unitigGraph, X, G, lengths, mapIdx, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
-
-        self.unitigGraph = unitigGraph
+    def __init__(self, biGraph, prng, X, G, lengths, mapIdx, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
         
         self.X = X
         
@@ -306,7 +304,7 @@ class NMFGraph():
         
         for g in range(self.G):
             
-            self.biGraphs[g] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
+            self.biGraphs[g] = ResidualBiGraph(biGraph.dGraph.copy(),biGraph.sEdges)
             
             self.biGraphs[g].initialiseFlows()
             

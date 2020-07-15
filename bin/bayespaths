@@ -445,11 +445,12 @@ def main(argv):
             gIter += 1
     
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
      
     mainLogger.info("Perform NMF VB initialisation")
     
-    assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
+    #assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
+    assGraph.initNMFGraph(None, True, bScale = args.scale_nmf, ARD=args.ARD)
 
     mainLogger.info("Run %d iter SVI", args.iters)
     
