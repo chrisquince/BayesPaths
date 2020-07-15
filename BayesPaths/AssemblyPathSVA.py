@@ -2375,27 +2375,21 @@ class AssemblyPathSVA():
             for sel
             mapIdx
             
-            nmfGraph = NMFGraph(self.cGraph, self.prng, self.X, self.G, lengths, mapIdx, bARD = True,alphaG=1.0e-6,betaG=1.0e-
+            
+            graphMapIdx = {}
+            
+            nmfGraph = NMFGraph(self.cGraph, self.prng, self.X, self.G, self.lengths, self.mapIdx, bARD)
         
+            nmfGraph.optimiseFlows(alpha=1.)
 
-
-            
-            self.logger.info("Graph normalise NMF")
-            (gGamma, gPhi) = self.graphNormMatrix(uMap, BNMF, selectV)
-            
-            if bScale:
-                gGamma = (gGamma*XSum[np.newaxis,:])/100.
-                
-            XN_pred = np.dot(gPhi,gGamma)
-            
-            err = (mask * (self.XN - XN_pred)**2).sum() / float(mask.sum())
-            
+            err = 0.
+             
             self.logger.info("Error round %d of NMF: %f",n, err)
             self.logger.info(str(n) + "," + str(err))
             
             if err < bestErr:
-                bestGamma = gGamma
-                bestPhi   = gPhi
+                bestGamma = nmfGraph.gamma
+                bestPhi   = nmfGraph.phi
                 bestErr = err
             
             n += 1
