@@ -127,6 +127,47 @@ class ResidualBiGraph():
         
         return copyDiGraph
     
+    @classmethod
+    def combineGraphs(cls,dictBiGraphs,geneList):
+      
+        cGraph = nx.DiGraph()
+        
+        lastGene = None
+        
+        sEdges = set()
+        
+        for gene in geneList:
+        
+            unitigsDash = list(dictBiGraphs[gene].diGraph.nodes())
+            
+            mapNodes = {s:gene + "_" + s for s in unitigsDash}
+            
+            if lastGene is None:
+                mapNodes['source+'] = 'source+'
+            
+            if gene == geneList[-1]:
+                mapNodes['sink+'] = 'sink+'
+            
+            sMap = [(mapNodes[e[0]],mapNodes[e[1]]) for e in dictBiGraphs[gene].sEdges]
+            sEdges.update(sMap)
+            
+            
+            tempGraph = nx.relabel_nodes(dictBiGraphs[gene].diGraph, mapNodes)
+ 
+            cGraph = nx.algorithms.operators.binary.compose(cGraph, tempGraph)
+            
+            if lastGene is not None:
+                lastSink = lastGene + '_sink+'
+                
+                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capicity=INT_SCALE,flow=0)
+            
+            lastGene = gene
+        
+        biGraph = cls(cGraph, sEdges)
+        
+        return biGraph
+    
+    
     def updateCosts(self,vCosts,mapIdx):
     
         for sEdge in self.sEdges:
