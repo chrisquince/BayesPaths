@@ -57,6 +57,7 @@ from BayesPaths.bnmf_vb import bnmf_vb
 #from BayesPaths.AugmentedBiGraph import gaussianNLL_F
 #from BayesPaths.AugmentedBiGraph import gaussianNLL_D
 from BayesPaths.ResidualBiGraph2 import ResidualBiGraph
+from BayesPaths.ResidualBiGraph2 import NMFGraph
 
 import subprocess
 import shlex
@@ -2349,7 +2350,7 @@ class AssemblyPathSVA():
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
  
-     def initNMFGraph(self, mask = None, bMaskDegen = True, bScale = False, bARD = True):
+    def initNMFGraph(self, mask = None, bMaskDegen = True, bScale = False, bARD = True):
     
         if mask is None:
             mask = np.ones((self.V, self.S))
@@ -2363,26 +2364,16 @@ class AssemblyPathSVA():
         bestErr = 1.0e10
         bestPhi = None
         
-        uMap = {}
-        u = 0
-        for v in range(self.V):
-            if selectV[v]:
-                uMap[v] = u
-                u = u+1    
+
         n = 0
         while n < no_runs:
-            
-            for sel
-            mapIdx
-            
-            
-            graphMapIdx = {}
+            import ipdb; ipdb.set_trace()
             
             nmfGraph = NMFGraph(self.cGraph, self.prng, self.X, self.G, self.lengths, self.mapIdx, bARD)
         
             nmfGraph.optimiseFlows(alpha=1.)
 
-            err = 0.
+            err = nmfGraph.KLDivergence()
              
             self.logger.info("Error round %d of NMF: %f",n, err)
             self.logger.info(str(n) + "," + str(err))

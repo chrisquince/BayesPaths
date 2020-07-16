@@ -159,7 +159,7 @@ class ResidualBiGraph():
             if lastGene is not None:
                 lastSink = lastGene + '_sink+'
                 
-                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capicity=INT_SCALE,flow=0)
+                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=INT_SCALE,flow=0)
             
             lastGene = gene
         
@@ -304,7 +304,7 @@ class NMFGraph():
         
         for g in range(self.G):
             
-            self.biGraphs[g] = ResidualBiGraph(biGraph.dGraph.copy(),biGraph.sEdges)
+            self.biGraphs[g] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges)
             
             self.biGraphs[g].initialiseFlows()
             
@@ -427,6 +427,15 @@ class NMFGraph():
         
             iter = iter+1
     
+
+    def KLDivergence(self, path):
+        
+        eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
+        
+        div = np.sum(eLambda - self.X - self.X*np.log(eLambda) + self.X*np.log(X))
+        
+        return div
+        
 
     def evalPathWeight(self, path, weight):
 
