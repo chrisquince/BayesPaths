@@ -2367,11 +2367,12 @@ class AssemblyPathSVA():
 
         n = 0
         while n < no_runs:
-            import ipdb; ipdb.set_trace()
             
-            nmfGraph = NMFGraph(self.cGraph, self.prng, self.X, self.G, self.lengths, self.mapIdx, bARD)
+            nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.X, self.G, self.lengths, self.mapGeneIdx, mask, bARD)
         
             nmfGraph.optimiseFlows(alpha=1.)
+
+            nmfGraph.optimiseFlows(alpha=0.1)
 
             err = nmfGraph.KLDivergence()
              
