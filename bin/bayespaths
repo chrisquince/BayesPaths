@@ -274,7 +274,7 @@ def main(argv):
     parser.add_argument('-u','--uncertain_factor',nargs='?', default=2.0, type=float,
         help=("penalisation on uncertain strains"))
 
-    parser.add_argument('-nr', '--nmf_iters', default=10, type=int,
+    parser.add_argument('-nr', '--nmf_iters', default=1, type=int,
         help="number of runs for NMF")
 
     parser.add_argument('-ngf', '--max_giter', default=4, type=int,

@@ -116,7 +116,8 @@ class ResidualBiGraph():
         
         for (m,n,f) in diGraph.edges.data('flow', default=0):
                         
-            copyDiGraph[m][n]['capacity'] = copyDiGraph[m][n]['capacity'] - f
+            copyDiGraph[m][n]['capacity'] = max(0,maxcopyDiGraph[m][n]['capacity'] - f)
+            
             
             copyDiGraph[m][n]['flow'] = 0
             
