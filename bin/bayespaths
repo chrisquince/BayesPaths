@@ -19,7 +19,7 @@ from numpy.random import RandomState
 from pathos.multiprocessing import ProcessingPool 
 from pathlib import Path
 
-COG_COV_DEV = 2.5
+COG_COV_DEV = 3.0
 
 formatter = logging.Formatter('%(asctime)s %(message)s')
 
@@ -107,7 +107,7 @@ def assGraphWorker(gargs):
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, ARD=False)
+    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=False)
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -405,7 +405,7 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
+            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -449,7 +449,7 @@ def main(argv):
      
     mainLogger.info("Perform NMF VB initialisation")
     
-    assGraph.initNMFVB(None, True, bScale = args.scale_nmf, ARD=args.ARD)
+    assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
 
     mainLogger.info("Run %d iter SVI", args.iters)
     
