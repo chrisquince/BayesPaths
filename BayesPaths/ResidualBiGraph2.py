@@ -118,7 +118,6 @@ class ResidualBiGraph():
                         
             copyDiGraph[m][n]['capacity'] = max(0,maxcopyDiGraph[m][n]['capacity'] - f)
             
-            
             copyDiGraph[m][n]['flow'] = 0
             
             copyDiGraph.add_edge(n,m,capacity=f,flow=0, weight=-copyDiGraph[m][n]['weight'])
