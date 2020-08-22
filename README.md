@@ -1,13 +1,20 @@
-# BayesAGraphSVA
+# BayesPaths
 
 Package for performing structured variational inference of coverage across 
 multiple samples on an assembly graph.
 
 ## Requirements
 
-Python packages: networkx# BayesAGraphSVA
+Python >= 3.5, Python packages: matplotlib,numpy>=1.15.4,scipy>=1.0.0",pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
 
 ## Installation
+
+Download repo and install:
+```
+git clone https://github.com/chrisquince/BayesPaths.git
+cd BayesPaths
+sudo python3 ./setup.py install
+```
 
 ## Quick start
 
