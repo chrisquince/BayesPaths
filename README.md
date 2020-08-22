@@ -3,11 +3,21 @@
 Package for performing structured variational inference of coverage across 
 multiple samples on an assembly graph.
 
+## Prerequisites
+
+setuptools
+
 ## Requirements
 
-Python >= 3.5
+Python >= 3.6
 
-Python packages: matplotlib,numpy>=1.15.4,scipy>=1.0.0,pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
+sudo apt-get install python3-pip
+
+
+
+Python packages: biopython,statsmodels, pathos, matplotlib,numpy>=1.15.4,scipy>=1.0.0,pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
+
+These should be installed by setup.py
 
 ## Installation
 
@@ -43,3 +53,7 @@ python3 ../Utils/Add_color.py ../TestData/COG0504.gfa Test504.tsv > COG0504_colo
 ## Input files
 
 ## Output files
+
+## Acknowledgements
+
+This package uses code for a variational Bayesian NMF taken from the f
