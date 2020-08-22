@@ -5,7 +5,9 @@ multiple samples on an assembly graph.
 
 ## Requirements
 
-Python >= 3.5, Python packages: matplotlib,numpy>=1.15.4,scipy>=1.0.0",pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
+Python >= 3.5
+
+Python packages: matplotlib,numpy>=1.15.4,scipy>=1.0.0,pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
 
 ## Installation
 
