@@ -5,19 +5,21 @@ multiple samples on an assembly graph.
 
 ## Prerequisites
 
-setuptools
+We will require pip and setuptools for package install and Python >= 3.6. Pip can be installed with:
+
+```
+sudo apt-get update
+sudo apt-get install python3-pip
+```
+
+On an Ubuntu 18.04 distribution.
 
 ## Requirements
 
-Python >= 3.6
+BayesPaths uses the python packages: biopython,statsmodels, pathos, matplotlib,numpy>=1.15.4,
+scipy>=1.0.0,pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
 
-sudo apt-get install python3-pip
-
-
-
-Python packages: biopython,statsmodels, pathos, matplotlib,numpy>=1.15.4,scipy>=1.0.0,pandas>=0.24.2,networkx>=2.4,sklearn,pygam>=0.8.0,gfapy
-
-These should be installed by setup.py
+But these should all be installed by setup.py below.
 
 ## Installation
 
