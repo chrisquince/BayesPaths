@@ -87,7 +87,7 @@ bayespaths TestData 77 TestData/TestData -r 150 -g 16 -l TestData/selected_cogs.
 
 ## Acknowledgements
 
-This package uses code for a variational Bayesian NMF and cross-validation taken from the from repository (Fast Bayesian nonnegative matrix factorisation and tri-factorisation)[https://github.com/ThomasBrouwer/BNMTF] authored by Thomas Brouwer.
+This package uses code for a variational Bayesian NMF and cross-validation taken from the from repository [Fast Bayesian nonnegative matrix factorisation and tri-factorisation](https://github.com/ThomasBrouwer/BNMTF) authored by Thomas Brouwer.
 We have included the Apache 2.0 license from that repo here. All rights to that code reside with Thomas Brouwer.
 
 
