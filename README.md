@@ -32,7 +32,7 @@ sudo python3 ./setup.py install
 
 ## Quick start
 
-We have a precomputed set of single-copy core gene graphs and coverage from the STRONG pipeline 
+We have a precomputed set of single-copy core gene graphs and coverage from the [STRONG](https://github.com/chrisquince/STRONG) pipeline 
 placed in TestData.
 
 We will run BayesPaths on a single SCG, COG0060. First create a list of COGs to run:
@@ -43,14 +43,22 @@ echo 'COG0504' > COG0504.txt
 In this case just one. 
 
 ```
-mkdir Test504
-bayespaths TestData 77 Test504/Test504 -r 150 -g 8 -l COG0504.txt -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow 
+bayespaths TestData 77 Test504/Test504 -r 150 -g 3 -l COG0504.txt -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow --no_ard
 ```
 
+This should take 5 - 10 mins to run. This COG only contains 37 nodes too few for automatic relevance determination so we deactivated that ***--no_ard*** and 
+set the number of strains to the correct number three ***-g 3***. The other options speed up the run as a test case. See below 
+for a detailed description of program arguments.
+
+Even for this small example we get close to a correct haplotypes. We can visualise these:
+
 ```
-sed 's/COG0504_//g' Test504maxPath.tsv > Test504.tsv
-python3 ../Utils/Add_color.py ../TestData/COG0504.gfa Test504.tsv > COG0504_color.gfa
+python3 ./scripts/color_graph.py ./TestData/COG0504.gfa -p Test504/Test504F_Haplo_3_path.txt COG0504_color.gfa
 ```
+
+This produces a coloured gfa for this COG which in [Bandage](https://rrwick.github.io/Bandage/) should appear similar to:
+
+![alt tag](./Figures/COG0504.png)
 
 ## Input files
 
