@@ -49,9 +49,9 @@ bayespaths TestData 77 Test504/Test504 -r 150 -g 3 -l COG0504.txt -t Data/coreCo
 This should take 5 - 10 mins to run. This COG only contains 37 nodes too few for automatic relevance determination so we deactivated that ***--no_ard*** and 
 set the number of strains to the correct number three ***-g 3***. The option ***-r 150***
 sets the sequence length.
- The ***-l *** option specifies the list of COGs to run ***-t*** points to a file of COG lengths in amino acids 
+ The *** --l *** option specifies the list of COGs to run *** --t *** points to a file of COG lengths in amino acids 
 which are used to help find sources and sinks on the graphs. 
-The other options speed up the run  *** --nofilter -nr 1 --norun_elbow*** as a test case. See below 
+The other options speed up the run  *** --nofilter -nr 1 --norun_elbow *** as a test case. See below 
 for a detailed description of program arguments.
 
 This will produce output files in the directory ***Test504*** these are also described in 
