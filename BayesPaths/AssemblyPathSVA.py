@@ -1581,12 +1581,15 @@ class AssemblyPathSVA():
         diffElbo = 1.0
         currElbo=self.calc_elbo(mask, bMaskDegen)
         self.logger.info("Iter, G, Div, DivF, total_elbo, diffElbo")
-        while iter < 200 or (iter < maxIter and diffElbo > minDiff):
+        
+        bChangeG = False
+        
+        while iter <= 50 or (iter < maxIter and (diffElbo > minDiff or bChangeG)):
             #update phi marginals
             if removeRedundant:
                 if iter > 50 and iter % 10 == 0:
                     if self.G > 1:
-                        self.removeRedundant(self.minIntensity, 10,relax_path,uncertainFactor,mask,bMaskDegen)
+                        bChangeG = self.removeRedundant(self.minIntensity, 10,relax_path,uncertainFactor,mask,bMaskDegen)
             
             for g in range(self.G):
                 
@@ -3312,6 +3315,7 @@ class AssemblyPathSVA():
             
         #calculate number of good strains
         nNewG = 0
+        nOldG = self.G
         
         sumIntensity = np.sum(self.expGamma,axis=1)
         if uncertainFactor is not None:
@@ -3370,7 +3374,8 @@ class AssemblyPathSVA():
             retained[self.G] = True
  
         self.filterHaplotypes(retained,gammaIter,mask,bMaskDegen)
- 
+        
+        return self.G != nOldG  
 
     def collapseDegenerate(self):
         dist = np.zeros((self.G,self.G))

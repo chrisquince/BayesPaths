@@ -43,6 +43,7 @@ echo 'COG0504' > COG0504.txt
 In this case just one. 
 
 ```
+mkdir Test504
 bayespaths TestData 77 Test504/Test504 -r 150 -g 3 -l COG0504.txt -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow --no_ard
 ```
 
@@ -51,7 +52,7 @@ set the number of strains to the correct number three ***-g 3***. The option ***
 sets the sequence length.
  The *** --l *** option specifies the list of COGs to run *** --t *** points to a file of COG lengths in amino acids 
 which are used to help find sources and sinks on the graphs. 
-The other options speed up the run  *** --nofilter -nr 1 --norun_elbow *** as a test case. See below 
+The other options speed up the run  *** --nofilter ***, *** -nr 1 *** , *** --norun_elbow *** as a test case. See below 
 for a detailed description of program arguments.
 
 This will produce output files in the directory ***Test504*** these are also described in 
