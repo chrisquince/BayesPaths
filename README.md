@@ -75,7 +75,7 @@ A complete run of this MAG using all 35 single-copy core genes in file ***TestDa
 bayespaths TestData 77 TestData/TestData -r 150 -g 8 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow 
 ```
 
-This will take a few hours. Here we have enabled automatic relevance determination. The program using all the COGs is able to automatically determine that three COGs are present. We have though still deactivated filtering and restricted the NMF initialisation to a single iteration ***--nofilter -nr 1***. The recommended usage on real data would be:
+This will take a 10-15 minutes. Here we have enabled automatic relevance determination. The program using all the COGs is able to automatically determine that three COGs are present. We have though still deactivated filtering and restricted the NMF initialisation to a single iteration ***--nofilter -nr 1***. The recommended usage on real data would be:
 
 ```
 bayespaths TestData 77 TestData/TestData -r 150 -g 16 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv  
@@ -158,6 +158,34 @@ optional arguments:
                         Strategy for setting precision
   --nogenedev
 ```
+
+The program ***requires*** the following arguments:
+
+1.***Gene_dir*** :              This directory contains the gene assembly graphs to run in the format gene_name.gfa together with the unitig sample coverages as gene_name.tsv. The 
+assembly graphs should be in gfa format and the coverages as tab separated files with format:
+
+```
+Unitig\tcov1\t...\covS 
+```
+
+For ***S*** samples and without a header. These coverages are kmer coverages rather than read coverages with the two converted by the formula ***kmer_cov = read_cov.(R - k + 1)/R **** where ***R*** is the read length and ***k*** the final kmer length used in 
+de Bruijn graph construction. This directory should also contain a file *** gene_name.stops *** and *** gene_name.deadends *** which contain a list of unitigs that contain stop codons or are tips. These files can be empty but they must be present. The stops file is tab separated with format:
+
+```
+Unitig\tdirection1\tnpos 
+```
+
+The direction is simply the orientation of the unitig containing the stop and npos its position on the unitig. The latter though is not used in the algorithm so can be set to -1.
+
+
+2.***kmer_length*** :           kmer length assumed overlap
+3.***outFileStub***  :         output file stub
+  
+  
+
+We will explain the most important of the optional arguments below:
+
+
 
 
 ## Acknowledgements
