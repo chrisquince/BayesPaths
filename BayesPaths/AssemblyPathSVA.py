@@ -1587,7 +1587,7 @@ class AssemblyPathSVA():
         while iter <= 50 or (iter < maxIter and (diffElbo > minDiff or bChangeG)):
             #update phi marginals
             if removeRedundant:
-                if iter > 50 and iter % 10 == 0:
+                if iter >= 50 and iter % 10 == 0:
                     if self.G > 1:
                         bChangeG = self.removeRedundant(self.minIntensity, 10,relax_path,uncertainFactor,mask,bMaskDegen)
             
