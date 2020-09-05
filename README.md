@@ -168,7 +168,7 @@ assembly graphs should be in gfa format and the coverages as tab separated files
 Unitig\tcov1\t...\covS 
 ```
 
-For ***S*** samples and without a header. These coverages are kmer coverages rather than read coverages with the two converted by the formula ***kmer_cov = read_cov.(R - k + 1)/R **** where ***R*** is the read length and ***k*** the final kmer length used in 
+For ***S*** samples and without a header. These coverages are kmer coverages rather than read coverages with the two converted by the formula ***kmer_cov = read_cov.(R - k + 1)/R *** where ***R*** is the read length and ***k*** the final kmer length used in 
 de Bruijn graph construction. This directory should also contain a file *** gene_name.stops *** and *** gene_name.deadends *** which contain a list of unitigs that contain stop codons or are tips. These files can be empty but they must be present. The stops file is tab separated with format:
 
 ```
