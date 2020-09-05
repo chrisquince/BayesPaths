@@ -163,31 +163,26 @@ The program ***requires*** the following arguments:
 
 1.***Gene_dir*** :              This directory contains the gene assembly graphs to run in the format gene_name.gfa together with the unitig sample coverages as gene_name.tsv. The 
 assembly graphs should be in gfa format and the coverages as tab separated files with format:
-
 ```
 Unitig\tcov1\t...\covS 
 ```
-
 For ***S*** samples and without a header. These coverages are kmer coverages rather than read coverages with the two converted by the formula:
 ```
 kmer_cov = read_cov.(R - k + 1)/R
 ```
 where ***R*** is the read length and ***k*** the final kmer length used in 
-de Bruijn graph construction. This directory should also contain a file *** gene_name.stops *** and *** gene_name.deadends *** which contain a list of unitigs that contain stop codons or are tips. These files can be empty but they must be present. The stops file is tab separated with format:
-
+de Bruijn graph construction. This directory should also contain a file gene_name.stops and gene_name.deadends which contain a list of unitigs that contain stop codons or are tips. These files can be empty but they must be present. The stops file is tab separated with format:
 ```
 Unitig\tdirection1\tnpos 
 ```
-
 The direction is simply the orientation of the unitig containing the stop and npos its position on the unitig. The latter though is not used in the algorithm so can be set to -1.
+For an example input data dir see ***TestData*** in this repository.
 
+2.***kmer_length*** :  kmer length used to construct assembly graph that the subgraphs are extracted from this is taken as the overlap length between unitigs in the gfa file. Currently we do not support graphs with varying unitig overlaps.
 
-2.***kmer_length*** :           kmer length assumed overlap
-3.***outFileStub***  :         output file stub
+3.***outFileStub***  :  output file stub, all output files will have this string as a prefix
   
   
-
-We will explain the most important of the optional arguments below:
 
 
 
