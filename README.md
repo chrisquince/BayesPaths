@@ -72,13 +72,15 @@ This produces a coloured gfa ***COG0504_color.gfa*** for this COG which in [Band
 A complete run of this MAG using all 35 single-copy core genes in file ***TestData/selected_cogs.tsv*** would be run as follows:
 
 ```
-bayespaths TestData 77 TestData/TestData -r 150 -g 8 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow 
+mkdir TestRun
+bayespaths TestData 77 TestRun/TestRun -r 150 -g 8 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv --nofilter -nr 1 --norun_elbow 
 ```
 
 This will take a 10-15 minutes. Here we have enabled automatic relevance determination. The program using all the COGs is able to automatically determine that three COGs are present. We have though still deactivated filtering and restricted the NMF initialisation to a single iteration ***--nofilter -nr 1***. The recommended usage on real data would be:
 
 ```
-bayespaths TestData 77 TestData/TestData -r 150 -g 16 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv  
+mkdir TestRunF
+bayespaths TestData 77 TestRunF/TestRunF -r 150 -g 16 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv  
 ```
 
 
