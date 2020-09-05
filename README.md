@@ -50,9 +50,9 @@ bayespaths TestData 77 Test504/Test504 -r 150 -g 3 -l COG0504.txt -t Data/coreCo
 This should take 5 - 10 mins to run. This COG only contains 37 nodes too few for automatic relevance determination so we deactivated that ***--no_ard*** and 
 set the number of strains to the correct number three ***-g 3***. The option ***-r 150***
 sets the sequence length.
- The *** --l *** option specifies the list of COGs to run *** --t *** points to a file of COG lengths in amino acids 
+ The ***-l*** option specifies the list of COGs to run ***-t*** points to a file of COG lengths in amino acids 
 which are used to help find sources and sinks on the graphs. 
-The other options speed up the run  *** --nofilter ***, *** -nr 1 *** , *** --norun_elbow *** as a test case. See below 
+The other options speed up the run  ***--nofilter***, ***-nr 1*** , ***--norun_elbow*** as a test case. See below 
 for a detailed description of program arguments.
 
 This will produce output files in the directory ***Test504*** these are also described in 
@@ -180,9 +180,58 @@ For an example input data dir see ***TestData*** in this repository.
 
 2.***kmer_length*** :  kmer length used to construct assembly graph that the subgraphs are extracted from this is taken as the overlap length between unitigs in the gfa file. Currently we do not support graphs with varying unitig overlaps.
 
-3.***outFileStub***  :  output file stub, all output files will have this string as a prefix
+3.***outFileStub***  :  output file stub, all output files will have this string as a prefix.
   
-  
+
+The program has the following ***optional*** arguments.
+
+1.  -h, --help : self explanatory
+2.  -l [COG_LIST], --cog_list [COG_LIST] : This is a list of gene names in the ***Gene_dir*** to run. If it is not given all genes are used. Specifying genes that are missing from ***Gene_dir*** will cause an error.
+
+
+  -t [LENGTH_LIST], --length_list [LENGTH_LIST]
+                        amino acid lengths for genes
+  -f [FRAC_COV], --frac_cov [FRAC_COV]
+                        fractional coverage for noise nodes
+  -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
+                        fractional coverage for noise category
+  -m [MIN_COV], --min_cov [MIN_COV]
+                        min. sample coverage
+  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
+                        min. fractional sample coverage
+  -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]
+                        maximum number of strains
+  --loess
+  --no_gam
+  --no_ard
+  --no_noise
+  -i ITERS, --iters ITERS
+                        number of iterations for the variational inference
+  -nfo NOFOLDS, --nofolds NOFOLDS
+                        number of folds for the CV analysis
+  -r [READLENGTH], --readLength [READLENGTH]
+                        read length used for sequencing defaults 100bp
+  -s RANDOM_SEED, --random_seed RANDOM_SEED
+                        specifies seed for numpy random number generator
+                        defaults to 23724839 applied after random filtering
+  -e [EXECUTABLE_PATH], --executable_path [EXECUTABLE_PATH]
+                        path to factor graph executable
+  -u [UNCERTAIN_FACTOR], --uncertain_factor [UNCERTAIN_FACTOR]
+                        penalisation on uncertain strains
+  -nr NMF_ITERS, --nmf_iters NMF_ITERS
+                        number of runs for NMF
+  -ngf MAX_GITER, --max_giter MAX_GITER
+                        number of rounds of gene filtering
+  --noscale_nmf
+  --nofilter
+  --norun_elbow
+  --norelax
+  --nobias
+  --bias_type {unitig,gene,bubble}
+                        Strategy for setting coverage bias
+  --tau_type {fixed,log,empirical,auto,poisson}
+                        Strategy for setting precision
+  --nogenedev
 
 
 
