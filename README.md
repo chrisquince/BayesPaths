@@ -86,6 +86,80 @@ bayespaths TestData 77 TestData/TestData -r 150 -g 16 -l TestData/selected_cogs.
 
 ## Output files
 
+## Program arguments
+
+A full list of bayespaths arguments is obtained by typing:
+```
+bayespaths --help
+```
+Which should produce output:
+```
+usage: bayespaths [-h] [-l [COG_LIST]] [-t [LENGTH_LIST]] [-f [FRAC_COV]]
+                  [-nf [NOISE_FRAC]] [-m [MIN_COV]] [-mf [MIN_FRAC_COV]]
+                  [-g [STRAIN_NUMBER]] [--loess] [--no_gam] [--no_ard]
+                  [--no_noise] [-i ITERS] [-nfo NOFOLDS] [-r [READLENGTH]]
+                  [-s RANDOM_SEED] [-e [EXECUTABLE_PATH]]
+                  [-u [UNCERTAIN_FACTOR]] [-nr NMF_ITERS] [-ngf MAX_GITER]
+                  [--noscale_nmf] [--nofilter] [--norun_elbow] [--norelax]
+                  [--nobias] [--bias_type {unitig,gene,bubble}]
+                  [--tau_type {fixed,log,empirical,auto,poisson}]
+                  [--nogenedev]
+                  Gene_dir kmer_length outFileStub
+
+positional arguments:
+  Gene_dir              directory with gfa files in
+  kmer_length           kmer length assumed overlap
+  outFileStub           output file stub
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l [COG_LIST], --cog_list [COG_LIST]
+  -t [LENGTH_LIST], --length_list [LENGTH_LIST]
+                        amino acid lengths for genes
+  -f [FRAC_COV], --frac_cov [FRAC_COV]
+                        fractional coverage for noise nodes
+  -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
+                        fractional coverage for noise category
+  -m [MIN_COV], --min_cov [MIN_COV]
+                        min. sample coverage
+  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
+                        min. fractional sample coverage
+  -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]
+                        maximum number of strains
+  --loess
+  --no_gam
+  --no_ard
+  --no_noise
+  -i ITERS, --iters ITERS
+                        number of iterations for the variational inference
+  -nfo NOFOLDS, --nofolds NOFOLDS
+                        number of folds for the CV analysis
+  -r [READLENGTH], --readLength [READLENGTH]
+                        read length used for sequencing defaults 100bp
+  -s RANDOM_SEED, --random_seed RANDOM_SEED
+                        specifies seed for numpy random number generator
+                        defaults to 23724839 applied after random filtering
+  -e [EXECUTABLE_PATH], --executable_path [EXECUTABLE_PATH]
+                        path to factor graph executable
+  -u [UNCERTAIN_FACTOR], --uncertain_factor [UNCERTAIN_FACTOR]
+                        penalisation on uncertain strains
+  -nr NMF_ITERS, --nmf_iters NMF_ITERS
+                        number of runs for NMF
+  -ngf MAX_GITER, --max_giter MAX_GITER
+                        number of rounds of gene filtering
+  --noscale_nmf
+  --nofilter
+  --norun_elbow
+  --norelax
+  --nobias
+  --bias_type {unitig,gene,bubble}
+                        Strategy for setting coverage bias
+  --tau_type {fixed,log,empirical,auto,poisson}
+                        Strategy for setting precision
+  --nogenedev
+```
+
+
 ## Acknowledgements
 
 This package uses code for a variational Bayesian NMF and cross-validation taken from the from repository [Fast Bayesian nonnegative matrix factorisation and tri-factorisation](https://github.com/ThomasBrouwer/BNMTF) authored by Thomas Brouwer.
