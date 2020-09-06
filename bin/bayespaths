@@ -384,7 +384,7 @@ def main(argv):
     mainLogger.info('Create second AssemblyPathSVA object for gene filtering')
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov,  noiseFrac = args.noise_frac)
+                                tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
 
     assemblyGraphs = assemblyGraphsFilter
     source_maps = source_maps_filter
