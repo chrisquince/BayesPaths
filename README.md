@@ -120,8 +120,6 @@ optional arguments:
                         amino acid lengths for genes
   -f [FRAC_COV], --frac_cov [FRAC_COV]
                         fractional coverage for noise nodes
-  -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
-                        fractional coverage for noise category
   -m [MIN_COV], --min_cov [MIN_COV]
                         min. sample coverage
   -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
@@ -184,32 +182,29 @@ For an example input data dir see ***TestData*** in this repository.
 
 3.***outFileStub***  :  output file stub, all output files will have this string as a prefix.
   
+  
+The most important optional arguments are:
+1. -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]: This is the maximum number of strains default 5, the program starts with this number of strains but if ARD is used then low abundance strains are dropped from the solution until the correct number is selected
+2.   --no_ard: Turns off automatic relevance determination
+3.   -r [READLENGTH], --readLength [READLENGTH]: read length used for sequencing defaults 100bp
+4.  -l [COG_LIST], --cog_list [COG_LIST] : This is a list of gene names in the ***Gene_dir*** to run. If it is not given all genes are used. Specifying genes that are missing from ***Gene_dir*** will cause an error.
+5. -t [LENGTH_LIST], --length_list [LENGTH_LIST] : This file should contain expected gene lengths in amino acids, it is used to constrain the search for sources and sinks in the graph. If not specified then no constraints are used
+6. 
 
-The program has the following ***optional*** arguments.
+The other ***optional*** arguments relate to the algorithm and will need to be changed less often, in fact we recommend using the defaults in most situations:
 
 1.  -h, --help : self explanatory
-2.  -l [COG_LIST], --cog_list [COG_LIST] : This is a list of gene names in the ***Gene_dir*** to run. If it is not given all genes are used. Specifying genes that are missing from ***Gene_dir*** will cause an error.
-3. -t [LENGTH_LIST], --length_list [LENGTH_LIST] : This file should contain expected gene lengths in amino acids, it is used to constrain the search for sources and sinks in the graph. If not specified then no constraints are used
-4. -f [FRAC_COV], --frac_cov [FRAC_COV]
-                        fractional coverage for noise nodes
-5. -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
-                        fractional coverage for noise category
-6. -m [MIN_COV], --min_cov [MIN_COV]
-                        min. sample coverage
-7.  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
-                        min. fractional sample coverage
-8. -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]: This 
-                        maximum number of strains
-  --loess
-  --no_gam
-  --no_ard
-  --no_noise
-  -i ITERS, --iters ITERS
-                        number of iterations for the variational inference
+2. -f [FRAC_COV], --frac_cov [FRAC_COV] : Fractional mean coverage below which unitigs are treated as noise default is 0.02
+3. -m [MIN_COV], --min_cov [MIN_COV] : default 1.0
+4.  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]: min. fractional sample coverage default 0.05
+These two parameters control which samples are used samples with coverage smaller than min_cov or min_frac_cov*highest_sample_cov are filtered
+5. --loess: Use Loess smoothing rather than Gam for noise modelling too slow for general use
+6. --no_gam: Don't use recommend GAM models for noise but rather quadratic polynomial not recommended
+7. --no_noise: Do not 
+  -i ITERS, --iters ITERS: maximum number of iterations for the variational inference default 250
+  
   -nfo NOFOLDS, --nofolds NOFOLDS
                         number of folds for the CV analysis
-  -r [READLENGTH], --readLength [READLENGTH]
-                        read length used for sequencing defaults 100bp
   -s RANDOM_SEED, --random_seed RANDOM_SEED
                         specifies seed for numpy random number generator
                         defaults to 23724839 applied after random filtering
