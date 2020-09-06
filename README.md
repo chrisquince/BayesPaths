@@ -189,19 +189,16 @@ The program has the following ***optional*** arguments.
 
 1.  -h, --help : self explanatory
 2.  -l [COG_LIST], --cog_list [COG_LIST] : This is a list of gene names in the ***Gene_dir*** to run. If it is not given all genes are used. Specifying genes that are missing from ***Gene_dir*** will cause an error.
-
-
-  -t [LENGTH_LIST], --length_list [LENGTH_LIST]
-                        amino acid lengths for genes
-  -f [FRAC_COV], --frac_cov [FRAC_COV]
+3. -t [LENGTH_LIST], --length_list [LENGTH_LIST] : This file should contain expected gene lengths in amino acids, it is used to constrain the search for sources and sinks in the graph. If not specified then no constraints are used
+4. -f [FRAC_COV], --frac_cov [FRAC_COV]
                         fractional coverage for noise nodes
-  -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
+5. -nf [NOISE_FRAC], --noise_frac [NOISE_FRAC]
                         fractional coverage for noise category
-  -m [MIN_COV], --min_cov [MIN_COV]
+6. -m [MIN_COV], --min_cov [MIN_COV]
                         min. sample coverage
-  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
+7.  -mf [MIN_FRAC_COV], --min_frac_cov [MIN_FRAC_COV]
                         min. fractional sample coverage
-  -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]
+8. -g [STRAIN_NUMBER], --strain_number [STRAIN_NUMBER]: This 
                         maximum number of strains
   --loess
   --no_gam

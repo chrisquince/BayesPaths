@@ -103,7 +103,7 @@ def assGraphWorker(gargs):
     assGraph = AssemblyPathSVA(prng, logger, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
-                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                fracCov = args.frac_cov)
     
     logger.info('Perform NMF VB initialisation')
     
@@ -339,7 +339,7 @@ def main(argv):
                                 readLength=args.readLength, ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, 
                                 fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
-                                fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                fracCov = args.frac_cov)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
@@ -435,7 +435,7 @@ def main(argv):
 
             assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
 
 
             assemblyGraphs = assemblyGraphsSelect
@@ -570,7 +570,7 @@ def main(argv):
  
         assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
                                         ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, noiseFrac = args.noise_frac)
+                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
    
         bestRun = max(assErrors[minG], key = lambda t: t[2])
         

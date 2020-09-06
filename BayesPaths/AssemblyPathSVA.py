@@ -205,7 +205,7 @@ class AssemblyPathSVA():
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, nNmfIters=10, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
-                working_dir="/tmp", minSumCov = None, fracCov = None, noiseFrac = 0.03):
+                working_dir="/tmp", minSumCov = None, fracCov = None):
                 
         self.prng = prng #random state to store
 
@@ -241,8 +241,6 @@ class AssemblyPathSVA():
         self.sourceNode = 'source+'
         
         self.no_folds = no_folds
-        
-        self.noiseFrac = noiseFrac 
         
         if minIntensity == None:
             self.minIntensity = AssemblyPathSVA.minStrainCoverage/self.readLength
