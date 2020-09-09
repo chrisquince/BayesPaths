@@ -2,8 +2,9 @@ import argparse
 import sys
 from BayesPaths.UnitigGraph import UnitigGraph
 from BayesPaths.UtilsFunctions import convertNodeToName
+from collections import defaultdict
 import networkx as nx
-import defaultdict from Collections
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -28,26 +29,26 @@ def main(argv):
         mags = {line.rstrip() for line in cog_file}
 
 
-    unitig_ass = defaultdict(-1)
-    with open(args.list_mags,'r') as cog_file:
+    unitig_ass = defaultdict(lambda: -1)
+    with open(args.unitig_ass,'r') as cog_file:
         for line in cog_file:
             line = line.rstrip()
             
             toks = line.split(',')
             
-            unitig_ass[toks[0]] = toks[1]
+            unitig_ass[toks[0]] = int(toks[2])
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
     for unitig in ['2297102']:
     
-        if unitig_ass[node] not in mags:
+        if unitig_ass[unitig] not in mags:
             print('Debug')
 
             fNode = unitig + '+'
-            for succ in nx.bfs_tree(unitigGraph.directedUnitigGraph, fNode, 10):
+            for succ in nx.bfs_tree(unitigGraph.directedUnitigBiGraph, fNode, 10):
             
-                bin = unitig_ass[succ[:-1]]
+                ass_bin = unitig_ass[succ[:-1]]
 
     
 
