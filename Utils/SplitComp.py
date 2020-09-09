@@ -1,7 +1,7 @@
 import argparse
 import sys
-from UnitigGraph import UnitigGraph
-from UtilsFunctions import convertNodeToName
+from BayesPaths.UnitigGraph import UnitigGraph
+from BayesPaths.UtilsFunctions import convertNodeToName
 import networkx as nx
 
 
@@ -18,7 +18,7 @@ def main(argv):
     
     args = parser.parse_args()
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
