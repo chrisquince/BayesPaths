@@ -39,12 +39,15 @@ def main(argv):
 
     unitigGraph = UnitigGraph.loadGraphFromGfaFile(args.gfa_file,int(args.kmer_length), args.cov_file)
 
-    for node in unitigGraph.directedUnitigGraph:
+    for unitig in ['2297102']:
     
         if unitig_ass[node] not in mags:
             print('Debug')
 
-
+            fNode = unitig + '+'
+            for succ in nx.bfs_tree(unitigGraph.directedUnitigGraph, fNode, 10):
+            
+                bin = unitig_ass[succ[:-1]]
 
     
 
