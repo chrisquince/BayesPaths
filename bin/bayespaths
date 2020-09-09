@@ -236,9 +236,6 @@ def main(argv):
     parser.add_argument('-f','--frac_cov',nargs='?', default=0.02, type=float, 
         help=("fractional coverage for noise nodes"))
 
-    parser.add_argument('-nf','--noise_frac',nargs='?', default=0.02, type=float,
-        help=("fractional coverage for noise category"))
-
     parser.add_argument('-m','--min_cov',nargs='?', default=1.0, type=float,
         help=("min. sample coverage"))
 
