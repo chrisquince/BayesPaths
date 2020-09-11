@@ -83,11 +83,6 @@ mkdir TestRunF
 bayespaths TestData 77 TestRunF/TestRunF -r 150 -g 16 -l TestData/selected_cogs.tsv -t Data/coreCogs.tsv  
 ```
 
-
-## Input files
-
-## Output files
-
 ## Program arguments
 
 A full list of bayespaths arguments is obtained by typing:
@@ -200,35 +195,48 @@ The other ***optional*** arguments relate to the algorithm and will need to be c
 These two parameters control which samples are used samples with coverage smaller than min_cov or min_frac_cov*highest_sample_cov are filtered
 5. --loess: Use Loess smoothing rather than Gam for noise modelling too slow for general use
 6. --no_gam: Don't use recommend GAM models for noise but rather quadratic polynomial not recommended
-7. --no_noise: Do not 
-  -i ITERS, --iters ITERS: maximum number of iterations for the variational inference default 250
-  
-  -nfo NOFOLDS, --nofolds NOFOLDS
-                        number of folds for the CV analysis
-  -s RANDOM_SEED, --random_seed RANDOM_SEED
+7. --no_noise: Do not add noise term to model fit (default is to apply if the mean coverage is > 100)
+8.  -i ITERS, --iters ITERS: maximum number of iterations for the variational inference default 250
+9. -nfo NOFOLDS, --nofolds NOFOLDS: number of folds for the CV analysis
+10. -s RANDOM_SEED, --random_seed RANDOM_SEED: 
                         specifies seed for numpy random number generator
                         defaults to 23724839 applied after random filtering
-  -e [EXECUTABLE_PATH], --executable_path [EXECUTABLE_PATH]
+11. -e [EXECUTABLE_PATH], --executable_path [EXECUTABLE_PATH]: 
                         path to factor graph executable
-  -u [UNCERTAIN_FACTOR], --uncertain_factor [UNCERTAIN_FACTOR]
+12. -u [UNCERTAIN_FACTOR], --uncertain_factor [UNCERTAIN_FACTOR]
                         penalisation on uncertain strains
-  -nr NMF_ITERS, --nmf_iters NMF_ITERS
+                        
+13. -nr NMF_ITERS, --nmf_iters NMF_ITERS
                         number of runs for NMF
-  -ngf MAX_GITER, --max_giter MAX_GITER
+14. -ngf MAX_GITER, --max_giter MAX_GITER
                         number of rounds of gene filtering
-  --noscale_nmf
-  --nofilter
-  --norun_elbow
-  --norelax
-  --nobias
-  --bias_type {unitig,gene,bubble}
+15. --noscale_nmf: Do not scale variational Bayesian NMF initialisation
+16. --nofilter: Do not apply gene filitering based on median divergence of error
+17. --norun_elbow: Do not run cross-validation run as default with 4 or more strains
+18. --norelax:
+19. --nobias:
+20. --bias_type {unitig,gene,bubble}:
                         Strategy for setting coverage bias
-  --tau_type {fixed,log,empirical,auto,poisson}
+21. --tau_type {fixed,log,empirical,auto,poisson}:
                         Strategy for setting precision
-  --nogenedev
+22. --nogenedev
 
 
+## Output files
 
+The final output files are produced with prefix ***outFileStubF***. They consist of the following:
+
+1. outFileStubF_Haplo_X.fa: gene haplotypes for the X strains predicted for this MAG
+2. outFileStubF_Intensity.csv: the intensities for each strain in each sample (coverage depth/read length) 
+3. outFileStubF_varIntensity.csv: the variance of the intensities for each strain in each sample (coverage depth/read length) 
+4. outFileStubF_Divergence.csv: the divergences for each strain, these are proportional to 
+path uncertainties and give a measure of uncertainty in haplotypes
+5. outFileStubF_maxPath.tsv: most likely unitig paths for each strain
+6. outFileStubF_geneError.csv: errors associated with individual SCGs
+7. outFileStubF_Bias.csv: unitig biases 
+8. outFileStubF_Precision.csv: unitig precisions, the inverse variance for the coverages at this unitig
+   
+   
 
 ## Acknowledgements
 
