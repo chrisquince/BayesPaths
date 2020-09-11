@@ -236,7 +236,32 @@ path uncertainties and give a measure of uncertainty in haplotypes
 7. outFileStubF_Bias.csv: unitig biases 
 8. outFileStubF_Precision.csv: unitig precisions, the inverse variance for the coverages at this unitig
    
-   
+## Compiling factor graph executables
+
+The C executables for solving factor graphs using libDAI are provided precompiled but these will only work on Linux x86-64. To compile these executables on other platforms 
+first install [libDAI](https://bitbucket.org/jorism/libdai/src/master/). Then move into the ***runfg_source*** directory.
+
+```
+cd runfg_source
+```
+
+```
+sudo apt-get install g++ make doxygen graphviz libboost-dev libboost-graph-dev libboost-program-options-dev libboost-test-dev libgmp-dev cimg-dev
+git clone https://bitbucket.org/jorism/libdai.git
+cd libdai
+cp Makefile.LINUX Makefile.conf 
+make
+cd ..
+make -f MMakefileF
+make -f MMakefileW
+```
+
+This will create the executables runfg_flex and runfg_width:
+
+
+
+
+
 
 ## Acknowledgements
 

@@ -9,9 +9,9 @@ CC=g++
 # Compiler flags
 CCFLAGS=-Wno-deprecated -Wall -W -Wextra -fpic -g -static $(INC)
 
-all : runfg_flex
+all : runfg_width
 
-runfg_flex : runfg_flex.cpp $(LIB)/libdai.a
+runfg_width : runfg_width.cpp $(LIB)/libdai.a
 	$(CC) $(CCFLAGS) -o$@ $< $(LIB)/libdai.a $(LIBS)
 
 # CLEAN
@@ -19,4 +19,4 @@ runfg_flex : runfg_flex.cpp $(LIB)/libdai.a
 
 .PHONY : clean
 clean :
-	-rm runfg_flex
+	-rm runfg_width
