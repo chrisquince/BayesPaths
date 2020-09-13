@@ -56,6 +56,8 @@ from BayesPaths.bnmf_vb import bnmf_vb
 from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
 from BayesPaths.AugmentedBiGraph import gaussianNLL_F
 from BayesPaths.AugmentedBiGraph import gaussianNLL_D
+from BayesPaths.ResidualBiGraph2 import ResidualBiGraph
+from BayesPaths.ResidualBiGraph2 import NMFGraph
 
 import subprocess
 import shlex
@@ -276,6 +278,7 @@ class AssemblyPathSVA():
         self.nBubbles = 0
         self.mapBubbles = {}
         self.augmentedBiGraphs = {}
+        self.residualBiGraphs = {}
         
         geneList = sorted(assemblyGraphs)
         genesRemove = []  
@@ -300,7 +303,7 @@ class AssemblyPathSVA():
                 continue
            
             self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
-            
+            self.residualBiGraphs[gene] = ResidualBiGraph.createFromUnitigGraph(assemblyGraph)
             self.genes.append(gene)
            
             unitigsDash = list(unitigFactorNode.keys())
@@ -343,6 +346,7 @@ class AssemblyPathSVA():
         
 
         self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
+        self.cRGraph = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes)
   
         self.biasMap = {}
         self.nBias = 0
@@ -2349,6 +2353,50 @@ class AssemblyPathSVA():
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
  
+    def initNMFGraph(self, mask = None, bMaskDegen = True, bScale = False, bARD = True):
+    
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+                
+        no_runs = self.nNmfIters
+        
+        bestGamma = None
+        bestErr = 1.0e10
+        bestPhi = None
+        
+
+        n = 0
+        while n < no_runs:
+            
+            nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.X, self.G, self.lengths, self.mapGeneIdx, mask, bARD)
+        
+            nmfGraph.optimiseFlows(alpha=1.)
+
+            nmfGraph.optimiseFlows(alpha=0.1)
+
+            err = nmfGraph.KLDivergence()
+             
+            self.logger.info("Error round %d of NMF: %f",n, err)
+            self.logger.info(str(n) + "," + str(err))
+            
+            if err < bestErr:
+                bestGamma = nmfGraph.gamma
+                bestPhi   = nmfGraph.phi
+                bestErr = err
+            
+            n += 1
+        
+        self.logger.info("Best error: %f",bestErr)
+        self.expGamma[0:self.G,:] = bestGamma
+        self.expPhi[:,0:self.G] = bestPhi
+            
+        self.expGamma2 = self.expGamma*self.expGamma
+        self.expPhi2 = self.expPhi*self.expPhi  
+
+
         
     def initNMF(self, mask = None, bMaskDegen = True):
     
