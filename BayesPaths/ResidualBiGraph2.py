@@ -41,7 +41,7 @@ BETA = 0.6
 TAU  = 0.5
 MAX_INT_FLOW = 1e6
 MAX_REV_FLOW = 1e5
-INT_SCALE = 1e5
+INT_SCALE = 1e7
      
 class ResidualBiGraph():
     """Creates unitig graph"""
@@ -116,7 +116,7 @@ class ResidualBiGraph():
         
         for (m,n,f) in diGraph.edges.data('flow', default=0):
                         
-            copyDiGraph[m][n]['capacity'] = copyDiGraph[m][n]['capacity'] - f
+            copyDiGraph[m][n]['capacity'] = max(0,maxcopyDiGraph[m][n]['capacity'] - f)
             
             copyDiGraph[m][n]['flow'] = 0
             
@@ -126,6 +126,47 @@ class ResidualBiGraph():
         nx.set_node_attributes(copyDiGraph,0.0,'demand')
         
         return copyDiGraph
+    
+    @classmethod
+    def combineGraphs(cls,dictBiGraphs,geneList):
+      
+        cGraph = nx.DiGraph()
+        
+        lastGene = None
+        
+        sEdges = set()
+        
+        for gene in geneList:
+        
+            unitigsDash = list(dictBiGraphs[gene].diGraph.nodes())
+            
+            mapNodes = {s:gene + "_" + s for s in unitigsDash}
+            
+            if lastGene is None:
+                mapNodes['source+'] = 'source+'
+            
+            if gene == geneList[-1]:
+                mapNodes['sink+'] = 'sink+'
+            
+            sMap = [(mapNodes[e[0]],mapNodes[e[1]]) for e in dictBiGraphs[gene].sEdges]
+            sEdges.update(sMap)
+            
+            
+            tempGraph = nx.relabel_nodes(dictBiGraphs[gene].diGraph, mapNodes)
+ 
+            cGraph = nx.algorithms.operators.binary.compose(cGraph, tempGraph)
+            
+            if lastGene is not None:
+                lastSink = lastGene + '_sink+'
+                
+                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=INT_SCALE,flow=0)
+            
+            lastGene = gene
+        
+        biGraph = cls(cGraph, sEdges)
+        
+        return biGraph
+    
     
     def updateCosts(self,vCosts,mapIdx):
     
@@ -251,24 +292,34 @@ class NMFGraph():
     EPSILON = 1.0e-5
     PRECISION = 1.0e-15
 
-    def __init__(self, prng, unitigGraph, X, G, lengths, mapIdx, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
-
-        self.unitigGraph = unitigGraph
+    def __init__(self, biGraphs, genes, prng, X, G, lengths, mapGeneIdx, mask = None, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
         
         self.X = X
         
         (self.V, self.S) = self.X.shape
         
+        if mask is None:
+            self.mask = np.ones((self.V, self.S))
+        else:
+            self.mask = mask
+        
+        self.Omega = np.sum(self.mask > 0)
+        
         self.G = G
         
-        self.biGraphs = {}
+        self.biGraphs = defaultdict(dict)
         
         for g in range(self.G):
             
-            self.biGraphs[g] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
+            for gene, biGraph in biGraphs.items():
             
-            self.biGraphs[g].initialiseFlows()
+                self.biGraphs[g][gene] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges)
             
+                self.biGraphs[g][gene].initialiseFlows()
+        
+        self.genes = genes
+        
+        self.mapGeneIdx  = mapGeneIdx
         
         scale = 1.0 
         self.gamma = prng.exponential(scale=scale,size=(self.G,self.S))   
@@ -276,24 +327,27 @@ class NMFGraph():
         self.phi = np.zeros((self.V,self.G))
     
         for g in range(self.G):
-            pathg = self.biGraphs[g].getRandomPath(prng)
+        
+            for gene, biGraph in self.biGraphs[g].items():
+                
+                pathg = biGraph.getRandomPath(prng)
     
-            self.biGraphs[g].addFlowPath(pathg, INT_SCALE)
+                biGraph.addFlowPath(pathg, INT_SCALE)
             
-            for u in pathg:
-                ud = u[:-1]
+                for u in pathg:
+                    ud = u[:-1]
                 
-                if ud in mapIdx:
+                    if ud in self.mapGeneIdx[gene]:
                 
-                    v = mapIdx[ud]
+                        v = self.mapGeneIdx[gene][ud]
                 
-                    self.phi[v,g] = 1.
+                        self.phi[v,g] = 1.
                 
     
-        self.mapIdx  = mapIdx
         self.lengths = lengths
         
         self.bARD = bARD
+        
         if self.bARD:
             self.alphaG = alphaG
             
@@ -305,8 +359,8 @@ class NMFGraph():
         
             self.lambda_g = prng.exponential(scale=scale,size=(self.G))  
     
-    def optimiseFlows(self, alpha = 1.):
     
+    def optimiseFlows(self, alpha = 1., max_iter=500):
     
         iter = 0
         
@@ -315,7 +369,7 @@ class NMFGraph():
         
         print(str(iter) + "," + str(NLL1))
         
-        while iter < 200:
+        while iter < max_iter:
         
             #first compute phi gradient in matrix format
             
@@ -323,38 +377,40 @@ class NMFGraph():
             gSum = np.sum(self.gamma,axis=1)
             R = self.X/eLambda
             
-            gradPhi = (- np.dot(R,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
+            gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
         
             gradPhi += -(alpha - 1.)/(self.phi + self.PRECISION) + (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
         
             newPhi = np.copy(self.phi)
             
             for g in range(self.G):
-                self.biGraphs[g].updateCosts(gradPhi[:,g],self.mapIdx) 
+                for gene, biGraph in self.biGraphs[g].items():
+                    
+                    biGraph.updateCosts(gradPhi[:,g],self.mapGeneIdx[gene]) 
             
-                residualGraph = ResidualBiGraph.createResidualGraph(self.biGraphs[g].diGraph)
+                    residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
                 
-                flowCost, flowDict = nx.network_simplex(residualGraph)
+                    flowCost, flowDict = nx.network_simplex(residualGraph)
                  
-                pflow = 0.1 
+                    pflow = 0.1 
             
-                DeltaF = self.biGraphs[g].deltaF(flowDict, pflow, self.X, eLambda, self.mapIdx, self.lengths, g, self.gamma)
+                    DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma)
                 
-                weight = flowCost/float(INT_SCALE)
+                    weight = flowCost/float(INT_SCALE)
             
-                i = 0
-                while DeltaF > pflow*weight*BETA and i < 10:
-                    pflow *= TAU
+                    i = 0
+                    while DeltaF > pflow*weight*BETA and i < 10:
+                        pflow *= TAU
                 
-                    DeltaF = self.biGraphs[g].deltaF(flowDict, pflow, self.X, eLambda, self.mapIdx, self.lengths, g, self.gamma)
+                        DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma)
         
-                    #print(str(i) + "," + str(pflow) + "," + str(DeltaF) + "," + str(pflow*weight*BETA))
-                    i += 1
+                        i += 1
 
-                if pflow > 0. and i < 10:                 
-                    self.biGraphs[g].updateFlows(flowDict,pflow)
+                    if pflow > 0. and i < 10:                 
+                        biGraph.updateFlows(flowDict,pflow)
                 
-                self.biGraphs[g].updatePhi(newPhi,g,self.mapIdx)
+                    
+                    biGraph.updatePhi(newPhi,g,self.mapGeneIdx[gene])
          
             
             eLambda1 = (np.dot(newPhi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
@@ -367,7 +423,7 @@ class NMFGraph():
             if self.bARD:
                 pSum += self.lambda_g
         
-            self.gamma = self.gamma*(np.dot(np.transpose(pL),R)/pSum[:,np.newaxis]) 
+            self.gamma = self.gamma*(np.dot(np.transpose(pL),R*self.mask)/pSum[:,np.newaxis]) 
             
             #self.gamma[self.gamma < 0] = 0.
             
@@ -388,6 +444,15 @@ class NMFGraph():
         
             iter = iter+1
     
+
+    def KLDivergence(self):
+        
+        eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
+        
+        div = np.sum(eLambda - self.X - self.X*np.log(eLambda) + self.X*np.log(self.X + self.PRECISION))
+        
+        return div
+        
 
     def evalPathWeight(self, path, weight):
 
