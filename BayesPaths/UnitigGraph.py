@@ -951,7 +951,10 @@ class UnitigGraph():
                     nodePlusOutName = convertNodeToName((outnode,end))
                     lengthPlus = self.lengths[node] - self.overlapLength
                     if self.covMap is not None:
-                        nodePlusSumCov = np.sum(self.covMap[node])*lengthPlus
+                        if node in self.covMap:
+                            nodePlusSumCov = np.sum(self.covMap[node])*lengthPlus
+                        else:
+                            nodePlusSumCov = self.KC[node]
                     else:
                         nodePlusSumCov = self.KC[node]
                         
@@ -959,7 +962,10 @@ class UnitigGraph():
                     lengthMinus = self.lengths[outnode] - self.overlapLength
                     
                     if self.covMap is not None:
-                        nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
+                        if outnode in self.covMap:
+                            nodeMinusSumCov = np.sum(self.covMap[outnode])*lengthMinus
+                        else:
+                            nodeMinusSumCov = self.KC[outnode]
                     else:
                         nodeMinusSumCov = self.KC[outnode]
                         
@@ -987,7 +993,7 @@ class UnitigGraph():
                 for innode in self.directedUnitigBiGraph.predecessors(node):
 
                     newWeight = self.directedUnitigBiGraph[innode][node]['weight'] + self.lengths[node[:-1]]  
-                    if self.covMap is not None:
+                    if self.covMap is not None and node[:-1] in self.covMap:
                         newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*np.sum(self.covMap[node[:-1]]) 
                     else:
                         newSum = self.directedUnitigBiGraph[innode][node]['covweight'] + self.lengths[node[:-1]]*self.KC[node[:-1]] 
