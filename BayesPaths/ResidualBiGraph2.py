@@ -200,7 +200,7 @@ class ResidualBiGraph():
                         self.diGraph[outnode][node]['flow'] = max(0,int(fFlow - epsilon*flow))
                 
 
-    def deltaF(self, flowDict, epsilon, X, eLambda, mapIdx, Lengths, g, gamma):
+    def deltaF(self, flowDict, epsilon, X, eLambda, mapIdx, Lengths, g, gamma, bKLDivergence = False):
     
         DeltaF = 0.       
         
@@ -226,12 +226,14 @@ class ResidualBiGraph():
             if change:
                 newLambda = eLambda[v,:] + Lengths[v]*(nfFlow - fFlow)*gamma[g,:]
                 
-                T1 = newLambda - eLambda[v,:]
+                if bKLDivergence:
+                    T1 = newLambda - eLambda[v,:]
                 
-                T2 = X[v,:]*np.log(newLambda/eLambda[v,:])
+                    T2 = X[v,:]*np.log(newLambda/eLambda[v,:])
                 
-                DeltaF += np.sum(T1 - T2)
-        
+                    DeltaF += np.sum(T1 - T2)
+                else:
+                    DeltaF += 0.5*((X[v,:] - newLambda)**2 - (X[v,:] - eLambda[v,:])**2) 
         
         return DeltaF
 
@@ -405,7 +407,7 @@ class NMFGraph():
                  
                     pflow = 0.1 
             
-                    DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma)
+                    DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence)
                 
                     weight = flowCost/float(INT_SCALE)
             
@@ -413,7 +415,7 @@ class NMFGraph():
                     while DeltaF > pflow*weight*BETA and i < 10:
                         pflow *= TAU
                 
-                        DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma)
+                        DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence)
         
                         i += 1
 
