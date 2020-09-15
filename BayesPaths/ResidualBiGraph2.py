@@ -41,7 +41,7 @@ BETA = 0.6
 TAU  = 0.5
 MAX_INT_FLOW = 1e6
 MAX_REV_FLOW = 1e5
-INT_SCALE = 1e7
+INT_SCALE = 1e9
      
 class ResidualBiGraph():
     """Creates unitig graph"""
@@ -116,11 +116,11 @@ class ResidualBiGraph():
         
         for (m,n,f) in diGraph.edges.data('flow', default=0):
                         
-            copyDiGraph[m][n]['capacity'] = max(0,maxcopyDiGraph[m][n]['capacity'] - f)
+            copyDiGraph[m][n]['capacity'] = max(0,diGraph[m][n]['capacity'] - f)
             
             copyDiGraph[m][n]['flow'] = 0
             
-            copyDiGraph.add_edge(n,m,capacity=f,flow=0, weight=-copyDiGraph[m][n]['weight'])
+            copyDiGraph.add_edge(n,m,capacity=f,flow=0, weight=-diGraph[m][n]['weight'])
     
     
         nx.set_node_attributes(copyDiGraph,0.0,'demand')
@@ -288,7 +288,7 @@ class ResidualBiGraph():
 class NMFGraph():
 
 
-    DELTA = 1.0e-6
+    DELTA = 1.0e-3
     EPSILON = 1.0e-5
     PRECISION = 1.0e-15
 
@@ -379,7 +379,7 @@ class NMFGraph():
             
             gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
         
-            gradPhi += -(alpha - 1.)/(self.phi + self.PRECISION) + (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
+            #gradPhi += (alpha - 1.)/(self.phi + self.PRECISION) - (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
         
             newPhi = np.copy(self.phi)
             
