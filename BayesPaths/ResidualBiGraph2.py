@@ -359,8 +359,15 @@ class NMFGraph():
         
             self.lambda_g = prng.exponential(scale=scale,size=(self.G))  
     
+    def KDivergence(self, eLambda):
+        
+        return np.sum(eLambda - self.X*np.log(eLambda))
+
+    def FDivergence(self, eLambda):
+        
+        return 0.5*np.sum(np.square(eLambda - self.X))
     
-    def optimiseFlows(self, alpha = 1., max_iter=500):
+    def optimiseFlows(self, alpha = 1., max_iter=500, bKLDivergence = False):
     
         iter = 0
         
@@ -377,7 +384,11 @@ class NMFGraph():
             gSum = np.sum(self.gamma,axis=1)
             R = self.X/eLambda
             
-            gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
+            if bKLDivergence:
+                gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
+            else:
+                temp = (eLambda - self.X)*self.lengths
+                gradPhi = 2.0*np.dot(temp,self.gamma.transpose())
         
             #gradPhi += (alpha - 1.)/(self.phi + self.PRECISION) - (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
         
@@ -414,22 +425,37 @@ class NMFGraph():
          
             
             eLambda1 = (np.dot(newPhi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
-            NLL1 = np.sum(eLambda1 - self.X*np.log(eLambda1))
+            
+            if bKLDivergence:
+                NLL1 = self.KDivergence(eLambda1)
+            else:
+                NLL1 = self.FDivergence(eLambda1)
+                
             print(str(iter) + "," + str(NLL1))
         
             pL = self.phi*self.lengths[:,np.newaxis]
+            tL = np.transpose(pL)
             pSum =  np.sum(pL,axis=0)
             
             if self.bARD:
                 pSum += self.lambda_g
         
-            self.gamma = self.gamma*(np.dot(np.transpose(pL),R*self.mask)/pSum[:,np.newaxis]) 
+            if bKLDivergence:
+                self.gamma = self.gamma*(np.dot(tL,R*self.mask)/pSum[:,np.newaxis]) 
+            else:
+                N = np.dot(tL,self.X)
+                D = np.dot(tL,eLambda)
+                self.gamma = self.gamma*(N/D)
             
             #self.gamma[self.gamma < 0] = 0.
             
             eLambda3 = (np.dot(newPhi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
-            NLL3 = np.sum(eLambda3 - self.X*np.log(eLambda3))
             
+            if bKLDivergence:
+                NLL3 = self.KDivergence(eLambda3)
+            else:
+                NLL3 = self.FDivergence(eLambda3)
+                
             
             if self.bARD:
                 self.alpha_g = self.alphaG + self.S
@@ -444,6 +470,8 @@ class NMFGraph():
         
             iter = iter+1
     
+    
+
 
     def KLDivergence(self):
         
