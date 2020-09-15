@@ -387,7 +387,7 @@ class NMFGraph():
             if bKLDivergence:
                 gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
             else:
-                temp = (eLambda - self.X)*self.lengths
+                temp = (eLambda - self.X)*self.lengths[:,np.newaxis]
                 gradPhi = 2.0*np.dot(temp,self.gamma.transpose())
         
             #gradPhi += (alpha - 1.)/(self.phi + self.PRECISION) - (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
@@ -445,6 +445,10 @@ class NMFGraph():
             else:
                 N = np.dot(tL,self.X)
                 D = np.dot(tL,eLambda)
+            
+                if self.bARD:
+                    D += self.lambda_g[:,np.newaxis] 
+
                 self.gamma = self.gamma*(N/D)
             
             #self.gamma[self.gamma < 0] = 0.

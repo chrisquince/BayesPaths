@@ -2374,7 +2374,7 @@ class AssemblyPathSVA():
             #nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.X, self.G, self.lengths, self.mapGeneIdx, mask, bARD)
             nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.XN, self.G, np.ones(self.V), self.mapGeneIdx, mask, bARD)        
 
-            nmfGraph.optimiseFlows(alpha=1.)
+            nmfGraph.optimiseFlows(alpha=1.,max_iter=200,bKLDivergence=False)
 
             #nmfGraph.optimiseFlows(alpha=0.1)
 
