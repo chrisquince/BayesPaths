@@ -41,7 +41,7 @@ BETA = 0.6
 TAU  = 0.5
 MAX_INT_FLOW = 1e6
 MAX_REV_FLOW = 1e5
-INT_SCALE = 1e9
+INT_SCALE = 1e8
      
 class ResidualBiGraph():
     """Creates unitig graph"""
@@ -233,7 +233,7 @@ class ResidualBiGraph():
                 
                     DeltaF += np.sum(T1 - T2)
                 else:
-                    DeltaF += 0.5*((X[v,:] - newLambda)**2 - (X[v,:] - eLambda[v,:])**2) 
+                    DeltaF += 0.5*np.sum((X[v,:] - newLambda)**2 - (X[v,:] - eLambda[v,:])**2) 
         
         return DeltaF
 
@@ -374,8 +374,12 @@ class NMFGraph():
         iter = 0
         
         eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
-        NLL1 = np.sum(eLambda - self.X*np.log(eLambda))
         
+        if bKLDivergence:
+            NLL1 = self.KDivergence(eLambda)
+        else:
+            NLL1 = self.FDivergence(eLambda)
+
         print(str(iter) + "," + str(NLL1))
         
         while iter < max_iter:
@@ -390,7 +394,7 @@ class NMFGraph():
                 gradPhi = (- np.dot(R*self.mask,self.gamma.transpose()) + gSum[np.newaxis,:])*self.lengths[:,np.newaxis]
             else:
                 temp = (eLambda - self.X)*self.lengths[:,np.newaxis]
-                gradPhi = 2.0*np.dot(temp,self.gamma.transpose())
+                gradPhi = np.dot(temp,self.gamma.transpose())
         
             #gradPhi += (alpha - 1.)/(self.phi + self.PRECISION) - (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
         
