@@ -41,7 +41,7 @@ BETA = 0.6
 TAU  = 0.5
 MAX_INT_FLOW = 1e6
 MAX_REV_FLOW = 1e5
-INT_SCALE = 1e8
+INT_SCALE = 1.0e6
      
 class ResidualBiGraph():
     """Creates unitig graph"""
@@ -290,7 +290,7 @@ class ResidualBiGraph():
 class NMFGraph():
 
 
-    DELTA = 1.0e-3
+    DELTA = 1.0e-9
     EPSILON = 1.0e-5
     PRECISION = 1.0e-15
 
