@@ -2374,9 +2374,9 @@ class AssemblyPathSVA():
             nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.X, self.G, self.lengths, self.mapGeneIdx, mask, bARD)
             #nmfGraph = NMFGraph(self.residualBiGraphs, self.genes, self.prng, self.XN, self.G, np.ones(self.V), self.mapGeneIdx, mask, bARD)        
 
-            nmfGraph.optimiseFlows(alpha=1.,max_iter=200,bKLDivergence=False)
+            nmfGraph.optimiseFlows(alpha=1.,max_iter=100,bKLDivergence=False)
 
-            nmfGraph.optimiseFlows(alpha=0.1)
+            #nmfGraph.optimiseFlows(alpha=0.1)
 
             err = nmfGraph.KLDivergence()
              
@@ -2397,7 +2397,33 @@ class AssemblyPathSVA():
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
 
+        maxPaths=nmfGraph.getMaxPaths()
 
+        with open('graphUnitigs.fa', 'w') as out_file:
+            for g, maxPathG in maxPaths.items():
+
+                for gene, pathG in maxPathG.items():
+ 
+                    unitig = self.assemblyGraphs[gene].getUnitigWalk(pathG)
+
+                    out_file.write(">" + str(gene) + "_" + str(g) + "\n")
+                    out_file.write(unitig + "\n")
+
+
+        #for g in range(self.G):
+
+            #for gene in self.genes:
+                #unitigs = self.assemblyGraphs[gene].unitigs
+
+
+                #margDict = {}
+
+                #for unitig in unitigs:
+                    #v_idx = self.mapGeneIdx[gene][unitig]
+
+                    #margDict[gene] = self.expPhi[v_idx][g]
+        
+ 
         
     def initNMF(self, mask = None, bMaskDegen = True):
     
@@ -2446,7 +2472,6 @@ class AssemblyPathSVA():
             treeWidths = {}
             for gene, factorGraph in self.factorGraphs.items():
                 unitigs = self.assemblyGraphs[gene].unitigs
-                    
                 self.updateUnitigFactorsW(unitigs, self.mapGeneIdx[gene], self.unitigFactorNodes[gene], initEta, g)
                   
                 factorGraph.reset()
@@ -3668,6 +3693,7 @@ class AssemblyPathSVA():
             
         return maximals
                     
+
 
     def getMaximalUnitigs(self, fileStub, drop_strain=None,relax_path=False,writeSeq=True):
 

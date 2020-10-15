@@ -333,7 +333,7 @@ def main(argv):
         gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
         mainLogger.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
     
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     (assemblyGraphs,  sink_maps, source_maps, cov_maps) = readGFA(gfaFiles,int(args.kmer_length),cogLengths)
     
     mainLogger.info('Create first AssemblyPathSVA object just for sample selection')
@@ -452,7 +452,7 @@ def main(argv):
             gIter += 1
     
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
      
     mainLogger.info("Perform NMF VB initialisation")
     

@@ -504,31 +504,34 @@ class NMFGraph():
 
     def getMaxPaths(self):
     
-        maxPaths = {}
-    
+        maxPaths = defaultdict(dict)
+   
         for g in range(self.G):
-            gGraph = self.biGraphs[g].diGraph
-            for (u, v, c) in gGraph.edges.data('flow', default=0.0):
+            for gene, rGraph in self.biGraphs[g].items():
+
+                gGraph = rGraph.diGraph
+                for (u, v, c) in gGraph.edges.data('flow', default=0.0):
             
-                fFlow = float(c)/INT_SCALE
+                    fFlow = float(c)/INT_SCALE
                 
-                gGraph[u][v]['weight'] = -np.log(fFlow + 1.0e-12)
+                    gGraph[u][v]['weight'] = -np.log(fFlow + 1.0e-12)
                 
             
-            path = nx.shortest_path(self.biGraphs[g].diGraph,'source+','sink+', weight='weight', method='dijkstra')
+                path = nx.shortest_path(gGraph,'source+','sink+', weight='weight', method='dijkstra')
             
             
-            path.pop(0)
-            path.pop()
-            pathN = []
-            for p in path:
-                if p[-1] != 's':
-                    pathN.append(p)
+                path.pop(0)
+                path.pop()
+                pathN = []
+                for p in path:
+                    if p[-1] != 's':
+                        pathN.append(p)
             
-            maxPaths[g] = pathN
+                maxPaths[g][gene] = pathN
 
         return maxPaths
-    
+
+
 def readCogStopsDead(cog_graph,kmer_length,cov_file):
 
     deadEndFile = cog_graph[:-3] + "deadends"
