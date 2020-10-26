@@ -619,15 +619,15 @@ def adjustCoverages(unitigGraph):
 
 def randomWalk(biGraph, prng):
 
-    nodeC = 'souce+'
+    nodeC = 'source+'
     
     walk = []
     while nodeC != 'sink+':
         walk.append(nodeC)
     
-        succ = list(nodeC.successors(nodeC))
+        succ = list(biGraph.successors(nodeC))
         
-        nodeC = prng.random.choice(succ)
+        nodeC = prng.choice(succ)
         
     return walk
         
@@ -668,7 +668,7 @@ def main(argv):
     gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
     walk = {}
     for g in range(G):
-        walk[g] = randomWalk(unitiGraph.directedUnitigBiGraphS, prng)
+        walk[g] = randomWalk(unitigGraph.directedUnitigBiGraphS, prng)
 
 
     #set log file
