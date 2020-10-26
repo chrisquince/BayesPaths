@@ -578,39 +578,8 @@ def readCogStopsDead(cog_graph,kmer_length,cov_file):
 #def removeDegenerate(haplotypes,paths):
 
 
+def adjustCoverages(unitigGraph):
 
-def main(argv):
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("cog_graph", help="gfa file")
-    
-    parser.add_argument("kmer_length", help="kmer length assumed overlap")
-    
-    parser.add_argument("cov_file", help="tsv file")
-    
-    parser.add_argument('-s', '--random_seed', default=23724839, type=int,
-        help="specifies seed for numpy random number generator defaults to 23724839 applied after random filtering")
-    
-    args = parser.parse_args()
-
-    import ipdb; ipdb.set_trace()    
-
-    np.random.seed(seed=12637)
-
-    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
-    
-    
-    (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, 3000)
-
-    source_names = [convertNodeToName(source) for source in source_list] 
-
-    sink_names = [convertNodeToName(sink) for sink in sink_list]
-    
-    unitigGraph.setDirectedBiGraphSource(source_names,sink_names)
-    
-    nx.write_adjlist(unitigGraph.directedUnitigBiGraphS,"diGraphS.adjlist")
-    
-    
     adjLengths = {}
     
     covMapAdj = {}
@@ -645,11 +614,62 @@ def main(argv):
             lengths[v] =  float(adjLengths[unitig])
             f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
             v+=1
+ 
+    return (adjLengths, mapUnitigs, X)
+
+def randomWalk(biGraph, prng):
+
+    nodeC = 'souce+'
     
+    walk = []
+    while nodeC != 'sink+':
+        walk.append(nodeC)
     
-    hyperp = { 'alphatau':0.1, 'betatau':0.1, 'alpha0':1.0e-6, 'beta0':1.0e-6, 'lambdaU':1.0e-3, 'lambdaV':1.0e-3}
-  
+        succ = list(nodeC.successors(nodeC))
+        
+        nodeC = prng.random.choice(succ)
+        
+    return walk
+        
+
+def main(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("cog_graph", help="gfa file")
+    
+    parser.add_argument("kmer_length", help="kmer length assumed overlap")
+    
+    parser.add_argument("cov_file", help="tsv file")
+    
+    parser.add_argument('-s', '--random_seed', default=23724839, type=int,
+        help="specifies seed for numpy random number generator defaults to 23724839 applied after random filtering")
+    
+    args = parser.parse_args()
+
+    import ipdb; ipdb.set_trace()    
+
+    np.random.seed(seed=12637)
+
+    (unitigGraph, stops, deadEnds ) = readCogStopsDead(args.cog_graph,args.kmer_length,args.cov_file)
+    
+    (source_list, sink_list) = unitigGraph.selectSourceSinksStops(stops, deadEnds, 3000)
+
+    source_names = [convertNodeToName(source) for source in source_list] 
+
+    sink_names = [convertNodeToName(sink) for sink in sink_list]
+    
+    unitigGraph.setDirectedBiGraphSource(source_names,sink_names)
+      
     prng = RandomState(args.random_seed) #create prng from seed 
+
+    G = 3
+    S = 4
+
+    gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
+    walk = {}
+    for g in range(G):
+        walk[g] = randomWalk(unitiGraph.directedUnitigBiGraphS, prng)
+
 
     #set log file
     logFile="test.log"
