@@ -669,24 +669,28 @@ def main(argv):
     
     walk = {}
     for g in range(G):
-        walk[g] = randomWalk(unitigGraph.directedUnitigBiGraphS, prng)
+        twalk = randomWalk(unitigGraph.directedUnitigBiGraphS, prng) 
+        twalk.pop(0)
+        walk[g] = twalk 
 
 
     V = len(unitigGraph.unitigs)
+    mapGeneIdx = {}
     mapGeneIdx['gene'] = {unitig: v for (v, unitig) in enumerate(unitigGraph.unitigs)}
     
     X = np.zeros((V,S))
     phiFixed = np.zeros((V,G))
-    lengths = 100.*np.ones(self.V)
+    lengths = 100.*np.ones(V)
     
     for g in range(G):
         for u in walk[g]:
-            if u in mapGeneIdx:
-                v = mapGeneIdx['gene'][u]
+            ud = u[:-1]
+            if ud in mapGeneIdx['gene']:
+                v = mapGeneIdx['gene'][ud]
                 phiFixed[v,g] = 1
                 
     eLambda = np.dot(phiFixed,gammaFixed)*lengths[:,np.newaxis]
-    sigma = 1
+    sigma = 10
     for v in range(V):
         for s in range(S):
     
@@ -704,19 +708,25 @@ def main(argv):
     mainLogger.setLevel(logging.DEBUG)
     mainLogger.addHandler(handler)
   
-    (self,  mask = None, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
-    
     genes = ['gene']
 
     residualBiGraphs = {}
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
-    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, G, lengths, mapGeneIdx)
+    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 3, lengths, mapGeneIdx)
     
-    nmfGraph.optimiseFlows(alpha=1.)
+    nmfGraph.optimiseFlows(alpha=1.,max_iter=400)
     
     maxPaths = nmfGraph.getMaxPaths()
-    
+   
+    diff = np.zeros((nmfGraph.G,G))
+
+    for g in range(nmfGraph.G):
+        for h in range(G):
+            diff[g,h] = len(set(maxPaths[g]['gene']) ^ set(walk[h])) 
+
+    print(diff)
+ 
     for g in range(nmfGraph.G):
         seq = unitigGraph.getUnitigWalk(maxPaths[g])
         
