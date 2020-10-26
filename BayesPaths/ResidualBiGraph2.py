@@ -17,6 +17,7 @@ from BayesPaths.UtilsFunctions import convertNodeToName
 from BayesPaths.UtilsFunctions import expNormLogProb
 from BayesPaths.UtilsFunctions import expLogProb
 from operator import itemgetter
+from BayesPaths.mask import compute_folds_attempts
 
 from BayesPaths.bnmf_vb import bnmf_vb
 from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
@@ -483,14 +484,20 @@ class NMFGraph():
     
 
 
-    def KLDivergence(self):
+    def KLDivergence(self,mask):
         
         eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
         
         div = np.sum(eLambda - self.X - self.X*np.log(eLambda) + self.X*np.log(self.X + self.PRECISION))
         
         return div
+    
+    def FDivergence(self, mask):
         
+        eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
+    
+        return 0.5*np.sum(np.square(mask*(eLambda - self.X)))
+    
 
     def evalPathWeight(self, path, weight):
 
@@ -713,9 +720,27 @@ def main(argv):
     residualBiGraphs = {}
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
-    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 3, lengths, mapGeneIdx)
+    no_folds = 10
+    Mtemp = np.ones((self.V,self.S))
+    (Ms_train,Ms_test) = compute_folds_attempts(prng, I=V,J=S,no_folds=no_folds,attempts=1000,M=Mtemp)
+
     
-    nmfGraph.optimiseFlows(alpha=1.,max_iter=400,bKLDivergence = False)
+    for g in range(10):
+    
+        for f in range(2,no_folds):
+                
+            M_train = Ms_train[f]
+            M_test = Ms_test[f]
+                
+            prng_l = RandomState(args.random_seed + f) 
+    
+            nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 3, lengths, mapGeneIdx, mask = M_train)
+            
+            nmfGraph.optimiseFlows(alpha=1.,max_iter=400,bKLDivergence = False)
+            
+            fDivTest = nmfGraph.FDivergence(M_test)
+    
+    
     
     maxPaths = nmfGraph.getMaxPaths()
    
