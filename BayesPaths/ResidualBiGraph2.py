@@ -666,11 +666,34 @@ def main(argv):
     S = 4
 
     gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
+    
     walk = {}
     for g in range(G):
         walk[g] = randomWalk(unitigGraph.directedUnitigBiGraphS, prng)
 
 
+    V = len(unitigGraph.unitigs)
+    mapGeneIdx['gene'] = {unitig: v for (v, unitig) in enumerate(unitigGraph.unitigs)}
+    
+    X = np.zeros((V,S))
+    phiFixed = np.zeros((V,G))
+    lengths = 100.*np.ones(self.V)
+    
+    for g in range(G):
+        for u in walk[g]:
+            if u in mapGeneIdx:
+                v = mapGeneIdx['gene'][u]
+                phiFixed[v,g] = 1
+                
+    eLambda = np.dot(phiFixed,gammaFixed)*lengths[:,np.newaxis]
+    sigma = 1
+    for v in range(V):
+        for s in range(S):
+    
+            X[v,s] = np.random.normal(eLambda[v,s], sigma)
+    
+    X[ X < 0] = 0.
+     
     #set log file
     logFile="test.log"
     
@@ -681,8 +704,14 @@ def main(argv):
     mainLogger.setLevel(logging.DEBUG)
     mainLogger.addHandler(handler)
   
+    (self,  mask = None, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
     
-    nmfGraph = NMFGraph(prng, unitigGraph, X, 16, lengths, mapUnitigs)
+    genes = ['gene']
+
+    residualBiGraphs = {}
+    residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
+    
+    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, G, lengths, mapGeneIdx)
     
     nmfGraph.optimiseFlows(alpha=1.)
     
