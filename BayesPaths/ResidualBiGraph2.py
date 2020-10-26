@@ -693,8 +693,8 @@ def main(argv):
     sigma = 10
     for v in range(V):
         for s in range(S):
-    
-            X[v,s] = np.random.normal(eLambda[v,s], sigma)
+            X[v,s] = np.random.poisson(eLambda[v,s])
+            #X[v,s] = np.random.normal(eLambda[v,s], sigma)
     
     X[ X < 0] = 0.
      
@@ -715,7 +715,7 @@ def main(argv):
     
     nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 3, lengths, mapGeneIdx)
     
-    nmfGraph.optimiseFlows(alpha=1.,max_iter=400)
+    nmfGraph.optimiseFlows(alpha=1.,max_iter=400,bKLDivergence = True)
     
     maxPaths = nmfGraph.getMaxPaths()
    
