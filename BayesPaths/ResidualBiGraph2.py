@@ -348,7 +348,11 @@ class NMFGraph():
                 
     
         self.lengths = lengths
-        
+       
+        self.bLasso = bLasso
+
+        self.fLambda = fLambda        
+ 
         self.bARD = bARD
         
         if self.bARD:
@@ -730,7 +734,7 @@ def main(argv):
     residualBiGraphs = {}
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
-    M = np.ones((self.V,self.S))
+    M = np.ones((V,S))
     nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 4, lengths, mapGeneIdx, M, False, True, 1.0)
     
     nmfGraph.bLasso = False        
