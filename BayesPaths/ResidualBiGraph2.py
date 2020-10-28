@@ -362,11 +362,11 @@ class NMFGraph():
         
             self.lambda_g = prng.exponential(scale=scale,size=(self.G))  
     
-    def KDivergence(self, eLambda, mask):
+    def _KDivergence(self, eLambda, mask):
         
         return np.sum(mask*(eLambda - self.X*np.log(eLambda)))
 
-    def FDivergence(self, eLambda, mask):
+    def _FDivergence(self, eLambda, mask):
         
         return 0.5*np.sum(np.square(mask*(eLambda - self.X)))
     
@@ -377,9 +377,9 @@ class NMFGraph():
         eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
         
         if bKLDivergence:
-            NLL1 = self.KDivergence(eLambda, self.mask)
+            NLL1 = self._KDivergence(eLambda, self.mask)
         else:
-            NLL1 = self.FDivergence(eLambda, self.mask)
+            NLL1 = self._FDivergence(eLambda, self.mask)
 
         print(str(iter) + "," + str(NLL1))
         
@@ -434,11 +434,12 @@ class NMFGraph():
             eLambda1 = (np.dot(newPhi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
             
             if bKLDivergence:
-                NLL1 = self.KDivergence(eLambda1,self.mask)
+                NLL1 = self._KDivergence(eLambda1,self.mask)
             else:
-                NLL1 = self.FDivergence(eLambda1,self.mask)
-                
-            print(str(iter) + "," + str(NLL1))
+                NLL1 = self._FDivergence(eLambda1,self.mask)
+            
+            if iter % 10 == 0:        
+                print(str(iter) + "," + str(NLL1))
         
             pL = self.phi*self.lengths[:,np.newaxis]
             tL = np.transpose(pL)
@@ -463,9 +464,9 @@ class NMFGraph():
             eLambda3 = (np.dot(newPhi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
             
             if bKLDivergence:
-                NLL3 = self.KDivergence(eLambda3,self.mask)
+                NLL3 = self._KDivergence(eLambda3,self.mask)
             else:
-                NLL3 = self.FDivergence(eLambda3,self.mask)
+                NLL3 = self._FDivergence(eLambda3,self.mask)
                 
             
             if self.bARD:
@@ -475,7 +476,7 @@ class NMFGraph():
                 
                 self.lambda_g = self.alpha_g/self.beta_g
             
-            print(str(iter) + "," + str(NLL3))
+            #print(str(iter) + "," + str(NLL3))
                     
             self.phi = newPhi
         
@@ -496,7 +497,9 @@ class NMFGraph():
         
         eLambda = (np.dot(self.phi,self.gamma) + self.DELTA) * self.lengths[:,np.newaxis]
     
-        return 0.5*np.sum(np.square(mask*(eLambda - self.X)))
+        omega = np.sum(mask)
+
+        return np.sqrt(np.sum(np.square(mask*(eLambda - self.X)))/omega)
     
 
     def evalPathWeight(self, path, weight):
@@ -697,7 +700,7 @@ def main(argv):
                 phiFixed[v,g] = 1
                 
     eLambda = np.dot(phiFixed,gammaFixed)*lengths[:,np.newaxis]
-    sigma = 10
+    sigma = 5
     for v in range(V):
         for s in range(S):
             #X[v,s] = np.random.poisson(eLambda[v,s])
@@ -721,26 +724,27 @@ def main(argv):
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
     no_folds = 10
-    Mtemp = np.ones((self.V,self.S))
+    Mtemp = np.ones((V,S))
     (Ms_train,Ms_test) = compute_folds_attempts(prng, I=V,J=S,no_folds=no_folds,attempts=1000,M=Mtemp)
 
+   
+    fDivs = defaultdict(list) 
+    for g in range(2,6):
     
-    for g in range(10):
-    
-        for f in range(2,no_folds):
-                
+        for f in range(no_folds):
+            print(str(g) + "," + str(f))            
             M_train = Ms_train[f]
             M_test = Ms_test[f]
                 
             prng_l = RandomState(args.random_seed + f) 
     
-            nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 3, lengths, mapGeneIdx, mask = M_train)
+            nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, g, lengths, mapGeneIdx, M_train)
             
-            nmfGraph.optimiseFlows(alpha=1.,max_iter=400,bKLDivergence = False)
+            nmfGraph.optimiseFlows(1.,200)
             
             fDivTest = nmfGraph.FDivergence(M_test)
     
-    
+            fDivs[g].append(fDivTest)
     
     maxPaths = nmfGraph.getMaxPaths()
    
