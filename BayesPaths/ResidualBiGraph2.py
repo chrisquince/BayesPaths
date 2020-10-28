@@ -295,7 +295,7 @@ class NMFGraph():
     EPSILON = 1.0e-5
     PRECISION = 1.0e-15
 
-    def __init__(self, biGraphs, genes, prng, X, G, lengths, mapGeneIdx, mask = None, bARD = True,alphaG=1.0e-6,betaG=1.0e-6):
+    def __init__(self, biGraphs, genes, prng, X, G, lengths, mapGeneIdx, mask = None, bARD = False, bLasso = False, fLambda = 1.0, alphaG=1.0e-6,betaG=1.0e-6):
         
         self.X = X
         
@@ -396,6 +396,13 @@ class NMFGraph():
             else:
                 temp = (eLambda - self.X)*self.mask*self.lengths[:,np.newaxis]
                 gradPhi = np.dot(temp,self.gamma.transpose())
+            
+            if self.bLasso:
+                gTerm = -self.fLambda*np.ones((self.V,self.G))
+                gTerm[self.phi == 0.5] = 0.
+                gTerm[self.phi > 0.5] = self.fLambda
+                
+                gradPhi += gTerm
         
             #gradPhi += (alpha - 1.)/(self.phi + self.PRECISION) - (alpha - 1.)/(1.0 - self.phi + self.PRECISION)
         
@@ -722,6 +729,20 @@ def main(argv):
 
     residualBiGraphs = {}
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
+    
+    M = np.ones((self.V,self.S))
+    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 4, lengths, mapGeneIdx, M, False, True, 1.0)
+    
+    nmfGraph.bLasso = False        
+    nmfGraph.optimiseFlows(1.,200)
+            
+    fDivTest = nmfGraph.FDivergence(M)
+
+    nmfGraph.bLasso = True        
+    nmfGraph.optimiseFlows(1.,200)
+            
+    fDivTest = nmfGraph.FDivergence(M)
+    
     
     no_folds = 10
     Mtemp = np.ones((V,S))
