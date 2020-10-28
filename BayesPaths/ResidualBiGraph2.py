@@ -43,7 +43,14 @@ TAU  = 0.5
 MAX_INT_FLOW = 1e6
 MAX_REV_FLOW = 1e5
 INT_SCALE = 1.0e6
-     
+
+def lassoF(phi):
+
+    if phi < 0.5:
+        return phi
+    else:
+        return 1 - phi
+
 class ResidualBiGraph():
     """Creates unitig graph"""
 
@@ -235,6 +242,10 @@ class ResidualBiGraph():
                     DeltaF += np.sum(T1 - T2)
                 else:
                     DeltaF += 0.5*np.sum((X[v,:] - newLambda)**2 - (X[v,:] - eLambda[v,:])**2) 
+        
+                if self.bLasso:
+                    DeltaF += self.fLambda*(lassoF(nfFlow) - lassoF(fFlow))
+            
         
         return DeltaF
 
