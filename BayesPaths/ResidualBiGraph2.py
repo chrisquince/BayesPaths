@@ -51,6 +51,15 @@ def lassoF(phi):
     else:
         return 1 - phi
 
+def lassoPenalty(phiMatrix):
+
+    fL = 0.
+    for i in range(phiMatrix.shape[0]):
+        for j in range(phiMatrix.shape[1]):
+            fL += lassoF(phiMatrix[i][j])
+
+    return fL
+
 class ResidualBiGraph():
     """Creates unitig graph"""
 
@@ -208,7 +217,7 @@ class ResidualBiGraph():
                         self.diGraph[outnode][node]['flow'] = max(0,int(fFlow - epsilon*flow))
                 
 
-    def deltaF(self, flowDict, epsilon, X, eLambda, mapIdx, Lengths, g, gamma, bKLDivergence = False):
+    def deltaF(self, flowDict, epsilon, X, eLambda, mapIdx, Lengths, g, gamma, bKLDivergence = False, bLasso = False, fLambda = 1.):
     
         DeltaF = 0.       
         
@@ -226,7 +235,7 @@ class ResidualBiGraph():
                 change = True
                     
             elif flowDict[outnode][node] > 0.:                        
-                niFlow = int(iFlow - epsilon*flowDict[node][outnode])
+                niFlow = int(iFlow - epsilon*flowDict[outnode][node])
                 nfFlow =  float(niFlow)/INT_SCALE
                 change = True
                 
@@ -243,8 +252,8 @@ class ResidualBiGraph():
                 else:
                     DeltaF += 0.5*np.sum((X[v,:] - newLambda)**2 - (X[v,:] - eLambda[v,:])**2) 
         
-                if self.bLasso:
-                    DeltaF += self.fLambda*(lassoF(nfFlow) - lassoF(fFlow))
+                if bLasso:
+                    DeltaF += fLambda*(lassoF(nfFlow) - lassoF(fFlow))
             
         
         return DeltaF
@@ -413,9 +422,9 @@ class NMFGraph():
                 gradPhi = np.dot(temp,self.gamma.transpose())
             
             if self.bLasso:
-                gTerm = -self.fLambda*np.ones((self.V,self.G))
+                gTerm = self.fLambda*np.ones((self.V,self.G))
                 gTerm[self.phi == 0.5] = 0.
-                gTerm[self.phi > 0.5] = self.fLambda
+                gTerm[self.phi > 0.5] = -self.fLambda
                 
                 gradPhi += gTerm
         
@@ -434,15 +443,14 @@ class NMFGraph():
                  
                     pflow = 0.1 
             
-                    DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence)
-                
+                    DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence, self.bLasso, self.fLambda)               
                     weight = flowCost/float(INT_SCALE)
             
                     i = 0
                     while DeltaF > pflow*weight*BETA and i < 10:
                         pflow *= TAU
                 
-                        DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence)
+                        DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, g, self.gamma,bKLDivergence, self.bLasso, self.fLambda)
         
                         i += 1
 
@@ -647,7 +655,7 @@ def adjustCoverages(unitigGraph):
             f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
             v+=1
  
-    return (adjLengths, mapUnitigs, X)
+    return (V,S,adjLengths, mapUnitigs, X)
 
 def randomWalk(biGraph, prng):
 
@@ -662,7 +670,43 @@ def randomWalk(biGraph, prng):
         nodeC = prng.choice(succ)
         
     return walk
-        
+
+def setRandom():
+    G = 3
+    S = 4
+
+    gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
+
+    walk = {}
+    for g in range(G):
+        twalk = randomWalk(unitigGraph.directedUnitigBiGraphS, prng)
+        twalk.pop(0)
+        walk[g] = twalk
+
+
+    V = len(unitigGraph.unitigs)
+    mapGeneIdx = {}
+    mapGeneIdx['gene'] = {unitig: v for (v, unitig) in enumerate(unitigGraph.unitigs)}
+
+    X = np.zeros((V,S))
+    phiFixed = np.zeros((V,G))
+    lengths = 100.*np.ones(V)
+
+    for g in range(G):
+        for u in walk[g]:
+            ud = u[:-1]
+            if ud in mapGeneIdx['gene']:
+                v = mapGeneIdx['gene'][ud]
+                phiFixed[v,g] = 1
+
+    eLambda = np.dot(phiFixed,gammaFixed)*lengths[:,np.newaxis]
+    sigma = 5
+    for v in range(V):
+        for s in range(S):
+            #X[v,s] = np.random.poisson(eLambda[v,s])
+            X[v,s] = np.random.normal(eLambda[v,s], sigma)
+
+    X[ X < 0] = 0.        
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -693,6 +737,12 @@ def main(argv):
     unitigGraph.setDirectedBiGraphSource(source_names,sink_names)
       
     prng = RandomState(args.random_seed) #create prng from seed 
+
+
+    if True:
+        (V,S,adjLengths, mapUnitigs, X) = adjustCoverages(unitigGraph)
+    else:
+
 
     G = 3
     S = 4
@@ -746,16 +796,21 @@ def main(argv):
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
     M = np.ones((V,S))
-    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 4, lengths, mapGeneIdx, M, False, True, 1.0)
+    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 2, lengths, mapGeneIdx, M, False, True, 1.0)
     
     nmfGraph.bLasso = False        
-    nmfGraph.optimiseFlows(1.,200)
+    nmfGraph.optimiseFlows(1.,500)
             
     fDivTest = nmfGraph.FDivergence(M)
 
-    nmfGraph.bLasso = True        
-    nmfGraph.optimiseFlows(1.,200)
-            
+    print(lassoPenalty(nmfGraph.phi))    
+
+    nmfGraph.bLasso = True
+    nmfGraph.fLambda = 20        
+    nmfGraph.optimiseFlows(1.,500)
+    
+    print(lassoPenalty(nmfGraph.phi))
+
     fDivTest = nmfGraph.FDivergence(M)
     
     
@@ -765,7 +820,7 @@ def main(argv):
 
    
     fDivs = defaultdict(list) 
-    for g in range(2,6):
+    for g in range(1,4):
     
         for f in range(no_folds):
             print(str(g) + "," + str(f))            
@@ -774,10 +829,14 @@ def main(argv):
                 
             prng_l = RandomState(args.random_seed + f) 
     
-            nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, g, lengths, mapGeneIdx, M_train)
-            
+            nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, g, lengths, mapGeneIdx, M_train,False, True, 1.0)
+            nmfGraph.bLasso = False
             nmfGraph.optimiseFlows(1.,200)
-            
+
+            nmfGraph.bLasso = True
+            nmfGraph.fLambda = 20
+            nmfGraph.optimiseFlows(1.,200)
+
             fDivTest = nmfGraph.FDivergence(M_test)
     
             fDivs[g].append(fDivTest)
