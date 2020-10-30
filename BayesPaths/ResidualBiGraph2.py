@@ -671,10 +671,9 @@ def randomWalk(biGraph, prng):
         
     return walk
 
-def setRandom():
-    G = 3
+def setRandom(unitigGraph):
     S = 4
-
+    G = 3
     gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
 
     walk = {}
@@ -707,6 +706,8 @@ def setRandom():
             X[v,s] = np.random.normal(eLambda[v,s], sigma)
 
     X[ X < 0] = 0.        
+
+    return (S,G, V, adjLengths, mapUnitigs, X)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -742,43 +743,8 @@ def main(argv):
     if True:
         (V,S,adjLengths, mapUnitigs, X) = adjustCoverages(unitigGraph)
     else:
+        (S,G, V, adjLengths, mapUnitigs, X) = setRandom(unitigGraph)
 
-
-    G = 3
-    S = 4
-
-    gammaFixed = np.array([[1.,1.,0.,0.],[0.,1.,1.,0.],[0.0,0.0,1.,1.]])
-    
-    walk = {}
-    for g in range(G):
-        twalk = randomWalk(unitigGraph.directedUnitigBiGraphS, prng) 
-        twalk.pop(0)
-        walk[g] = twalk 
-
-
-    V = len(unitigGraph.unitigs)
-    mapGeneIdx = {}
-    mapGeneIdx['gene'] = {unitig: v for (v, unitig) in enumerate(unitigGraph.unitigs)}
-    
-    X = np.zeros((V,S))
-    phiFixed = np.zeros((V,G))
-    lengths = 100.*np.ones(V)
-    
-    for g in range(G):
-        for u in walk[g]:
-            ud = u[:-1]
-            if ud in mapGeneIdx['gene']:
-                v = mapGeneIdx['gene'][ud]
-                phiFixed[v,g] = 1
-                
-    eLambda = np.dot(phiFixed,gammaFixed)*lengths[:,np.newaxis]
-    sigma = 5
-    for v in range(V):
-        for s in range(S):
-            #X[v,s] = np.random.poisson(eLambda[v,s])
-            X[v,s] = np.random.normal(eLambda[v,s], sigma)
-    
-    X[ X < 0] = 0.
      
     #set log file
     logFile="test.log"
