@@ -101,18 +101,27 @@ def assGraphWorker(gargs):
     logger.info('Start running: %s', name)
 
     assGraph = AssemblyPathSVA(prng, logger, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
+<<<<<<< HEAD
                                 ARD=False,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, 
                                 nNmfIters=args.nmf_iters, bLoess = args.loess, 
+=======
+                                ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
+>>>>>>> b9cfc2a11169869d72e208bf00f28a74df47bdd6
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
                                 fracCov = args.frac_cov)
     
     logger.info('Perform NMF VB initialisation')
     
+<<<<<<< HEAD
     if args.graph_nmf:
         assGraph.initNMFGraph(M_train, True, bScale = args.scale_nmf, bARD=False)
     else:
         assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=False)
          
+=======
+    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=True)
+                
+>>>>>>> b9cfc2a11169869d72e208bf00f28a74df47bdd6
     logger.info('Run %d SVI iterations',2*args.iters)
     
     assGraph.update(2*args.iters, False, M_train, True, drop_strain=None,relax_path=False, bMulti = False)
