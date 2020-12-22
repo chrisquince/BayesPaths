@@ -655,7 +655,7 @@ def adjustCoverages(unitigGraph):
             f.write(unitig + ',' + str(unitigGraph.lengths[unitig]) +',' + str(covSum) + ',' + str(readSum) + '\n') 
             v+=1
  
-    return (V,S,adjLengths, mapUnitigs, X)
+    return (V,S,lengths, mapUnitigs, X)
 
 def randomWalk(biGraph, prng):
 
@@ -707,7 +707,7 @@ def setRandom(unitigGraph):
 
     X[ X < 0] = 0.        
 
-    return (S,G, V, adjLengths, mapUnitigs, X)
+    return (S,G, V, lengths, mapUnitigs, X)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -741,11 +741,12 @@ def main(argv):
 
 
     if True:
-        (V,S,adjLengths, mapUnitigs, X) = adjustCoverages(unitigGraph)
+        (V, S, lengths, mapUnitigs, X) = adjustCoverages(unitigGraph)
     else:
-        (S,G, V, adjLengths, mapUnitigs, X) = setRandom(unitigGraph)
+        (S, G, V, lengths, mapUnitigs, X) = setRandom(unitigGraph)
 
-     
+    mapGeneIdx = {}
+    mapGeneIdx['gene'] = mapUnitigs 
     #set log file
     logFile="test.log"
     
