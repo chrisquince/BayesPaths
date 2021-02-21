@@ -207,7 +207,7 @@ class AssemblyPathSVA():
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, nNmfIters=10, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
-                working_dir="/tmp", minSumCov = None, fracCov = None):
+                working_dir="/tmp", minSumCov = None, fracCov = None, bARD2 = True):
                 
         self.prng = prng #random state to store
 
@@ -658,8 +658,14 @@ class AssemblyPathSVA():
        
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
-        self.alphak_s[k] = self.alpha0 + self.S
-        self.betak_s[k] = self.beta0 + self.expGamma[k,:].sum()
+        
+        if self.bARD2:
+            self.alphak_s[k] = self.alpha0 + 0.5*self.S
+            self.betak_s[k] = self.beta0 + 0.5*self.expGamma2[k,:].sum()
+            
+        else:
+            self.alphak_s[k] = self.alpha0 + self.S
+            self.betak_s[k] = self.beta0 + self.expGamma[k,:].sum()
     
     def update_exp_lambdak(self,g):
         ''' Update expectation lambdak. '''
@@ -1244,7 +1250,12 @@ class AssemblyPathSVA():
         else:
             lamb = 1.0/self.epsilon
             if self.ARD:
-                lamb = self.exp_lambdak[g_idx] 
+            
+                if self.bARD2:
+                    lamb = 0.
+                    dSum += self.exp_lambdak[g_idx] 
+                else: 
+                    lamb = self.exp_lambdak[g_idx] 
         
         
         nSum -= lamb
