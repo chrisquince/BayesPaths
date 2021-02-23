@@ -2378,29 +2378,29 @@ class AssemblyPathSVA():
         MC = mask[selectV,:]
         LC = self.lengths[selectV]
         
-        #covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
+        covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
         #covNMF = NMF_NNLS(XC,MC,self.G,LC)
-        covNMF = NMF_NNLS(XC,MC,self.G)
+        #covNMF = NMF_NNLS(XC,MC,self.G)
         
-        #covNMF.factorize()
-        #covNMF.factorizeH()
+        covNMF.factorize()
+        covNMF.factorizeH()
         
-        covNMF.train(1000,no_runs = 1)
-        covNMF.factorizeG()  
-        covNMF.factorizeP()
+        #covNMF.train(1000,no_runs = 1)
+        #covNMF.factorizeG()  
+        #covNMF.factorizeP()
         
-        #self.expGamma[0:self.G,:] = np.copy(covNMF.H)
-        self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
         self.expGamma2 = self.expGamma*self.expGamma
         
-        #covNMF.factorizeW()       
+        covNMF.factorizeW()       
         
         initEta = np.zeros((self.V,self.G))
         
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                initEta[v,:] = covNMF.P[u,:]
+                initEta[v,:] = covNMF.W[u,:]
                 u += 1
         
         for v, vmap in self.degenSeq.items():
