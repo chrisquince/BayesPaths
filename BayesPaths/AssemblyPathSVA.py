@@ -491,7 +491,7 @@ class AssemblyPathSVA():
         
         self.logger.info('Total sum of sample coverages: %.3f', self.totalCov)
         
-        self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
+        self.minIntensity =  max(1.5,self.fracCov*self.totalCov)/self.readLength
         
         self.logger.info('Set minimum intensity/cov for strain: %.3f,%.3f', self.minIntensity, self.minIntensity*self.readLength)
         
