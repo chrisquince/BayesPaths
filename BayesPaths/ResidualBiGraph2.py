@@ -479,7 +479,8 @@ class NMFGraph():
                 pSum += self.lambda_g
         
             if bKLDivergence:
-                self.gamma = self.gamma*(np.dot(tL,R*self.mask)/pSum[:,np.newaxis]) 
+                self.gamma = self.gamma*(np.dot(tL,R*self.mask)/pSum[:,np.newaxis])
+
             else:
                 N = np.dot(tL,self.X*self.mask)
                 D = np.dot(tL,eLambda)
@@ -763,11 +764,34 @@ def main(argv):
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
     M = np.ones((V,S))
-    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 2, lengths, mapGeneIdx, M, False, True, 1.0)
+    nmfGraph = NMFGraph(residualBiGraphs, genes, prng, X, 8, lengths, mapGeneIdx, M, True, True, 1.0)
     
     nmfGraph.bLasso = False        
-    nmfGraph.optimiseFlows(1.,500)
+    nmfGraph.fLambda = 0
+    nmfGraph.optimiseFlows(1.,100,bKLDivergence = True)
             
+    maxPaths = nmfGraph.getMaxPaths()
+
+    diff = np.zeros((nmfGraph.G,nmfGraph.G))
+
+    for g in range(nmfGraph.G):
+        for h in range(nmfGraph.G):
+            diff[g,h] = len(set(maxPaths[g]['gene']) ^ set(maxPaths[h]['gene']))
+
+    print(diff)
+
+    for g in range(nmfGraph.G):
+    
+        if np.sum(nmfGraph.gamma[g,:]) > 1.0e-2:
+
+            seq = unitigGraph.getUnitigWalk(maxPaths[g]['gene'])
+
+            print(">Hap_" + str(g) + "\n" + seq)
+
+
+    print('Debug')
+
+
     fDivTest = nmfGraph.FDivergence(M)
 
     print(lassoPenalty(nmfGraph.phi))    
@@ -828,7 +852,7 @@ def main(argv):
     maxPaths = nmfGraph.getMaxPaths()
     
     for g in range(nmfGraph.G):
-        seq = unitigGraph.getUnitigWalk(maxPaths[g])
+        seq = unitigGraph.getUnitigWalk(maxPaths[g]['gene'])
         
         print(">Hap_" + str(g) + "\n" + seq)
 
