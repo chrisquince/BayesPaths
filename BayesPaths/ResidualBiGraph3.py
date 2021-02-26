@@ -323,8 +323,23 @@ class FlowGraphML():
         
         self.mapGeneIdx  = mapGeneIdx
         
-        self.phi = np.ones((self.V))
+        self.phi = np.zeros((self.V))
         
+        for gene, biGraph in self.biGraphs.items():
+                
+            pathg = biGraph.getRandomPath(prng)
+    
+            biGraph.addFlowPath(pathg, INT_SCALE)
+            
+            for u in pathg:
+                ud = u[:-1]
+                
+                if ud in self.mapGeneIdx[gene]:
+                
+                    v = self.mapGeneIdx[gene][ud]
+                
+                    self.phi[v] = 1.
+      
         self.tau = 1. 
     
         self.lengths = lengths
