@@ -151,7 +151,7 @@ class ResidualBiGraph():
         return copyDiGraph
     
     @classmethod
-    def combineGraphs(cls,dictBiGraphs,geneList,maxFlow):
+    def combineGraphs(cls,dictBiGraphs,geneList,mapGeneIdx,maxFlow = 1.):
       
         cGraph = nx.DiGraph()
         
@@ -159,11 +159,18 @@ class ResidualBiGraph():
         
         sEdges = set()
         
+        newGeneIdx = {}
+        defaultdict(dict)
+        
         for gene in geneList:
         
             unitigsDash = list(dictBiGraphs[gene].diGraph.nodes())
             
             mapNodes = {s:gene + "_" + s for s in unitigsDash}
+            
+            for (ud, mapunitig) mapNodes.items():
+                newGeneIdx[mapunitig] = mapGeneIdx[gene][ud]
+            
             
             if lastGene is None:
                 mapNodes['source+'] = 'source+'
@@ -188,7 +195,7 @@ class ResidualBiGraph():
         
         biGraph = cls(cGraph, sEdges, maxFlow)
         
-        return biGraph
+        return (biGraph, newGeneIdx)
     
     
     def updateCosts(self,vCosts,mapIdx):
