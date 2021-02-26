@@ -63,7 +63,7 @@ class ResidualBiGraph():
 
         assert hasattr(unitigGraph, 'directedUnitigBiGraphS')
     
-        tempDiGraph = ResidualGraph.removeCycles(unitigGraph.directedUnitigBiGraphS)
+        tempDiGraph = ResidualBiGraph.removeCycles(unitigGraph.directedUnitigBiGraphS)
     
         copyDiGraph = tempDiGraph.copy()
         
@@ -325,9 +325,9 @@ class ResidualBiGraph():
         
             self.addFlowPath(maxPath, -maxFlow)
         
-            paths[tuple(maxPath)] = maxFlow
+            paths[tuple(maxPath)] = maxFlow/INT_SCALE
         
-            print(str(maxFlow))
+            print(str(maxFlow/INT_SCALE))
     
         return paths
     
@@ -524,7 +524,13 @@ class FlowGraphML():
             iter = iter+1
     
     
+    def decomposeFlows(self):
 
+        flowPaths = {}
+        for gene, biGraph in self.biGraphs.items():
+            flowPaths[gene] = biGraph.decomposeFlows()
+
+        return flowPaths
 
     def KLDivergence(self,mask):
         
@@ -680,9 +686,9 @@ def main(argv):
     XT = np.sum(X,axis=1)
 
     flowGraph = FlowGraphML(residualBiGraphs, genes, prng, XT, lengths, mapGeneIdx, M, True, 1.0)    
-    flowGraph.bLasso = False        
-    flowGraph.fLambda = 0
-    flowGraph.optimiseFlows(100,bKLDivergence = False)
+    flowGraph.bLasso = True        
+    flowGraph.fLambda = 1.0e3
+    flowGraph.optimiseFlows(50,bKLDivergence = False)
 
     eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
     for v in range(flowGraph.V):
