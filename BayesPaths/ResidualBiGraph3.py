@@ -314,23 +314,18 @@ class FlowGraphML():
         
         self.biGraphs = {}
         
-        for biGraph in biGraphs.items():
+        for (gene,biGraph) in biGraphs.items():
+            self.biGraphs[gene] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges)
             
-                self.biGraphs[gene] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges)
-            
-                self.biGraphs[gene].initialiseFlows()
+            self.biGraphs[gene].initialiseFlows()
         
         self.genes = genes
         
         self.mapGeneIdx  = mapGeneIdx
         
-        scale = 1.0 
-        self.gamma = prng.exponential(scale=scale,size=(self.G,self.S))   
-        
         self.phi = np.ones((self.V))
         
-        self.tau = 1.
-    
+        self.tau = 1. 
     
         self.lengths = lengths
        
@@ -351,7 +346,7 @@ class FlowGraphML():
     
         iter = 0
         
-        eLambda = (self.phi + self.DELTA) * self.lengths[:,np.newaxis]
+        eLambda = (self.phi + self.DELTA) * self.lengths
         
         if bKLDivergence:
             NLL1 = self._KDivergence(eLambda, self.mask)
@@ -364,7 +359,7 @@ class FlowGraphML():
         
             #first compute phi gradient in matrix format
             
-            eLambda = (self.phi + self.DELTA) * self.lengths[:,np.newaxis]
+            eLambda = (self.phi + self.DELTA) * self.lengths
         
             R = self.X/eLambda
             
@@ -495,6 +490,47 @@ def adjustCoverages(unitigGraph):
     return (V,S,lengths, mapUnitigs, X)
 
 
+def readCogStopsDead(cog_graph,kmer_length,cov_file):
+
+    deadEndFile = cog_graph[:-3] + "deadends"
+        
+    stopFile = cog_graph[:-3] + "stops"
+
+    try:
+        unitigGraph = UnitigGraph.loadGraphFromGfaFile(cog_graph,int(kmer_length), cov_file, tsvFile=True, bRemoveSelfLinks = True)
+    except IOError:
+        print('Trouble using file {}'.format(cog_graph))
+        sys.exit()
+    
+        
+    deadEnds = []
+
+
+    try:
+        with open(deadEndFile) as f:
+            for line in f:
+                line.strip()
+                deadEnds.append(line)
+    except IOError:
+        print('Trouble using file {}'.format(deadEndFile))
+        sys.exit()
+        
+    stops = []
+        
+    try:
+        with open(stopFile) as f:
+            for line in f:
+                line = line.strip()
+                toks = line.split("\t")
+                dirn = True
+                if toks[1] == '-':
+                    dirn = False
+                stops.append((toks[0],dirn))
+    except IOError:
+        print('Trouble using file {}'.format(stopFile))
+        sys.exit()
+        
+    return (unitigGraph, stops, deadEnds )
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -532,15 +568,6 @@ def main(argv):
 
     mapGeneIdx = {}
     mapGeneIdx['gene'] = mapUnitigs 
-    #set log file
-    logFile="test.log"
-    
-    handler = logging.FileHandler(logFile)        
-    handler.setFormatter(formatter)
-
-    mainLogger = logging.getLogger('main')
-    mainLogger.setLevel(logging.DEBUG)
-    mainLogger.addHandler(handler)
   
     genes = ['gene']
 
@@ -549,11 +576,11 @@ def main(argv):
     
     M = np.ones((V))
     XT = np.sum(X,axis=1)
-    nmfGraph = FlowGraphML(residualBiGraphs, genes, prng, X, lengths, mapGeneIdx, M, True, True, 1.0)
-    
-    nmfGraph.bLasso = False        
-    nmfGraph.fLambda = 0
-    nmfGraph.optimiseFlows(1.,100,bKLDivergence = True)
+
+    flowGraph = FlowGraphML(residualBiGraphs, genes, prng, XT, lengths, mapGeneIdx, M, True, 1.0)    
+    flowGraph.bLasso = False        
+    flowGraph.fLambda = 0
+    flowGraph.optimiseFlows(100,bKLDivergence = True)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
