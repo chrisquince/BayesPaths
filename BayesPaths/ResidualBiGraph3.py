@@ -63,8 +63,7 @@ class ResidualBiGraph():
 
         assert hasattr(unitigGraph, 'directedUnitigBiGraphS')
     
-    
-        tempDiGraph = unitigGraph.directedUnitigBiGraphS
+        tempDiGraph = ResidualGraph.removeCycles(unitigGraph.directedUnitigBiGraphS)
     
         copyDiGraph = tempDiGraph.copy()
         
@@ -109,6 +108,28 @@ class ResidualBiGraph():
         
         return biGraph
     
+    @classmethod
+    def removeCycles(cls, inGraph):
+        
+        diGraph = inGraph.copy()
+        
+        while not nx.is_directed_acyclic_graph(diGraph):
+        
+            cycle = nx.find_cycle(diGraph)
+            
+            weakestLink = sys.float_info.max
+            weakestEdge = None
+            
+            for edge in cycle:
+                weight = diGraph[edge[0]][edge[1]]['covweight']
+            
+                if weight < weakestLink:
+                    weakestEdge = edge
+                    weakestLink = weight
+            
+            diGraph.remove_edge(weakestEdge[0],weakestEdge[1])
+   
+        return diGraph
     
     @classmethod
     def createResidualGraph(cls,diGraph):
@@ -291,7 +312,71 @@ class ResidualBiGraph():
             v = mapIdx[unitigd] 
     
             phi[v] = fFlow
+    
+    def decomposeFlows(self):
+      
+        paths = {}
+      
+        maxFlow = 1.0
+        
+        while maxFlow > 0.:
+    
+            (maxPath, maxFlow) = self.getMaxMinFlowPathDAG()
+        
+            self.addFlowPath(maxPath, -maxFlow)
+        
+            paths[tuple(maxPath)] = maxFlow
+        
+            print(str(maxFlow))
+    
+        return paths
+    
+    def getMaxMinFlowPathDAG(self):
+    
+        #self.initialiseFlows()  
+    
+        self.top_sort = list(nx.topological_sort(self.diGraph))
+    
+        lenSort = len(self.top_sort)
             
+        maxPred = {}
+        maxFlowNode = {}
+    
+        for node in self.top_sort:
+            pred = list(self.diGraph.predecessors(node))
+            
+            if len(pred) > 0:
+                maxFlowPred = min(maxFlowNode[pred[0]],self.diGraph[pred[0]][node]['flow'])
+                maxPred[node] = pred[0]
+                
+                for predecessor in pred[1:]:
+            #    print (node + "," + predecessor + "," + str(dGraph[predecessor][node]['flow']))
+                
+                    weight =  min(maxFlowNode[predecessor],self.diGraph[predecessor][node]['flow'])
+                
+                    if weight > maxFlowPred:
+                        maxFlowPred = weight
+                        maxPred[node] = predecessor
+                
+                maxFlowNode[node]  = maxFlowPred
+            else:
+                maxFlowNode[node] = sys.float_info.max
+                maxPred[node] = None
+            
+        minPath = []
+        bestNode = 'sink+'
+        while bestNode is not None:
+            minPath.append(bestNode)
+            bestNode = maxPred[bestNode]
+        
+        minPath.pop(0)
+        minPath.pop()
+        minPath.reverse()
+                            
+        
+        return (minPath, maxFlowNode['sink+'])
+
+    
 
 class FlowGraphML():
 
@@ -603,6 +688,7 @@ def main(argv):
     for v in range(flowGraph.V):
         print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
 
+    paths = flowGraph.decomposeFlows()
 
     print('Debug')
 
