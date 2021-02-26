@@ -40,6 +40,8 @@ def lassoPenalty(phiMatrix):
     return fL
 
 INT_SCALE = 1.0e6
+BETA = 0.6
+TAU  = 0.5
 
 class ResidualBiGraph():
     """Creates unitig graph for minimisation"""
@@ -427,7 +429,7 @@ class FlowGraphML():
             else:
                 NLL1 = self._FDivergence(eLambda1,self.mask)
             
-            if iter % 10 == 0:        
+            if iter % 1 == 0:        
                 print(str(iter) + "," + str(NLL1))
         
                   #print(str(iter) + "," + str(NLL3))
@@ -595,7 +597,14 @@ def main(argv):
     flowGraph = FlowGraphML(residualBiGraphs, genes, prng, XT, lengths, mapGeneIdx, M, True, 1.0)    
     flowGraph.bLasso = False        
     flowGraph.fLambda = 0
-    flowGraph.optimiseFlows(100,bKLDivergence = True)
+    flowGraph.optimiseFlows(100,bKLDivergence = False)
+
+    eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
+    for v in range(flowGraph.V):
+        print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
+
+
+    print('Debug')
 
 if __name__ == "__main__":
     main(sys.argv[1:])
