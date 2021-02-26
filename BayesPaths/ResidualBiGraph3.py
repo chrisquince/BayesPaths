@@ -683,6 +683,10 @@ def main(argv):
     residualBiGraphs['gene'] = ResidualBiGraph.createFromUnitigGraph(unitigGraph)
     
     M = np.ones((V))
+    indices = np.random.choice(np.arange(V), replace=False,
+                           size=int(V * 0.1))
+    M[indices] = 0
+
     XT = np.sum(X,axis=1)
 
     flowGraph = FlowGraphML(residualBiGraphs, genes, prng, XT, lengths, mapGeneIdx, M, True, 1.0)    
