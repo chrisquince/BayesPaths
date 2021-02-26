@@ -53,6 +53,10 @@ from BayesPaths.NMFM import NMF
 from BayesPaths.NMF_VB import NMF_VB
 from BayesPaths.bnmf_vb import bnmf_vb
 
+from BayesPaths.ResidualBiGraph3 import ResidualBiGraph
+from BayesPaths.ResidualBiGraph3 import FlowGraphML
+
+
 from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
 from BayesPaths.AugmentedBiGraph import gaussianNLL_F
 from BayesPaths.AugmentedBiGraph import gaussianNLL_D
@@ -277,7 +281,7 @@ class AssemblyPathSVA():
         self.nBubbles = 0
         self.mapBubbles = {}
         self.augmentedBiGraphs = {}
-        
+        self.residualBiGraphs = {}
         geneList = sorted(assemblyGraphs)
         genesRemove = []  
         for gene in geneList:
@@ -301,7 +305,7 @@ class AssemblyPathSVA():
                 continue
            
             self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
-            
+            self.residualBiGraphs[gene] = ResidualBiGraph.createFromUnitigGraph(assemblyGraph)
             self.genes.append(gene)
            
             unitigsDash = list(unitigFactorNode.keys())
@@ -344,7 +348,8 @@ class AssemblyPathSVA():
         
 
         self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
-  
+        
+          
         self.biasMap = {}
         self.nBias = 0
         
@@ -407,6 +412,7 @@ class AssemblyPathSVA():
             
             idx=idx+1
        
+                
         self.XD = np.floor(self.X).astype(int)
         
         sumSourceCovs = Counter()
@@ -471,6 +477,9 @@ class AssemblyPathSVA():
             self.minSumCov = 0.0
             self.fracCov = 0.0
 
+
+        
+        
        # print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
 
@@ -481,6 +490,12 @@ class AssemblyPathSVA():
         
         sumCov=np.sum(self.meanSampleCov)
     
+        self.maxFlow = (5.0*sumCov)/self.readLength
+        
+        (self.cRGraph, cIdx) = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes,self.mapGeneIdx,self.maxFlow)
+        
+        self.cGeneIdx['gene'] = cIdx
+        
         
         self.logger.info('Read length used %d', self.readLength)
         
@@ -2362,7 +2377,38 @@ class AssemblyPathSVA():
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
  
+    
+    def initFlowGraph(self, mask=None, bMaskDegen):
+    
+
+        if mask is None:
+            maskF = np.ones((self.V))
+        else:
+            maskF = np.sum(mask,axis=1)
+            maskF[maskF >= 1.] = 1.
+    
+        if bMaskDegen:
+            maskF = maskF*self.MaskDegen
+    
+        XT = np.sum(self.X,axis=1)
+    
+    
+        self.tgenes = ['gene']
+        flowGraph = FlowGraphML(self.CRGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF, True, 1.0)    
+    
+        flowGraph.bLasso = True        
         
+        flowGraph.fLambda = 1.0e3
+        
+        flowGraph.optimiseFlows(50,bKLDivergence = False)
+
+        eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
+        for v in range(flowGraph.V):
+            print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
+
+        paths = flowGraph.decomposeFlows()
+    
+    
     def initNMF(self, mask = None, bMaskDegen = True):
     
         #import ipdb; ipdb.set_trace()
