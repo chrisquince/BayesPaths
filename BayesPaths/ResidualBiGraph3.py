@@ -49,6 +49,7 @@ class ResidualBiGraph():
 
     def __init__(self, diGraph, sEdges, maxFlow = 1.):
         """Empty AugmentedBiGraph"""
+
         self.diGraph = diGraph
         
         self.sEdges = sEdges
@@ -100,8 +101,8 @@ class ResidualBiGraph():
         nx.set_edge_attributes(copyDiGraph, 0, name='flow')
         nx.set_edge_attributes(copyDiGraph, 0, name='weight')
         
-        attrs = {'source+': {'demand': -INT_SCALE}, 'sink+': {'demand': INT_SCALE}}
-
+#        attrs = {'source+': {'demand': -INT_SCALE}, 'sink+': {'demand': INT_SCALE}}
+        attrs = {'source+': {'demand': 0}, 'sink+': {'demand': 0}}
         nx.set_node_attributes(copyDiGraph, attrs)
         
         biGraph = cls(copyDiGraph, sEdges, maxFlow)
@@ -198,6 +199,8 @@ class ResidualBiGraph():
             lastGene = gene
         
         biGraph = cls(cGraph, sEdges, maxFlow)
+        biGraph.maxFlow = maxFlow
+        nx.set_edge_attributes(biGraph.diGraph, maxFlow*INT_SCALE, name='capacity')        
         
         return (biGraph, newGeneIdx)
     
@@ -210,7 +213,7 @@ class ResidualBiGraph():
             
             v = mapIdx[unitigd]
             
-            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = vCosts[v]/INT_SCALE
+            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int(vCosts[v]/INT_SCALE)
     
     def updateFlows(self,flowDict, epsilon):
     
@@ -413,7 +416,7 @@ class FlowGraphML():
         self.biGraphs = {}
         
         for (gene,biGraph) in biGraphs.items():
-            self.biGraphs[gene] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges)
+            self.biGraphs[gene] = ResidualBiGraph(biGraph.diGraph.copy(),biGraph.sEdges,maxFlow=biGraph.maxFlow)
             
             self.biGraphs[gene].initialiseFlows()
         
@@ -422,21 +425,22 @@ class FlowGraphML():
         self.mapGeneIdx  = mapGeneIdx
         
         self.phi = np.zeros((self.V))
-        
-        for gene, biGraph in self.biGraphs.items():
+       
+         
+        #for gene, biGraph in self.biGraphs.items():
                 
-            pathg = biGraph.getRandomPath(prng)
+         #   pathg = biGraph.getRandomPath(prng)
     
-            biGraph.addFlowPath(pathg, INT_SCALE)
+          #  biGraph.addFlowPath(pathg, 0.1*INT_SCALE)
             
-            for u in pathg:
-                ud = u[:-1]
+           # for u in pathg:
+            #    ud = u[:-1]
                 
-                if ud in self.mapGeneIdx[gene]:
+             #   if ud in self.mapGeneIdx[gene]:
                 
-                    v = self.mapGeneIdx[gene][ud]
+              #      v = self.mapGeneIdx[gene][ud]
                 
-                    self.phi[v] = 1.
+               #     self.phi[v] = 0.1
       
         self.tau = 1. 
     
@@ -495,10 +499,14 @@ class FlowGraphML():
                 biGraph.updateCosts(gradPhi,self.mapGeneIdx[gene]) 
             
                 residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
+
+                #attrs = {'source+': {'demand': 0.01*INT_SCALE}, 'sink+': {'demand': -0.01*INT_SCALE}}
+
+                #nx.set_node_attributes(residualGraph, attrs)
                 
                 flowCost, flowDict = nx.network_simplex(residualGraph)
                  
-                pflow = 0.1 
+                pflow = 0.01 
             
                 DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, bKLDivergence, self.bLasso, self.fLambda)               
                 weight = flowCost/float(INT_SCALE)
