@@ -168,8 +168,12 @@ class ResidualBiGraph():
             
             mapNodes = {s:gene + "_" + s for s in unitigsDash}
             
-            for (ud, mapunitig) mapNodes.items():
-                newGeneIdx[mapunitig] = mapGeneIdx[gene][ud]
+            for (ud, mapunitig) in mapNodes.items():
+                udu = ud[:-1]
+                mapunitigu = mapunitig[:-1]            
+
+                if udu in mapGeneIdx[gene]:
+                    newGeneIdx[mapunitigu] = mapGeneIdx[gene][udu]
             
             
             if lastGene is None:

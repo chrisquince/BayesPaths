@@ -493,7 +493,8 @@ class AssemblyPathSVA():
         self.maxFlow = (5.0*sumCov)/self.readLength
         
         (self.cRGraph, cIdx) = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes,self.mapGeneIdx,self.maxFlow)
-        
+       
+        self.cGeneIdx = {} 
         self.cGeneIdx['gene'] = cIdx
         
         
@@ -2378,7 +2379,7 @@ class AssemblyPathSVA():
         self.expPhi2 = self.expPhi*self.expPhi  
  
     
-    def initFlowGraph(self, mask=None, bMaskDegen):
+    def initFlowGraph(self, mask=None, bMaskDegen = False):
     
 
         if mask is None:
@@ -2388,13 +2389,15 @@ class AssemblyPathSVA():
             maskF[maskF >= 1.] = 1.
     
         if bMaskDegen:
-            maskF = maskF*self.MaskDegen
+             maskF = maskF*np.any(self.MaskDegen,axis=1)
     
-        XT = np.sum(self.X,axis=1)
+        XT = np.sum(self.X,axis=1)/self.maxFlow
     
     
         self.tgenes = ['gene']
-        flowGraph = FlowGraphML(self.CRGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF, True, 1.0)    
+        self.tCGraph = {}
+        self.tCGraph['gene'] = self.cRGraph
+        flowGraph = FlowGraphML(self.tCGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF, True, self.maxFlow)    
     
         flowGraph.bLasso = True        
         
