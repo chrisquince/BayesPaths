@@ -490,10 +490,11 @@ class AssemblyPathSVA():
         
         sumCov=np.sum(self.meanSampleCov)
     
-        self.maxFlow = (5.0*sumCov)/self.readLength
-        
+        self.sumCov = sumCov
+        #self.maxFlow = (5.0*sumCov)/self.readLength
+        self.maxFlow = 1.
         (self.cRGraph, cIdx) = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes,self.mapGeneIdx,self.maxFlow)
-       
+        
         self.cGeneIdx = {} 
         self.cGeneIdx['gene'] = cIdx
         
@@ -2391,17 +2392,19 @@ class AssemblyPathSVA():
         if bMaskDegen:
              maskF = maskF*np.any(self.MaskDegen,axis=1)
     
-        XT = np.sum(self.X,axis=1)/self.maxFlow
-    
+        XT = np.sum(self.X,axis=1) #self.maxFlow
+        XN = XT/self.lengths
+        maxN = np.max(XN)
+        XT = XT/maxN
     
         self.tgenes = ['gene']
         self.tCGraph = {}
         self.tCGraph['gene'] = self.cRGraph
-        flowGraph = FlowGraphML(self.tCGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF, True, self.maxFlow)    
+        flowGraph = FlowGraphML(self.tCGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF,False, 0.)    
     
-        flowGraph.bLasso = True        
+        flowGraph.bLasso = False        
         
-        flowGraph.fLambda = 1.0e3
+        flowGraph.fLambda = 0.
         
         flowGraph.optimiseFlows(50,bKLDivergence = False)
 
