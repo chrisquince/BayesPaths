@@ -2413,6 +2413,28 @@ class AssemblyPathSVA():
             print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
 
         paths = flowGraph.decomposeFlows()
+        
+        sF = sorted(flowPaths['gene'].items(), key=lambda x: -x[1])
+        
+        
+        nP = min(len(sF),self.G):
+        
+        for g in range(nP):
+            
+            pathU = sF[g][0]
+        
+            for unitigp in pathU:
+            
+                vp = self.mapGeneIdx['gene'][unitigp[:-1]]
+        
+                self.expPhi[v_p,g] = 1.
+                self.expPhi2[v_p,g] = 1.  
+        
+        
+        retained = np.ones(self.G,dtype=bool)
+        retained[nP:nG] = False
+        self.filterHaplotypes(retained,20,mask,bMaskDegen)
+        
     
     
     def initNMF(self, mask = None, bMaskDegen = True):
