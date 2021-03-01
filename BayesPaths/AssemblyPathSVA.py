@@ -1272,7 +1272,8 @@ class AssemblyPathSVA():
         nSum -= lamb
 
         if self.ARD and self.bARD2:
-            dSum += self.exp_lambdak[g_idx]
+            if g_idx != self.G:
+                dSum += self.exp_lambdak[g_idx]
 
 
         muGammaG = nSum/dSum  
@@ -2414,25 +2415,28 @@ class AssemblyPathSVA():
 
         paths = flowGraph.decomposeFlows()
         
-        sF = sorted(flowPaths['gene'].items(), key=lambda x: -x[1])
+        sF = sorted(paths['gene'].items(), key=lambda x: -x[1])
         
         
-        nP = min(len(sF),self.G):
+        nP = min(len(sF),self.G)
         
         for g in range(nP):
             
             pathU = sF[g][0]
         
             for unitigp in pathU:
-            
-                vp = self.mapGeneIdx['gene'][unitigp[:-1]]
+                ud = unitigp[:-1]
+                if ud in flowGraph.mapGeneIdx['gene']: 
+                    vp = flowGraph.mapGeneIdx['gene'][ud]
         
-                self.expPhi[v_p,g] = 1.
-                self.expPhi2[v_p,g] = 1.  
+                    self.expPhi[vp,g] = 1.
+                    self.expPhi2[vp,g] = 1.  
         
         
-        retained = np.ones(self.G,dtype=bool)
-        retained[nP:nG] = False
+        retained = np.ones(self.GDash,dtype=bool)
+        
+        retained[nP:self.G] = False
+        
         self.filterHaplotypes(retained,20,mask,bMaskDegen)
         
     
