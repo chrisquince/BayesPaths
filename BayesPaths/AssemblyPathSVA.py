@@ -2439,6 +2439,23 @@ class AssemblyPathSVA():
         
         self.filterHaplotypes(retained,20,mask,bMaskDegen)
         
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        covNMF =  NMF(XN,mask,self.G,n_run = 20, prng = self.prng)
+        
+        covNMF.W = self.expPhi[:,0:self.G]
+        covNMF.factorizeH()
+        
+        #covNMF.train(1000,no_runs = 1)
+        #covNMF.factorizeG()  
+        #covNMF.factorizeP()
+        
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga
     
     
     def initNMF(self, mask = None, bMaskDegen = True):
