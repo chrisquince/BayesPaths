@@ -39,16 +39,17 @@ def lassoPenalty(phiMatrix):
 
     return fL
 
-INT_SCALE = 1.0e6
+
 BETA = 0.6
 TAU  = 0.5
-COST_SCALE = 1.0e5
+MIN_MAX_COST = 1.0e-7
 
-class ResidualBiGraph():
+def class ResidualBiGraph():
     """Creates unitig graph for minimisation"""
 
 
-    def __init__(self, diGraph, sEdges, maxFlow = 1.):
+
+    def __init__(self, diGraph, sEdges, maxFlow = 1.,INT_SCALE = 1.0e6, COST_SCALE = 1.0e5):
         """Empty AugmentedBiGraph"""
 
         self.diGraph = diGraph
@@ -59,6 +60,11 @@ class ResidualBiGraph():
         
         self.rGraph = ResidualBiGraph.createResidualGraph(diGraph)
 
+        self.INT_SCALE = INT_SCALE
+        
+        self.COST_SCALE = COST_SCALE
+        
+        self.maxCost = 1.
      
     @classmethod
     def createFromUnitigGraph(cls,unitigGraph, maxFlow = 1.):
@@ -83,26 +89,26 @@ class ResidualBiGraph():
                 for pnode in pred:
                 
                     copyDiGraph.add_edge(pnode,newNode,weight=tempDiGraph[pnode][node]['weight'], 
-                                        covweight=tempDiGraph[pnode][node]['covweight'],capacity=maxFlow*INT_SCALE,flow=0)
+                                        covweight=tempDiGraph[pnode][node]['covweight'],capacity=maxFlow*self.INT_SCALE,flow=0)
                                             
                     copyDiGraph.remove_edge(pnode,node)
                 
-                    copyDiGraph.add_edge(newNode,node,capacity=maxFlow*INT_SCALE,flow=0, weight=0.)
+                    copyDiGraph.add_edge(newNode,node,capacity=maxFlow*self.INT_SCALE,flow=0, weight=0.)
                 
                     sEdges.add((newNode,node))
             
             elif len(pred) == 1 and node != 'sink+':
                 copyDiGraph.add_edge(pred[0],node,weight=tempDiGraph[pred[0]][node]['weight'], 
-                                        covweight=tempDiGraph[pred[0]][node]['covweight'],capacity=maxFlow*INT_SCALE,flow=0)
+                                        covweight=tempDiGraph[pred[0]][node]['covweight'],capacity=maxFlow*self.INT_SCALE,flow=0)
                     
                 sEdges.add((pred[0],node))
         
         
-        nx.set_edge_attributes(copyDiGraph, maxFlow*INT_SCALE, name='capacity')
+        nx.set_edge_attributes(copyDiGraph, maxFlow*self.INT_SCALE, name='capacity')
         nx.set_edge_attributes(copyDiGraph, 0, name='flow')
         nx.set_edge_attributes(copyDiGraph, 0, name='weight')
         
-#        attrs = {'source+': {'demand': -INT_SCALE}, 'sink+': {'demand': INT_SCALE}}
+#        attrs = {'source+': {'demand': -self.INT_SCALE}, 'sink+': {'demand': self.INT_SCALE}}
         attrs = {'source+': {'demand': 0}, 'sink+': {'demand': 0}}
         nx.set_node_attributes(copyDiGraph, attrs)
         
@@ -195,18 +201,25 @@ class ResidualBiGraph():
             if lastGene is not None:
                 lastSink = lastGene + '_sink+'
                 
-                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=maxFlow*INT_SCALE,flow=0)
+                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=maxFlow*self.INT_SCALE,flow=0)
             
             lastGene = gene
         
         biGraph = cls(cGraph, sEdges, maxFlow)
         biGraph.maxFlow = maxFlow
-        nx.set_edge_attributes(biGraph.diGraph, maxFlow*INT_SCALE, name='capacity')        
+        nx.set_edge_attributes(biGraph.diGraph, maxFlow*self.INT_SCALE, name='capacity')        
         
         return (biGraph, newGeneIdx)
     
+    def transformFlowCost(self, flowCost):
+    
+        flowCostT = (flowCost*self.maxCost)/self.COST_SCALE
+        
+        return flowCostT/self.INT_SCALE
     
     def updateCosts(self,vCosts,mapIdx):
+    
+        self.maxCost = np.max(np.max(vCosts),MIN_MAX_COST)
     
         for sEdge in self.sEdges:
             
@@ -214,7 +227,7 @@ class ResidualBiGraph():
             
             v = mapIdx[unitigd]
             
-            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int(vCosts[v]*COST_SCALE)
+            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int((vCosts[v]*self.COST_SCALE)/self.maxCost)
     
     def updateFlows(self,flowDict, epsilon):
     
@@ -248,16 +261,16 @@ class ResidualBiGraph():
             v = mapIdx[outnode[:-1]]
             change = False
             iFlow = self.diGraph[node][outnode]['flow']
-            fFlow = float(iFlow)/INT_SCALE
+            fFlow = float(iFlow)/self.INT_SCALE
             
             if flowDict[node][outnode] > 0.:
                 niFlow = int(iFlow + epsilon*flowDict[node][outnode])
-                nfFlow =  float(niFlow)/INT_SCALE
+                nfFlow =  float(niFlow)/self.INT_SCALE
                 change = True
                     
             elif flowDict[outnode][node] > 0.:                        
                 niFlow = int(iFlow - epsilon*flowDict[outnode][node])
-                nfFlow =  float(niFlow)/INT_SCALE
+                nfFlow =  float(niFlow)/self.INT_SCALE
                 change = True
                 
         
@@ -318,7 +331,7 @@ class ResidualBiGraph():
         
             iFlow = self.diGraph[sEdge[0]][sEdge[1]]['flow']
         
-            fFlow = float(iFlow)/INT_SCALE
+            fFlow = float(iFlow)/self.INT_SCALE
         
             #print(str(fFlow))
         
@@ -340,9 +353,9 @@ class ResidualBiGraph():
         
             self.addFlowPath(maxPath, -maxFlow)
         
-            paths[tuple(maxPath)] = maxFlow/INT_SCALE
+            paths[tuple(maxPath)] = maxFlow/self.INT_SCALE
         
-            print(str(maxFlow/INT_SCALE))
+            print(str(maxFlow/self.INT_SCALE))
     
         return paths
     
@@ -510,7 +523,9 @@ class FlowGraphML():
                 pflow = 0.01 
             
                 DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, bKLDivergence, self.bLasso, self.fLambda)               
-                weight = flowCost/(float(INT_SCALE)*float(COST_SCALE))
+                weight = biGraph.transformFlowCost(flowCost)
+                
+                
             
                 i = 0
                 while DeltaF > pflow*weight*BETA and i < 10:
