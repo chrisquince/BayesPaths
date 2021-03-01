@@ -209,6 +209,14 @@ class ResidualBiGraph():
         
         return (biGraph, newGeneIdx)
     
+    def addSourceSinkShunt(self):
+
+        self.diGraph.add_edge('sink+','source+',capacity=self.maxFlow*self.INT_SCALE,flow=0, weight=0.)
+
+    def removeSourceSinkShunt(self):
+
+        self.diGraph.remove_edge('sink+','source+')
+
     def transformFlowCost(self, flowCost):
     
         flowCostT = (flowCost*self.maxCost)/self.COST_SCALE
@@ -484,6 +492,9 @@ class FlowGraphML():
 
         print(str(iter) + "," + str(NLL1))
         
+        for gene, biGraph in self.biGraphs.items():
+            biGraph.addSourceSinkShunt()
+
         while iter < max_iter:
         
             #first compute phi gradient in matrix format
@@ -505,11 +516,9 @@ class FlowGraphML():
         
             newPhi = np.copy(self.phi)
             
-            
             for gene, biGraph in self.biGraphs.items():
                     
                 biGraph.updateCosts(gradPhi,self.mapGeneIdx[gene]) 
-                biGraph.add_edge('sink+','source+')
 
                 residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
 
@@ -562,7 +571,12 @@ class FlowGraphML():
             self.phi = newPhi
         
             iter = iter+1
-    
+   
+        
+        for gene, biGraph in self.biGraphs.items():
+            biGraph.removeSourceSinkShunt()
+
+ 
     
     def decomposeFlows(self):
 
