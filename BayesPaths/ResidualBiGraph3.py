@@ -157,7 +157,7 @@ class ResidualBiGraph():
         return copyDiGraph
     
     @classmethod
-    def combineGraphs(cls,dictBiGraphs,geneList,mapGeneIdx,maxFlow = 1.):
+    def combineGraphs(cls,dictBiGraphs,geneList,mapGeneIdx,maxFlow = 1.,INT_SCALE = 1.0e6, COST_SCALE=1.0e5):
       
         cGraph = nx.DiGraph()
         
@@ -199,11 +199,11 @@ class ResidualBiGraph():
             if lastGene is not None:
                 lastSink = lastGene + '_sink+'
                 
-                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=maxFlow*self.INT_SCALE,flow=0)
+                cGraph.add_edge(lastSink,gene + '_source+', weight=0,covweight=0.,capacity=maxFlow*INT_SCALE,flow=0)
             
             lastGene = gene
         
-        biGraph = cls(cGraph, sEdges, maxFlow)
+        biGraph = cls(cGraph, sEdges, maxFlow, INT_SCALE, COST_SCALE)
         biGraph.maxFlow = maxFlow
         nx.set_edge_attributes(biGraph.diGraph, maxFlow*biGraph.INT_SCALE, name='capacity')        
         

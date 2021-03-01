@@ -2406,7 +2406,7 @@ class AssemblyPathSVA():
         
         flowGraph.fLambda = 0.
         
-        flowGraph.optimiseFlows(100,bKLDivergence = False)
+        flowGraph.optimiseFlows(200,bKLDivergence = False)
 
         eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
         for v in range(flowGraph.V):
