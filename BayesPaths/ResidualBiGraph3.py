@@ -44,10 +44,8 @@ BETA = 0.6
 TAU  = 0.5
 MIN_MAX_COST = 1.0e-7
 
-def class ResidualBiGraph():
+class ResidualBiGraph():
     """Creates unitig graph for minimisation"""
-
-
 
     def __init__(self, diGraph, sEdges, maxFlow = 1.,INT_SCALE = 1.0e6, COST_SCALE = 1.0e5):
         """Empty AugmentedBiGraph"""
@@ -67,7 +65,7 @@ def class ResidualBiGraph():
         self.maxCost = 1.
      
     @classmethod
-    def createFromUnitigGraph(cls,unitigGraph, maxFlow = 1.):
+    def createFromUnitigGraph(cls,unitigGraph, maxFlow = 1.,INT_SCALE = 1.0e6, COST_SCALE=1.0e5):
 
         assert hasattr(unitigGraph, 'directedUnitigBiGraphS')
     
@@ -89,22 +87,22 @@ def class ResidualBiGraph():
                 for pnode in pred:
                 
                     copyDiGraph.add_edge(pnode,newNode,weight=tempDiGraph[pnode][node]['weight'], 
-                                        covweight=tempDiGraph[pnode][node]['covweight'],capacity=maxFlow*self.INT_SCALE,flow=0)
+                                        covweight=tempDiGraph[pnode][node]['covweight'],capacity=maxFlow*INT_SCALE,flow=0)
                                             
                     copyDiGraph.remove_edge(pnode,node)
                 
-                    copyDiGraph.add_edge(newNode,node,capacity=maxFlow*self.INT_SCALE,flow=0, weight=0.)
+                    copyDiGraph.add_edge(newNode,node,capacity=maxFlow*INT_SCALE,flow=0, weight=0.)
                 
                     sEdges.add((newNode,node))
             
             elif len(pred) == 1 and node != 'sink+':
                 copyDiGraph.add_edge(pred[0],node,weight=tempDiGraph[pred[0]][node]['weight'], 
-                                        covweight=tempDiGraph[pred[0]][node]['covweight'],capacity=maxFlow*self.INT_SCALE,flow=0)
+                                        covweight=tempDiGraph[pred[0]][node]['covweight'],capacity=maxFlow*INT_SCALE,flow=0)
                     
                 sEdges.add((pred[0],node))
         
         
-        nx.set_edge_attributes(copyDiGraph, maxFlow*self.INT_SCALE, name='capacity')
+        nx.set_edge_attributes(copyDiGraph, maxFlow*INT_SCALE, name='capacity')
         nx.set_edge_attributes(copyDiGraph, 0, name='flow')
         nx.set_edge_attributes(copyDiGraph, 0, name='weight')
         
@@ -112,7 +110,7 @@ def class ResidualBiGraph():
         attrs = {'source+': {'demand': 0}, 'sink+': {'demand': 0}}
         nx.set_node_attributes(copyDiGraph, attrs)
         
-        biGraph = cls(copyDiGraph, sEdges, maxFlow)
+        biGraph = cls(copyDiGraph, sEdges, maxFlow, INT_SCALE, COST_SCALE)
         
         return biGraph
     
@@ -207,7 +205,7 @@ def class ResidualBiGraph():
         
         biGraph = cls(cGraph, sEdges, maxFlow)
         biGraph.maxFlow = maxFlow
-        nx.set_edge_attributes(biGraph.diGraph, maxFlow*self.INT_SCALE, name='capacity')        
+        nx.set_edge_attributes(biGraph.diGraph, maxFlow*biGraph.INT_SCALE, name='capacity')        
         
         return (biGraph, newGeneIdx)
     
@@ -219,7 +217,7 @@ def class ResidualBiGraph():
     
     def updateCosts(self,vCosts,mapIdx):
     
-        self.maxCost = np.max(np.max(vCosts),MIN_MAX_COST)
+        self.maxCost = max(np.max(np.abs(vCosts)),MIN_MAX_COST) 
     
         for sEdge in self.sEdges:
             
@@ -511,8 +509,15 @@ class FlowGraphML():
             for gene, biGraph in self.biGraphs.items():
                     
                 biGraph.updateCosts(gradPhi,self.mapGeneIdx[gene]) 
-            
+                biGraph.add_edge('sink+','source+')
+
                 residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
+
+                #residualGraph.add_edge('sink+','source+')
+                #residualGraph.add_edge('source+','sink+')                
+
+                #for n1, d in residualGraph.nodes(data=True):
+                 #   d.pop('demand',None)            
 
                 #attrs = {'source+': {'demand': 0.01*INT_SCALE}, 'sink+': {'demand': -0.01*INT_SCALE}}
 
