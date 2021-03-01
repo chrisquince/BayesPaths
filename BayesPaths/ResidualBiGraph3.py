@@ -42,6 +42,7 @@ def lassoPenalty(phiMatrix):
 INT_SCALE = 1.0e6
 BETA = 0.6
 TAU  = 0.5
+COST_SCALE = 1.0e5
 
 class ResidualBiGraph():
     """Creates unitig graph for minimisation"""
@@ -213,7 +214,7 @@ class ResidualBiGraph():
             
             v = mapIdx[unitigd]
             
-            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int(vCosts[v]/INT_SCALE)
+            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int(vCosts[v]*COST_SCALE)
     
     def updateFlows(self,flowDict, epsilon):
     
@@ -509,7 +510,7 @@ class FlowGraphML():
                 pflow = 0.01 
             
                 DeltaF = biGraph.deltaF(flowDict, pflow, self.X, eLambda, self.mapGeneIdx[gene], self.lengths, bKLDivergence, self.bLasso, self.fLambda)               
-                weight = flowCost/float(INT_SCALE)
+                weight = flowCost/(float(INT_SCALE)*float(COST_SCALE))
             
                 i = 0
                 while DeltaF > pflow*weight*BETA and i < 10:
