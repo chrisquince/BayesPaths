@@ -107,7 +107,12 @@ def assGraphWorker(gargs):
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=True)
+    if args.initType == 'bnmf':
+        assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=True)
+    else:
+        assGraph.initFlowGraph(None, True)
+    
+    
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -293,6 +298,8 @@ def main(argv):
 
     parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto','poisson'],help='Strategy for setting precision')
 
+    parser.add_argument('--init_type', dest='initType', default='bnmf',choices=['bnmf','flow','flownmf'],help='Strategy for setting precision')
+
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
     args = parser.parse_args()
@@ -404,7 +411,12 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+            if args.initType == 'bnmf':
+                assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+            else:
+                assGraph.initFlowGraph(None, True)
+            
+            
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -446,13 +458,14 @@ def main(argv):
 
     import ipdb; ipdb.set_trace()
      
-    mainLogger.info("Perform NMF VB initialisation")
+   
     
-
-    assGraph.initFlowGraph(None, True)
-    #assGraph.initNMF(None, True)
-    #assGraph.initNMF(None, True)
-    #assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+    if args.initType == 'bnmf':
+        mainLogger.info("Perform NMF VB initialisation")
+        assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+    else:
+        assGraph.initFlowGraph(None, True)
+                
     mainLogger.info("Run %d iter SVI", args.iters)
     
     assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
