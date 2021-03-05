@@ -2414,9 +2414,11 @@ class AssemblyPathSVA():
             print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
 
         paths = flowGraph.decomposeFlows()
-        
-        sF = sorted(paths['gene'].items(), key=lambda x: -x[1])
-        
+        minI = 3.0/(maxN*self.readLength)
+        fpaths = {k:v for (k,v) in paths['gene'].items() if v > minI}
+
+        sF = sorted(fpaths.items(), key=lambda x: -x[1])
+         
         
         nP = min(len(sF),self.G)
         
@@ -2445,8 +2447,9 @@ class AssemblyPathSVA():
         if bMaskDegen:
             mask = mask*self.MaskDegen
         
-        covNMF =  NMF(XN,mask,self.G,n_run = 20, prng = self.prng)
-        
+        covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
+        covNMF.random_initialize()       
+ 
         covNMF.W = self.expPhi[:,0:self.G]
         covNMF.factorizeH()
         
@@ -2455,7 +2458,8 @@ class AssemblyPathSVA():
         #covNMF.factorizeP()
         
         self.expGamma[0:self.G,:] = np.copy(covNMF.H)
-        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga
+        self.expGamma2 = self.expGamma*self.expGamma       
+#self.expGamma[0:self.G,:] = np.copy(covNMF.Ga
     
     
     def initNMF(self, mask = None, bMaskDegen = True):
