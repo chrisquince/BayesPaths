@@ -55,7 +55,7 @@ from BayesPaths.bnmf_vb import bnmf_vb
 
 from BayesPaths.ResidualBiGraph3 import ResidualBiGraph
 from BayesPaths.ResidualBiGraph3 import FlowGraphML
-
+from BayesPaths.ResidualBiGraph3 import FlowFitTheta
 
 from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
 from BayesPaths.AugmentedBiGraph import gaussianNLL_F
@@ -1568,6 +1568,30 @@ class AssemblyPathSVA():
                         os.remove(fgFile)
                 except FileNotFoundError:
                 
+                    tempMap = {}
+                    vt = 0
+                    nU = len(self.unitigFactorNodes[gene])
+                    tempEta = np.zeros(nU)
+                    
+                    
+                    for unitig, factorNode in self.unitigFactorNodes[gene].items():
+            
+                        if factorNode.P.ndim > 1:
+                            dVal = factorNode.P[1][0]
+                        elif factorNode.P.ndim == 1:
+                            dVal = factorNode.P[1]
+                        else:
+                            dVal = 0.5
+        
+                        tempMap[unitig] = vt
+                        tempEta[vt] = dVal
+        
+                        vt += 1
+        
+                
+                    flowFitTheta = FlowFitTheta(self.residualBiGraphs[gene], self.prng,tempEta, tempMap)
+                
+                                
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
                         self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
