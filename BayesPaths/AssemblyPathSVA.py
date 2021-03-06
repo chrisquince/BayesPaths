@@ -1566,6 +1566,8 @@ class AssemblyPathSVA():
                     fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
+                
+                    raise FileNotFoundError('Debug')
                 except FileNotFoundError:
                 
                     tempMap = {}

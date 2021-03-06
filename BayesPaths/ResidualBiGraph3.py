@@ -455,13 +455,13 @@ class FlowFitTheta():
         
         self.etaStar = EtaStar
         
-        self.thetaStar = np.log((self.EtaStar + self.minDelta)/(1.0 - self.EtaStar + self.minDelta))
+        self.thetaStar = np.log((self.etaStar + self.minDelta)/(1.0 - self.etaStar + self.minDelta))
         
         self.biGraph = biGraph
         
         self.prng = prng
         
-        self.V = self.Eta.shape[0]
+        self.V = self.etaStar.shape[0]
         
         self.mapIdx = mapIdx
         
