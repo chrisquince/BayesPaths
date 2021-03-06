@@ -297,6 +297,38 @@ class ResidualBiGraph():
             
         return DeltaF
 
+    def deltaFF(self, flowDict, epsilon, X, eEta, mapIdx, minDelta):
+    
+        
+        DeltaF = 0.       
+        
+        for (node,outnode) in self.sEdges:
+            nfFlow = 0.
+            fFlow = 0.
+            v = mapIdx[outnode[:-1]]
+            change = False
+            iFlow = self.diGraph[node][outnode]['flow']
+            fFlow = float(iFlow)/self.INT_SCALE
+            
+            if flowDict[node][outnode] > 0.:
+                niFlow = int(iFlow + epsilon*flowDict[node][outnode])
+                nfFlow =  float(niFlow)/self.INT_SCALE
+                change = True
+                    
+            elif flowDict[outnode][node] > 0.:                        
+                niFlow = int(iFlow - epsilon*flowDict[outnode][node])
+                nfFlow =  float(niFlow)/self.INT_SCALE
+                change = True
+                
+        
+            if change:
+                newEta = eEta[v] + nfFlow - fFlow
+                
+                newTheta = np.log((newEta + minDelta)/(1 - newEta + minDelta))
+                
+                DeltaF += 0.5*np.sum((X[v] - newLambda)**2 - (X[v] - eLambda[v])**2) 
+            
+        return DeltaF
 
     def initialiseFlows(self):
 
@@ -410,7 +442,119 @@ class ResidualBiGraph():
         
         return (minPath, maxFlowNode['sink+'])
 
+    #optimise flows to fit function
+
+
+
+class FlowFitTheta():
+
     
+    def __init__(self, biGraph, prng, EtaStar, mapIdx, initEta = None, minDelta = 1.0e-7):
+    
+        self.minDelta = minDelta
+        
+        self.etaStar = EtaStar
+        
+        self.thetaStar = np.log((self.EtaStar + self.minDelta)/(1.0 - self.EtaStar + self.minDelta))
+        
+        self.biGraph = biGraph
+        
+        self.prng = prng
+        
+        self.V = self.Eta.shape[0]
+        
+        self.mapIdx = mapIdx
+        
+        if initEta is None:
+            self.Theta = np.zeros(self.V)
+        
+            self.Eta = np.zeros(self.V)
+        
+            self.Eta.fill(0.5)
+        else:
+        
+            self.Eta = initEta
+            
+            self._updateTheta()
+    
+    
+    def _devF(self):
+    
+        return 0.5*np.sum((self.thetaStar - self.Theta)**2)
+    
+    
+    def _updateTheta(self):
+        self.Theta =  np.log((self.Eta + self.minDelta)/(1.0 - self.Eta + self.minDelta))
+    
+    def optimiseFlows(self):
+    
+        iter = 0
+        
+        lNLL1 = self._devF()
+
+        print(str(iter) + "," + str(lNLL1))
+        
+        self.biGraph.addSourceSinkShunt()
+
+        deltaF = 1.
+        minChange = 1.0e-3
+
+        while iter < max_iter or deltaF < minChange:
+        
+            #first compute phi gradient in matrix format
+            
+            dNeta = 1./((1.0 - self.EtaStar + self.minDelta)*(self.Eta + self.minDelta))
+            
+            gradEta = (self.Theta - self.ThetaS)*dNeta
+                
+            newNeta = np.copy(self.Eta)
+            
+            biGraph.updateCosts(gradEta,self.mapGeneIdx[gene]) 
+
+            residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
+
+            flowCost, flowDict = nx.network_simplex(residualGraph)
+                 
+            pflow = 0.1 
+            
+            DeltaF = biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.mapIdx,self.minDelta)               
+            weight = biGraph.transformFlowCost(flowCost)
+                
+            
+            i = 0
+            while DeltaF > pflow*weight*BETA and i < 10:
+                pflow *= TAU
+                
+                DeltaF = biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.mapIdx, self.minDelta)
+                
+                i += 1
+
+            if pflow > 0. and i < 10:                 
+                biGraph.updateFlows(flowDict,pflow)
+                
+                    
+            biGraph.updatePhi(newNeta,self.mapIdx)
+         
+            
+            eLambda1 = (newPhi + self.DELTA) * self.lengths
+            
+            NLL1 = self._devF()
+
+            deltaF = abs(NLL1 - lNLL1)
+            
+            lNLL1 = NLL1
+            
+            if iter % 1 == 0:        
+                print(str(iter) + "," + str(NLL1) + "," + str(deltaF))
+        
+                    
+            self.Eta = newNeta
+        
+            iter = iter+1
+        
+        
+
+   
 
 class FlowGraphML():
 
