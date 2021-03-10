@@ -1592,7 +1592,7 @@ class AssemblyPathSVA():
         
                 
                     flowFitTheta = FlowFitTheta(self.residualBiGraphs[gene], self.prng,tempEta, tempMap)
-                
+                    flowFitTheta.optimiseFlows()        
                                 
                     if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
 
@@ -2433,7 +2433,7 @@ class AssemblyPathSVA():
         
         flowGraph.fLambda = 0.
         
-        flowGraph.optimiseFlows(200,bKLDivergence = False)
+        flowGraph.optimiseFlows(20,bKLDivergence = False)
 
         eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
         for v in range(flowGraph.V):

@@ -297,7 +297,7 @@ class ResidualBiGraph():
             
         return DeltaF
 
-    def deltaFF(self, flowDict, epsilon, X, eEta, mapIdx, minDelta):
+    def deltaFF(self, flowDict, epsilon, X, eEta, eTheta, mapIdx, minDelta):
     
         
         DeltaF = 0.       
@@ -326,7 +326,7 @@ class ResidualBiGraph():
                 
                 newTheta = np.log((newEta + minDelta)/(1 - newEta + minDelta))
                 
-                DeltaF += 0.5*np.sum((X[v] - newLambda)**2 - (X[v] - eLambda[v])**2) 
+                DeltaF += 0.5*np.sum((X[v] - newTheta)**2 - (X[v] - eTheta[v])**2) 
             
         return DeltaF
 
@@ -486,7 +486,7 @@ class FlowFitTheta():
     def _updateTheta(self):
         self.Theta =  np.log((self.Eta + self.minDelta)/(1.0 - self.Eta + self.minDelta))
     
-    def optimiseFlows(self):
+    def optimiseFlows(self, max_iter = 100, minChange = 1.0e-3):
     
         iter = 0
         
@@ -497,43 +497,42 @@ class FlowFitTheta():
         self.biGraph.addSourceSinkShunt()
 
         deltaF = 1.
-        minChange = 1.0e-3
 
         while iter < max_iter or deltaF < minChange:
         
             #first compute phi gradient in matrix format
             
-            dNeta = 1./((1.0 - self.EtaStar + self.minDelta)*(self.Eta + self.minDelta))
+            dNeta = 1./((1.0 - self.Eta + self.minDelta)*(self.Eta + self.minDelta))
             
-            gradEta = (self.Theta - self.ThetaS)*dNeta
+            gradEta = -(self.Theta - self.thetaStar)*dNeta
                 
             newNeta = np.copy(self.Eta)
             
-            biGraph.updateCosts(gradEta,self.mapGeneIdx[gene]) 
+            self.biGraph.updateCosts(gradEta,self.mapIdx) 
 
-            residualGraph = ResidualBiGraph.createResidualGraph(biGraph.diGraph)
+            residualGraph = ResidualBiGraph.createResidualGraph(self.biGraph.diGraph)
 
             flowCost, flowDict = nx.network_simplex(residualGraph)
                  
             pflow = 0.1 
             
-            DeltaF = biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.mapIdx,self.minDelta)               
-            weight = biGraph.transformFlowCost(flowCost)
+            DeltaF = self.biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.Theta, self.mapIdx,self.minDelta)               
+            weight = self.biGraph.transformFlowCost(flowCost)
                 
             
             i = 0
             while DeltaF > pflow*weight*BETA and i < 10:
                 pflow *= TAU
                 
-                DeltaF = biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.mapIdx, self.minDelta)
+                DeltaF = self.biGraph.deltaFF(flowDict, pflow, self.thetaStar, self.Eta, self.Theta, self.mapIdx, self.minDelta)
                 
                 i += 1
 
             if pflow > 0. and i < 10:                 
-                biGraph.updateFlows(flowDict,pflow)
+                self.biGraph.updateFlows(flowDict,pflow)
                 
                     
-            biGraph.updatePhi(newNeta,self.mapIdx)
+            self.biGraph.updatePhi(newNeta,self.mapIdx)
          
             
             eLambda1 = (newPhi + self.DELTA) * self.lengths
