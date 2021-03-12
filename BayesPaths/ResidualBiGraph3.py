@@ -450,7 +450,7 @@ class ResidualBiGraph():
 class FlowFitTheta():
 
     
-    def __init__(self, biGraph, prng, EtaStar, mapIdx, initEta = None, minDelta = 1.0e-7):
+    def __init__(self, biGraph, prng, EtaStar, mapIdx, bConstrainFlow = False, initEta = None, minDelta = 1.0e-7):
     
         self.minDelta = minDelta
         
@@ -466,17 +466,38 @@ class FlowFitTheta():
         
         self.mapIdx = mapIdx
         
-        if initEta is None:
-            self.Theta = np.zeros(self.V)
+        if bConstrainFlow:
         
-            self.Eta = np.zeros(self.V)
+            if initEta is None:
+                self.Theta = np.zeros(self.V)
         
-            self.Eta.fill(0.5)
+                self.Eta = np.zeros(self.V)
+        
+                self.Eta.fill(0.5)
+            else:
+        
+                self.Eta = initEta
+            
+                self._updateTheta()
+                
+            self.biGraph.addSourceSinkShunt()
         else:
-        
-            self.Eta = initEta
+            pathg = self.biGraph.getRandomPath(self.prng)
+    
+            biGraph.addFlowPath(pathg, self.biGraph.INT_SCALE)
+            
+            for u in pathg:
+                ud = u[:-1]
+                
+                if ud in self.mapIdx:
+                
+                    v = self.mapIdx[ud]
+                
+                    self.Eta[v] = 1.
             
             self._updateTheta()
+                    
+            
     
     
     def _devF(self):
