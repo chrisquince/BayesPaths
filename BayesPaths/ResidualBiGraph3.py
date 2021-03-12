@@ -326,7 +326,7 @@ class ResidualBiGraph():
                 
                 newTheta = np.log((newEta + minDelta)/(1 - newEta + minDelta))
                 
-                DeltaF += 0.5*np.sum((X[v] - newTheta)**2 - (X[v] - eTheta[v])**2) 
+                DeltaF += 0.5*((X[v] - newTheta)**2 - (X[v] - eTheta[v])**2) 
             
         return DeltaF
 
@@ -391,7 +391,8 @@ class ResidualBiGraph():
         
             self.addFlowPath(maxPath, -maxFlow)
         
-            paths[tuple(maxPath)] = maxFlow/self.INT_SCALE
+            if maxFlow > 0.:
+                paths[tuple(maxPath)] = maxFlow/self.INT_SCALE
         
             print(str(maxFlow/self.INT_SCALE))
     
@@ -498,13 +499,13 @@ class FlowFitTheta():
 
         deltaF = 1.
 
-        while iter < max_iter or deltaF < minChange:
+        while iter < max_iter or deltaF > minChange:
         
             #first compute phi gradient in matrix format
             
             dNeta = 1./((1.0 - self.Eta + self.minDelta)*(self.Eta + self.minDelta))
             
-            gradEta = -(self.Theta - self.thetaStar)*dNeta
+            gradEta = (self.Theta - self.thetaStar)*dNeta
                 
             newNeta = np.copy(self.Eta)
             
@@ -534,9 +535,6 @@ class FlowFitTheta():
                     
             self.biGraph.updatePhi(newNeta,self.mapIdx)
          
-            
-            eLambda1 = (newPhi + self.DELTA) * self.lengths
-            
             NLL1 = self._devF()
 
             deltaF = abs(NLL1 - lNLL1)
@@ -548,7 +546,7 @@ class FlowFitTheta():
         
                     
             self.Eta = newNeta
-        
+            self._updateTheta()
             iter = iter+1
         
         
