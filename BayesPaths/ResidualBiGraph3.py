@@ -566,8 +566,13 @@ class FlowFitTheta():
             if pflow > 0. and i < 10:                 
                 self.biGraph.updateFlows(flowDict,pflow)
                 
-                    
+        
             self.biGraph.updatePhi(newNeta,self.mapIdx)
+
+            self.Eta = newNeta
+
+            self._updateTheta()
+
          
             NLL1 = self._devF()
 
@@ -579,8 +584,6 @@ class FlowFitTheta():
                 print(str(iter) + "," + str(NLL1) + "," + str(deltaF))
         
                     
-            self.Eta = newNeta
-            self._updateTheta()
             iter = iter+1
         
         
