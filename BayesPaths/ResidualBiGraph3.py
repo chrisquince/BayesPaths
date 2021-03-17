@@ -450,7 +450,7 @@ class ResidualBiGraph():
 class FlowFitTheta():
 
     
-    def __init__(self, biGraph, prng, EtaStar, mapIdx, bConstrainFlow = False, initEta = None, minDelta = 1.0e-7):
+    def __init__(self, biGraph, prng, EtaStar, mapIdx, bConstrainFlow = False, initEta = None, minDelta = 1.0e-3):
     
         self.minDelta = minDelta
         
@@ -466,7 +466,7 @@ class FlowFitTheta():
         
         self.mapIdx = mapIdx
         
-        if bConstrainFlow:
+        if not bConstrainFlow:
         
             if initEta is None:
                 self.Theta = np.zeros(self.V)
@@ -483,9 +483,12 @@ class FlowFitTheta():
             self.biGraph.addSourceSinkShunt()
         else:
             pathg = self.biGraph.getRandomPath(self.prng)
+            pathh = self.biGraph.getRandomPath(self.prng)
     
             biGraph.addFlowPath(pathg, self.biGraph.INT_SCALE)
-            
+           
+            self.Eta = np.zeros(self.V) 
+           
             for u in pathg:
                 ud = u[:-1]
                 
@@ -493,7 +496,17 @@ class FlowFitTheta():
                 
                     v = self.mapIdx[ud]
                 
-                    self.Eta[v] = 1.
+                    self.Eta[v] += 0.5
+
+            for u in pathh:
+                ud = u[:-1]
+
+                if ud in self.mapIdx:
+
+                    v = self.mapIdx[ud]
+
+                    self.Eta[v] += 0.5
+
             
             self._updateTheta()
                     
@@ -516,7 +529,7 @@ class FlowFitTheta():
 
         print(str(iter) + "," + str(lNLL1))
         
-        self.biGraph.addSourceSinkShunt()
+        #self.biGraph.addSourceSinkShunt()
 
         deltaF = 1.
 
