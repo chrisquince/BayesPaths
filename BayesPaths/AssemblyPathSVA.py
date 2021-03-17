@@ -1593,29 +1593,43 @@ class AssemblyPathSVA():
                 
                     flowFitTheta = FlowFitTheta(self.residualBiGraphs[gene], self.prng,tempEta, tempMap, True)
                     flowFitTheta.optimiseFlows()        
-                                
-                    if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
-
-                        self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
-                        #greedyPath = self.sampleGreedyPath(gene, g)
-                        greedyPath = self.sampleMaxWeightPath(gene, g)
                     
-                        for unitig in self.assemblyGraphs[gene].unitigs:
-                            if unitig in self.mapGeneIdx[gene]:
-                                v_idx = self.mapGeneIdx[gene][unitig]
+                    
+                    for unitig in self.assemblyGraphs[gene].unitigs:
+                        if unitig in self.mapGeneIdx[gene]:
+                            v_idx = self.mapGeneIdx[gene][unitig]
                         
-                                self.expPhi[v_idx,g] = 0.
-                                self.expPhi2[v_idx,g] = 0.  
+                            m_idx = tempMap[unitig]
+                            
+                            self.expPhi[v_idx,g] = flowFitTheta.Eta[m_idx]
+                            self.expPhi2[v_idx,g] =  flowFitTheta.Eta[m_idx]*flowFitTheta.Eta[m_idx]
+                    
+                    
+                       
+                    
+                    
+                   # if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
+
+                    #    self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
+                        #greedyPath = self.sampleGreedyPath(gene, g)
+                     #   greedyPath = self.sampleMaxWeightPath(gene, g)
+                    
+                      #  for unitig in self.assemblyGraphs[gene].unitigs:
+                       #     if unitig in self.mapGeneIdx[gene]:
+                        #        v_idx = self.mapGeneIdx[gene][unitig]
                         
-                        for unitigd in greedyPath:
-                            unitig = unitigd[:-1]
-                            if unitig in self.mapGeneIdx[gene]:
-                                v_idx = self.mapGeneIdx[gene][unitig]
+                           #     self.expPhi[v_idx,g] = 0.
+                            #    self.expPhi2[v_idx,g] = 0.  
                         
-                                self.expPhi[v_idx,g] = 1.
-                                self.expPhi2[v_idx,g] = 1.  
-                    else:
-                        self.logger.warning("Cannot attempt greedy path")
+                        #for unitigd in greedyPath:
+                         #   unitig = unitigd[:-1]
+                          #  if unitig in self.mapGeneIdx[gene]:
+                           #     v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                            #    self.expPhi[v_idx,g] = 1.
+                             #   self.expPhi2[v_idx,g] = 1.  
+                    #else:
+                     #   self.logger.warning("Cannot attempt greedy path")
                         
                     fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
                     if os.path.exists(fgFile):

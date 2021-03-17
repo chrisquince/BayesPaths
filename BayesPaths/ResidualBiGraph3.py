@@ -335,7 +335,12 @@ class ResidualBiGraph():
         for e in self.diGraph.edges:
             self.diGraph[e[0]][e[1]]['flow'] = 0
 
-            
+    def clearCosts(self):
+
+        for e in self.diGraph.edges:
+            self.diGraph[e[0]][e[1]]['weight'] = 0
+
+         
     def addFlowPath(self, path, pflow):
 
         for u,v in zip(path,path[1:]):
@@ -459,7 +464,7 @@ class FlowFitTheta():
         self.thetaStar = np.log((self.etaStar + self.minDelta)/(1.0 - self.etaStar + self.minDelta))
         
         self.biGraph = biGraph
-        
+    
         self.prng = prng
         
         self.V = self.etaStar.shape[0]
@@ -533,7 +538,7 @@ class FlowFitTheta():
 
         deltaF = 1.
 
-        while iter < max_iter or deltaF > minChange:
+        while iter < max_iter and deltaF > minChange:
         
             #first compute phi gradient in matrix format
             
