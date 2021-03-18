@@ -63,6 +63,13 @@ class ResidualBiGraph():
         self.COST_SCALE = COST_SCALE
         
         self.maxCost = 1.
+
+    def __copy__(self):
+        
+        diGraphCopy = self.diGraph.copy()
+
+        return ResidualBiGraph(diGraphCopy,self.sEdges,self.maxFlow,self.INT_SCALE,self.COST_SCALE)
+
      
     @classmethod
     def createFromUnitigGraph(cls,unitigGraph, maxFlow = 1.,INT_SCALE = 1.0e6, COST_SCALE=1.0e5):
@@ -255,6 +262,7 @@ class ResidualBiGraph():
                         fFlow = self.diGraph[outnode][node]['flow'] 
                     
                         self.diGraph[outnode][node]['flow'] = max(0,int(fFlow - epsilon*flow))
+
                 
 
     def deltaF(self, flowDict, epsilon, X, eLambda, mapIdx, Lengths, bKLDivergence = False, bLasso = False, fLambda = 1.):
@@ -463,7 +471,7 @@ class FlowFitTheta():
         
         self.thetaStar = np.log((self.etaStar + self.minDelta)/(1.0 - self.etaStar + self.minDelta))
         
-        self.biGraph = biGraph
+        self.biGraph = biGraph.__copy__()
     
         self.prng = prng
         
@@ -490,8 +498,9 @@ class FlowFitTheta():
             pathg = self.biGraph.getRandomPath(self.prng)
             pathh = self.biGraph.getRandomPath(self.prng)
     
-            biGraph.addFlowPath(pathg, self.biGraph.INT_SCALE)
-           
+            self.biGraph.addFlowPath(pathg, 0.5*self.biGraph.INT_SCALE)
+            self.biGraph.addFlowPath(pathh, 0.5*self.biGraph.INT_SCALE)
+ 
             self.Eta = np.zeros(self.V) 
            
             for u in pathg:
@@ -526,7 +535,7 @@ class FlowFitTheta():
     def _updateTheta(self):
         self.Theta =  np.log((self.Eta + self.minDelta)/(1.0 - self.Eta + self.minDelta))
     
-    def optimiseFlows(self, max_iter = 100, minChange = 1.0e-3):
+    def optimiseFlows(self, max_iter = 100, minChange = 1.0):
     
         iter = 0
         
@@ -538,7 +547,7 @@ class FlowFitTheta():
 
         deltaF = 1.
 
-        while iter < max_iter and deltaF > minChange:
+        while iter < max_iter or deltaF > minChange:
         
             #first compute phi gradient in matrix format
             
