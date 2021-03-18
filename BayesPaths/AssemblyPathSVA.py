@@ -1567,7 +1567,7 @@ class AssemblyPathSVA():
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
                 
-                    raise FileNotFoundError('Debug')
+                    #raise FileNotFoundError('Debug')
                 except FileNotFoundError:
                 
                     tempMap = {}
@@ -1575,7 +1575,7 @@ class AssemblyPathSVA():
                     nU = len(self.unitigFactorNodes[gene])
                     tempEta = np.zeros(nU)
                     
-                    
+                    print('Attempting flow optimisation') 
                     for unitig, factorNode in self.unitigFactorNodes[gene].items():
             
                         if factorNode.P.ndim > 1:
@@ -1592,7 +1592,7 @@ class AssemblyPathSVA():
         
                 
                     flowFitTheta = FlowFitTheta(self.residualBiGraphs[gene], self.prng,tempEta, tempMap, True)
-                    flowFitTheta.optimiseFlows()        
+                    flowFitTheta.optimiseFlows(20, 1.0)        
                     
                     
                     for unitig in self.assemblyGraphs[gene].unitigs:
