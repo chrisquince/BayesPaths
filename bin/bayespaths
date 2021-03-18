@@ -558,6 +558,41 @@ def main(argv):
         
         mean_errs = {}
         
+        minG = max(mean_errs, key=mean_errs.get)
+        
+        if minG == Gopt:
+            Gopt2 = Gopt + 3
+            
+            for g in range(Gopt + 1, Gopt2 + 1):
+                        
+                fold_p = ProcessingPool(processes=no_folds)
+            
+                results = []
+                pargs = []
+                for f in range(no_folds):
+                
+                    M_train = Ms_train[f]
+                    M_test = Ms_test[f]
+                
+                    prng_l = RandomState(args.random_seed + f) 
+                
+                    pargs.append([prng_l, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples, outDir, M_train, M_test])            
+
+                results = fold_p.amap(assGraphWorker,pargs)
+
+                resultsa = list(results.get())
+            
+                for f in range(no_folds):
+                    h = resultsa[f][5]
+                
+                    statsH[h].append((resultsa[f][0],resultsa[f][1],resultsa[f][2],resultsa[f][3],resultsa[f][4],resultsa[f][5]))
+                
+                    assErrors[h].append((g,f,resultsa[f][4])) 
+                
+                    assMapParams[g][f] = (resultsa[f][6], resultsa[f][7], resultsa[f][8], resultsa[f][9], resultsa[f][10], resultsa[f][11])
+        
+         
+        
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
             
