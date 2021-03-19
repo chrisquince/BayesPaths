@@ -557,30 +557,15 @@ def main(argv):
         #import ipdb; ipdb.set_trace()
         
         mean_errs = {}
+        for h in sorted(statsH.keys()):
+            mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+            mean_errs[h] = mean_ll_maximal
         
-        with open(args.outFileStub + "_CV.csv",'w') as f:
-            f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
-
-            for h in sorted(statsH.keys()):
-
-                mean_elbo = np.mean(np.asarray([x[0] for x in statsH[h]]))
-                mean_err = np.mean(np.asarray([x[1] for x in statsH[h]]))
-                mean_ll = np.mean(np.asarray([x[2] for x in statsH[h]]))
-                mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
-                mean_ll_total = np.mean(np.asarray([x[4] for x in statsH[h]]))
-
-                mean_errs[h] = mean_ll_maximal
-
-                oString = str(h) + "," + str(mean_elbo) + "," + str(mean_err) + "," + str(mean_ll) + "," + str(mean_ll_maximal) + "," + str(mean_ll_total)
-
-                f.write(oString + "\n")
-
-                print(oString)
-
+        
         minG = max(mean_errs, key=mean_errs.get)
         
-        if minG == Gopt:
-            Gopt2 = Gopt + 3
+        while minG == Gopt:
+            Gopt2 = Gopt + 1
             
             for g in range(Gopt + 1, Gopt2 + 1):
                         
@@ -610,7 +595,13 @@ def main(argv):
                 
                     assMapParams[g][f] = (resultsa[f][6], resultsa[f][7], resultsa[f][8], resultsa[f][9], resultsa[f][10], resultsa[f][11])
         
-         
+            mean_errs = {}
+            for h in sorted(statsH.keys()):
+                mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+                mean_errs[h] = mean_ll_maximal
+            
+            minG = max(mean_errs, key=mean_errs.get)
+                 
         mean_errs = {}
         with open(args.outFileStub + "_CV2.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
@@ -636,39 +627,41 @@ def main(argv):
         minG = max(mean_errs, key=mean_errs.get)
        
         mainLogger.info("Using " + str(minG) + " strains")
+        
+        if minG != assGraph.G:
  
-        assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
-                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, bARD2 = args.bARD2)
+            assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
+                                            ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
+                                            tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, bARD2 = args.bARD2)
    
-        bestRun = max(assErrors[minG], key = lambda t: t[2])
+            bestRun = max(assErrors[minG], key = lambda t: t[2])
         
-        bestParams = assMapParams[bestRun[0]][bestRun[1]] 
+            bestParams = assMapParams[bestRun[0]][bestRun[1]] 
         
-        assert np.array_equal(assGraph.expGamma.shape, bestParams[0].shape)
-        assGraph.expGamma = np.copy(bestParams[0])
+            assert np.array_equal(assGraph.expGamma.shape, bestParams[0].shape)
+            assGraph.expGamma = np.copy(bestParams[0])
         
-        assert np.array_equal(assGraph.expGamma2.shape, bestParams[1].shape)
-        assGraph.expGamma2 = np.copy(bestParams[1])
+            assert np.array_equal(assGraph.expGamma2.shape, bestParams[1].shape)
+            assGraph.expGamma2 = np.copy(bestParams[1])
         
-        assert np.array_equal(assGraph.expPhi.shape, bestParams[2].shape)
-        assGraph.expPhi = np.copy(bestParams[2])
+            assert np.array_equal(assGraph.expPhi.shape, bestParams[2].shape)
+            assGraph.expPhi = np.copy(bestParams[2])
         
-        assert np.array_equal(assGraph.expPhi2.shape, bestParams[3].shape)
-        assGraph.expPhi2 = np.copy(bestParams[3])
+            assert np.array_equal(assGraph.expPhi2.shape, bestParams[3].shape)
+            assGraph.expPhi2 = np.copy(bestParams[3])
         
-        assert np.array_equal(assGraph.expTheta.shape, bestParams[4].shape)
-        assGraph.expTheta = np.copy(bestParams[4])
+            assert np.array_equal(assGraph.expTheta.shape, bestParams[4].shape)
+            assGraph.expTheta = np.copy(bestParams[4])
         
-        assert np.array_equal(assGraph.expTheta2.shape, bestParams[5].shape)
-        assGraph.expTheta2 = np.copy(bestParams[5])
+            assert np.array_equal(assGraph.expTheta2.shape, bestParams[5].shape)
+            assGraph.expTheta2 = np.copy(bestParams[5])
         
         
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)    
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)    
 
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)        
 
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
     
     mainLogger.info("Write final output to %s ...", args.outFileStub)
