@@ -336,7 +336,6 @@ def main(argv):
         gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
         mainLogger.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
     
-    #import ipdb; ipdb.set_trace()
     (assemblyGraphs,  sink_maps, source_maps, cov_maps) = readGFA(gfaFiles,int(args.kmer_length),cogLengths)
     
     mainLogger.info('Create first AssemblyPathSVA object just for sample selection')
@@ -458,7 +457,6 @@ def main(argv):
 
     #import ipdb; ipdb.set_trace()
      
-   
     if True:
         if args.initType == 'bnmf':
             mainLogger.info("Perform NMF VB initialisation")
@@ -601,7 +599,8 @@ def main(argv):
                 mean_errs[h] = mean_ll_maximal
             
             minG = max(mean_errs, key=mean_errs.get)
-                 
+            Gopt = Gopt2
+         
         mean_errs = {}
         with open(args.outFileStub + "_CV2.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
