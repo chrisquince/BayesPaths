@@ -456,52 +456,52 @@ def main(argv):
             gIter += 1
     
 
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
      
    
-    
-    if args.initType == 'bnmf':
-        mainLogger.info("Perform NMF VB initialisation")
-        assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
-    else:
-        assGraph.initFlowGraph(None, True)
+    if True:
+        if args.initType == 'bnmf':
+            mainLogger.info("Perform NMF VB initialisation")
+            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+        else:
+            assGraph.initFlowGraph(None, True)
                 
-    mainLogger.info("Run %d iter SVI", args.iters)
+        mainLogger.info("Run %d iter SVI", args.iters)
     
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
 
-    mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
+        mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
-    outDir = dir + "/" + stub + "_PreUFilter"
-    mainLogger.info("Write output prior uncertainty filter to %s", outDir)
-    try:
-        os.mkdir(outDir)
-    except FileExistsError:
-        mainLogger.warning('Directory %s not created', outDir)
+        outDir = dir + "/" + stub + "_PreUFilter"
+        mainLogger.info("Write output prior uncertainty filter to %s", outDir)
+        try:
+            os.mkdir(outDir)
+        except FileExistsError:
+            mainLogger.warning('Directory %s not created', outDir)
                 
 
-    assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
+        assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
     
-    mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
+        mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
     
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
   
-    outDir = dir + "/" + stub + "_PostUFilter"
-    mainLogger.info("Write output after uncertainty filter to %s", outDir)
-    try:
-        os.mkdir(outDir)
-    except FileExistsError:
-        mainLogger.warning('Directory %s not created', outDir)
+        outDir = dir + "/" + stub + "_PostUFilter"
+        mainLogger.info("Write output after uncertainty filter to %s", outDir)
+        try:
+            os.mkdir(outDir)
+        except FileExistsError:
+            mainLogger.warning('Directory %s not created', outDir)
   
   
-    assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
+        assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
 
     Gopt = assGraph.G + 1
-
+    
     if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
@@ -558,6 +558,25 @@ def main(argv):
         
         mean_errs = {}
         
+        with open(args.outFileStub + "_CV.csv",'w') as f:
+            f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
+
+            for h in sorted(statsH.keys()):
+
+                mean_elbo = np.mean(np.asarray([x[0] for x in statsH[h]]))
+                mean_err = np.mean(np.asarray([x[1] for x in statsH[h]]))
+                mean_ll = np.mean(np.asarray([x[2] for x in statsH[h]]))
+                mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+                mean_ll_total = np.mean(np.asarray([x[4] for x in statsH[h]]))
+
+                mean_errs[h] = mean_ll_maximal
+
+                oString = str(h) + "," + str(mean_elbo) + "," + str(mean_err) + "," + str(mean_ll) + "," + str(mean_ll_maximal) + "," + str(mean_ll_total)
+
+                f.write(oString + "\n")
+
+                print(oString)
+
         minG = max(mean_errs, key=mean_errs.get)
         
         if minG == Gopt:
@@ -592,8 +611,8 @@ def main(argv):
                     assMapParams[g][f] = (resultsa[f][6], resultsa[f][7], resultsa[f][8], resultsa[f][9], resultsa[f][10], resultsa[f][11])
         
          
-        
-        with open(args.outFileStub + "_CV.csv",'w') as f:
+        mean_errs = {}
+        with open(args.outFileStub + "_CV2.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
             
             for h in sorted(statsH.keys()): 

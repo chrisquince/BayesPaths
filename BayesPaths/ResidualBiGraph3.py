@@ -232,16 +232,22 @@ class ResidualBiGraph():
     
     def updateCosts(self,vCosts,mapIdx):
     
-        self.maxCost = max(np.max(np.abs(vCosts)),MIN_MAX_COST) 
-    
+        self.maxCost = np.max(np.abs(vCosts)) 
+        if self.maxCost < MIN_MAX_COST:
+            self.maxCost = MIN_MAX_COST    
+
+
         for sEdge in self.sEdges:
             
             unitigd = sEdge[1][:-1]
             
             v = mapIdx[unitigd]
             
-            self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int((vCosts[v]*self.COST_SCALE)/self.maxCost)
-    
+            try:
+                self.diGraph[sEdge[0]][sEdge[1]]['weight'] = int((vCosts[v]*self.COST_SCALE)/self.maxCost)
+            except ValueError:
+                self.diGraph[sEdge[0]][sEdge[1]]['weight'] = 0
+
     def updateFlows(self,flowDict, epsilon):
     
         for (node, flows) in flowDict.items():
@@ -545,7 +551,7 @@ class FlowFitTheta():
         
         #self.biGraph.addSourceSinkShunt()
 
-        deltaF = 1.
+        deltaF = minChange*2.
 
         while iter < max_iter or deltaF > minChange:
         
@@ -594,7 +600,7 @@ class FlowFitTheta():
             
             lNLL1 = NLL1
             
-            if iter % 1 == 0:        
+            if iter % 10 == 0:        
                 print(str(iter) + "," + str(NLL1) + "," + str(deltaF))
         
                     
