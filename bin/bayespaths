@@ -256,7 +256,7 @@ def main(argv):
 
     parser.add_argument('--no_ard', dest='ARD', action='store_false')
 
-    parser.add_argument('--no_ard2', dest='bARD2', action='store_false')
+    parser.add_argument('--ard2', dest='bARD2', action='store_true')
 
     parser.add_argument('--no_noise', dest='NOISE', action='store_false')
 
