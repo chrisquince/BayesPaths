@@ -562,7 +562,7 @@ def main(argv):
         
         minG = max(mean_errs, key=mean_errs.get)
         
-        while minG == Gopt:
+        while minG == Gopt and Gopt + 1 <= int(args.strain_number):
             Gopt2 = Gopt + 1
             
             for g in range(Gopt + 1, Gopt2 + 1):
@@ -602,7 +602,7 @@ def main(argv):
             Gopt = Gopt2
          
         mean_errs = {}
-        with open(args.outFileStub + "_CV2.csv",'w') as f:
+        with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
             
             for h in sorted(statsH.keys()): 
