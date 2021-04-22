@@ -53,6 +53,10 @@ from BayesPaths.NMFM import NMF
 from BayesPaths.NMF_VB import NMF_VB
 from BayesPaths.bnmf_vb import bnmf_vb
 
+from BayesPaths.ResidualBiGraph3 import ResidualBiGraph
+from BayesPaths.ResidualBiGraph3 import FlowGraphML
+from BayesPaths.ResidualBiGraph3 import FlowFitTheta
+
 from BayesPaths.AugmentedBiGraph import AugmentedBiGraph
 from BayesPaths.AugmentedBiGraph import gaussianNLL_F
 from BayesPaths.AugmentedBiGraph import gaussianNLL_D
@@ -205,7 +209,7 @@ class AssemblyPathSVA():
                 readLength = 100, epsilon = 1.0e5, epsilonNoise = 1.0e-3, alpha=1.0e-9,beta=1.0e-9,alpha0=1.0e-9,beta0=1.0e-9,
                 no_folds = 10, ARD = False, BIAS = True, NOISE = True, muTheta0 = 1.0, tauTheta0 = 100.0,
                 minIntensity = None, fgExePath="./runfg_source/", tauThresh = 0.1, nNmfIters=10, bLoess = True, bGam = True, tauType='auto', biasType = 'unitig', 
-                working_dir="/tmp", minSumCov = None, fracCov = None):
+                working_dir="/tmp", minSumCov = None, fracCov = None, bARD2 = True):
                 
         self.prng = prng #random state to store
 
@@ -251,6 +255,7 @@ class AssemblyPathSVA():
         self.alpha = alpha
         self.beta  = beta
         self.ARD = ARD
+        self.bARD2 = bARD2
         if self.ARD:
             self.alpha0, self.beta0 = alpha0, beta0
             
@@ -276,7 +281,7 @@ class AssemblyPathSVA():
         self.nBubbles = 0
         self.mapBubbles = {}
         self.augmentedBiGraphs = {}
-        
+        self.residualBiGraphs = {}
         geneList = sorted(assemblyGraphs)
         genesRemove = []  
         for gene in geneList:
@@ -300,7 +305,7 @@ class AssemblyPathSVA():
                 continue
            
             self.augmentedBiGraphs[gene] = AugmentedBiGraph.createFromUnitigGraph(assemblyGraph)
-            
+            self.residualBiGraphs[gene] = ResidualBiGraph.createFromUnitigGraph(assemblyGraph)
             self.genes.append(gene)
            
             unitigsDash = list(unitigFactorNode.keys())
@@ -343,7 +348,8 @@ class AssemblyPathSVA():
         
 
         self.cGraph = AugmentedBiGraph.combineGraphs(self.augmentedBiGraphs, self.genes)
-  
+        
+          
         self.biasMap = {}
         self.nBias = 0
         
@@ -406,6 +412,7 @@ class AssemblyPathSVA():
             
             idx=idx+1
        
+                
         self.XD = np.floor(self.X).astype(int)
         
         sumSourceCovs = Counter()
@@ -470,6 +477,9 @@ class AssemblyPathSVA():
             self.minSumCov = 0.0
             self.fracCov = 0.0
 
+
+        
+        
        # print("Minimum coverage: " + str(self.minSumCov)) 
         if self.minSumCov > 0.0:
 
@@ -480,6 +490,14 @@ class AssemblyPathSVA():
         
         sumCov=np.sum(self.meanSampleCov)
     
+        self.sumCov = sumCov
+        #self.maxFlow = (5.0*sumCov)/self.readLength
+        self.maxFlow = 1.
+        (self.cRGraph, cIdx) = ResidualBiGraph.combineGraphs(self.residualBiGraphs, self.genes,self.mapGeneIdx,self.maxFlow)
+        
+        self.cGeneIdx = {} 
+        self.cGeneIdx['gene'] = cIdx
+        
         
         self.logger.info('Read length used %d', self.readLength)
         
@@ -490,7 +508,7 @@ class AssemblyPathSVA():
         
         self.logger.info('Total sum of sample coverages: %.3f', self.totalCov)
         
-        self.minIntensity =  max(3.0,self.fracCov*self.totalCov)/self.readLength
+        self.minIntensity =  max(1.5,self.fracCov*self.totalCov)/self.readLength
         
         self.logger.info('Set minimum intensity/cov for strain: %.3f,%.3f', self.minIntensity, self.minIntensity*self.readLength)
         
@@ -654,8 +672,13 @@ class AssemblyPathSVA():
        
     def update_lambdak(self,k):   
         ''' Parameter updates lambdak. '''
-        self.alphak_s[k] = self.alpha0 + self.S
-        self.betak_s[k] = self.beta0 + self.expGamma[k,:].sum()
+        
+        if self.bARD2:
+            self.alphak_s[k] = self.alpha0 + 0.5*self.S
+            self.betak_s[k] = self.beta0 + 0.5*self.expGamma2[k,:].sum()
+        else:
+            self.alphak_s[k] = self.alpha0 + self.S
+            self.betak_s[k] = self.beta0 + self.expGamma[k,:].sum()
     
     def update_exp_lambdak(self,g):
         ''' Update expectation lambdak. '''
@@ -1240,10 +1263,18 @@ class AssemblyPathSVA():
         else:
             lamb = 1.0/self.epsilon
             if self.ARD:
-                lamb = self.exp_lambdak[g_idx] 
+                if self.bARD2:
+                    lamb = 0.
+                else:
+                    lamb = self.exp_lambdak[g_idx] 
         
         
         nSum -= lamb
+
+        if self.ARD and self.bARD2:
+            if g_idx != self.G:
+                dSum += self.exp_lambdak[g_idx]
+
 
         muGammaG = nSum/dSum  
         tauGammaG = dSum
@@ -1535,30 +1566,70 @@ class AssemblyPathSVA():
                     fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
                     if os.path.exists(fgFile):
                         os.remove(fgFile)
+                
+                    #raise FileNotFoundError('Debug')
                 except FileNotFoundError:
                 
-                    if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
-
-                        self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
-                        #greedyPath = self.sampleGreedyPath(gene, g)
-                        greedyPath = self.sampleMaxWeightPath(gene, g)
+                    tempMap = {}
+                    vt = 0
+                    nU = len(self.unitigFactorNodes[gene])
+                    tempEta = np.zeros(nU)
                     
-                        for unitig in self.assemblyGraphs[gene].unitigs:
-                            if unitig in self.mapGeneIdx[gene]:
-                                v_idx = self.mapGeneIdx[gene][unitig]
+                    print('Attempting flow optimisation') 
+                    for unitig, factorNode in self.unitigFactorNodes[gene].items():
+            
+                        if factorNode.P.ndim > 1:
+                            dVal = factorNode.P[1][0]
+                        elif factorNode.P.ndim == 1:
+                            dVal = factorNode.P[1]
+                        else:
+                            dVal = 0.5
+        
+                        tempMap[unitig] = vt
+                        tempEta[vt] = dVal
+        
+                        vt += 1
+        
+                
+                    flowFitTheta = FlowFitTheta(self.residualBiGraphs[gene], self.prng,tempEta, tempMap, True)
+                    flowFitTheta.optimiseFlows(20, 1.0)        
+                    
+                    
+                    for unitig in self.assemblyGraphs[gene].unitigs:
+                        if unitig in self.mapGeneIdx[gene]:
+                            v_idx = self.mapGeneIdx[gene][unitig]
                         
-                                self.expPhi[v_idx,g] = 0.
-                                self.expPhi2[v_idx,g] = 0.  
+                            m_idx = tempMap[unitig]
+                            
+                            self.expPhi[v_idx,g] = flowFitTheta.Eta[m_idx]
+                            self.expPhi2[v_idx,g] =  flowFitTheta.Eta[m_idx]*flowFitTheta.Eta[m_idx]
+                    
+                    
+                       
+                    
+                    
+                   # if nx.is_directed_acyclic_graph(self.factorDiGraphs[gene]):
+
+                    #    self.logger.info("Attempt greedy path: " + str(g) + " " + gene + ":" + fgFileStubs[gene])
+                        #greedyPath = self.sampleGreedyPath(gene, g)
+                     #   greedyPath = self.sampleMaxWeightPath(gene, g)
+                    
+                      #  for unitig in self.assemblyGraphs[gene].unitigs:
+                       #     if unitig in self.mapGeneIdx[gene]:
+                        #        v_idx = self.mapGeneIdx[gene][unitig]
                         
-                        for unitigd in greedyPath:
-                            unitig = unitigd[:-1]
-                            if unitig in self.mapGeneIdx[gene]:
-                                v_idx = self.mapGeneIdx[gene][unitig]
+                           #     self.expPhi[v_idx,g] = 0.
+                            #    self.expPhi2[v_idx,g] = 0.  
                         
-                                self.expPhi[v_idx,g] = 1.
-                                self.expPhi2[v_idx,g] = 1.  
-                    else:
-                        self.logger.warning("Cannot attempt greedy path")
+                        #for unitigd in greedyPath:
+                         #   unitig = unitigd[:-1]
+                          #  if unitig in self.mapGeneIdx[gene]:
+                           #     v_idx = self.mapGeneIdx[gene][unitig]
+                        
+                            #    self.expPhi[v_idx,g] = 1.
+                             #   self.expPhi2[v_idx,g] = 1.  
+                    #else:
+                     #   self.logger.warning("Cannot attempt greedy path")
                         
                     fgFile = self.working_dir + "/" + fgFileStubs[gene]  + '.fg'
                     if os.path.exists(fgFile):
@@ -2349,7 +2420,88 @@ class AssemblyPathSVA():
         self.expGamma2 = self.expGamma*self.expGamma
         self.expPhi2 = self.expPhi*self.expPhi  
  
+    
+    def initFlowGraph(self, mask=None, bMaskDegen = False):
+    
+
+        if mask is None:
+            maskF = np.ones((self.V))
+        else:
+            maskF = np.sum(mask,axis=1)
+            maskF[maskF >= 1.] = 1.
+    
+        if bMaskDegen:
+             maskF = maskF*np.any(self.MaskDegen,axis=1)
+    
+        XT = np.sum(self.X,axis=1) #self.maxFlow
+        XN = XT/self.lengths
+        maxN = np.max(XN)
+        XT = XT/maxN
+    
+        self.tgenes = ['gene']
+        self.tCGraph = {}
+        self.tCGraph['gene'] = self.cRGraph
+        flowGraph = FlowGraphML(self.tCGraph, self.tgenes, self.prng, XT, self.lengths,self.cGeneIdx, maskF,False, 0.)    
+    
+        flowGraph.bLasso = False        
         
+        flowGraph.fLambda = 0.
+        
+        flowGraph.optimiseFlows(200,bKLDivergence = False)
+
+        eLambda =  (flowGraph.phi + flowGraph.DELTA) * flowGraph.lengths
+        for v in range(flowGraph.V):
+            print(str(v) + ',' + str(flowGraph.X[v]) + ',' +  str(flowGraph.phi[v]) + ',' + str(eLambda[v]))
+
+        paths = flowGraph.decomposeFlows()
+        minI = 3.0/(maxN*self.readLength)
+        fpaths = {k:v for (k,v) in paths['gene'].items() if v > minI}
+
+        sF = sorted(fpaths.items(), key=lambda x: -x[1])
+         
+        
+        nP = min(len(sF),self.G)
+        
+        for g in range(nP):
+            
+            pathU = sF[g][0]
+        
+            for unitigp in pathU:
+                ud = unitigp[:-1]
+                if ud in flowGraph.mapGeneIdx['gene']: 
+                    vp = flowGraph.mapGeneIdx['gene'][ud]
+        
+                    self.expPhi[vp,g] = 1.
+                    self.expPhi2[vp,g] = 1.  
+        
+        
+        retained = np.ones(self.GDash,dtype=bool)
+        
+        retained[nP:self.G] = False
+        
+        self.filterHaplotypes(retained,20,mask,bMaskDegen)
+        
+        if mask is None:
+            mask = np.ones((self.V, self.S))
+            
+        if bMaskDegen:
+            mask = mask*self.MaskDegen
+        
+        covNMF =  NMF(self.XN,mask,self.G,n_run = 20, prng = self.prng)
+        covNMF.random_initialize()       
+ 
+        covNMF.W = self.expPhi[:,0:self.G]
+        covNMF.factorizeH()
+        
+        #covNMF.train(1000,no_runs = 1)
+        #covNMF.factorizeG()  
+        #covNMF.factorizeP()
+        
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        self.expGamma2 = self.expGamma*self.expGamma       
+#self.expGamma[0:self.G,:] = np.copy(covNMF.Ga
+    
+    
     def initNMF(self, mask = None, bMaskDegen = True):
     
         #import ipdb; ipdb.set_trace()
@@ -2365,29 +2517,29 @@ class AssemblyPathSVA():
         MC = mask[selectV,:]
         LC = self.lengths[selectV]
         
-        #covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
+        covNMF =  NMF(XC,MC,self.G,n_run = 20, prng = self.prng)
         #covNMF = NMF_NNLS(XC,MC,self.G,LC)
-        covNMF = NMF_NNLS(XC,MC,self.G)
+        #covNMF = NMF_NNLS(XC,MC,self.G)
         
-        #covNMF.factorize()
-        #covNMF.factorizeH()
+        covNMF.factorize()
+        covNMF.factorizeH()
         
-        covNMF.train(1000,no_runs = 1)
-        covNMF.factorizeG()  
-        covNMF.factorizeP()
+        #covNMF.train(1000,no_runs = 1)
+        #covNMF.factorizeG()  
+        #covNMF.factorizeP()
         
-        #self.expGamma[0:self.G,:] = np.copy(covNMF.H)
-        self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
+        self.expGamma[0:self.G,:] = np.copy(covNMF.H)
+        #self.expGamma[0:self.G,:] = np.copy(covNMF.Ga)
         self.expGamma2 = self.expGamma*self.expGamma
         
-        #covNMF.factorizeW()       
+        covNMF.factorizeW()       
         
         initEta = np.zeros((self.V,self.G))
         
         u = 0
         for v in range(self.V):
             if selectV[v]:
-                initEta[v,:] = covNMF.P[u,:]
+                initEta[v,:] = covNMF.W[u,:]
                 u += 1
         
         for v, vmap in self.degenSeq.items():

@@ -103,11 +103,16 @@ def assGraphWorker(gargs):
     assGraph = AssemblyPathSVA(prng, logger, assemblyGraphs, source_maps, sink_maps, G, readLength=args.readLength,
                                 ARD=True,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
-                                fracCov = args.frac_cov)
+                                fracCov = args.frac_cov, bARD2 = args.bARD2)
     
     logger.info('Perform NMF VB initialisation')
     
-    assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=True)
+    if args.initType == 'bnmf':
+        assGraph.initNMFVB(M_train, True, bScale = args.scale_nmf, bARD=True)
+    else:
+        assGraph.initFlowGraph(None, True)
+    
+    
                 
     logger.info('Run %d SVI iterations',2*args.iters)
     
@@ -251,6 +256,8 @@ def main(argv):
 
     parser.add_argument('--no_ard', dest='ARD', action='store_false')
 
+    parser.add_argument('--ard2', dest='bARD2', action='store_true')
+
     parser.add_argument('--no_noise', dest='NOISE', action='store_false')
 
     parser.add_argument('-i', '--iters', default=250, type=int,
@@ -291,6 +298,8 @@ def main(argv):
 
     parser.add_argument('--tau_type', dest='tauType', default='auto',choices=['fixed','log','empirical','auto','poisson'],help='Strategy for setting precision')
 
+    parser.add_argument('--init_type', dest='initType', default='bnmf',choices=['bnmf','flow','flownmf'],help='Strategy for setting precision')
+
     parser.add_argument('--nogenedev', dest='bGeneDev', action='store_false')
 
     args = parser.parse_args()
@@ -327,7 +336,6 @@ def main(argv):
         gfaFiles = [args.Gene_dir + "/" + x + ".gfa" for x in cogs]
         mainLogger.info('Processing %d .gfa files from file %s', len(gfaFiles),args.cog_list)
     
-    #import ipdb; ipdb.set_trace()
     (assemblyGraphs,  sink_maps, source_maps, cov_maps) = readGFA(gfaFiles,int(args.kmer_length),cogLengths)
     
     mainLogger.info('Create first AssemblyPathSVA object just for sample selection')
@@ -336,7 +344,7 @@ def main(argv):
                                 readLength=args.readLength, ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, 
                                 fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, 
                                 bGam = args.usegam, tauType = args.tauType, biasType = args.biasType,
-                                fracCov = args.frac_cov)
+                                fracCov = args.frac_cov, bARD2 = args.bARD2)
     
     genesRemove = assGraph.get_outlier_cogs_sample(mCogFilter = 3.0, cogSampleFrac=0.80)
     
@@ -381,7 +389,7 @@ def main(argv):
     mainLogger.info('Create second AssemblyPathSVA object for gene filtering')
     assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsFilter, source_maps_filter, sink_maps_filter, G = args.strain_number, readLength=args.readLength,
                                 ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
+                                tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, bARD2 = args.bARD2)
 
     assemblyGraphs = assemblyGraphsFilter
     source_maps = source_maps_filter
@@ -402,7 +410,12 @@ def main(argv):
         
             mainLogger.info("Perform NMF VB initialisation")
             
-            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+            if args.initType == 'bnmf':
+                assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+            else:
+                assGraph.initFlowGraph(None, True)
+            
+            
             
             mainLogger.info("Run %d iter SVI", args.iters*2)
             
@@ -432,7 +445,7 @@ def main(argv):
 
             assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphsSelect, source_maps_select, sink_maps_select, G = args.strain_number, readLength=args.readLength,
                                         ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
+                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, bARD2 = args.bARD2)
 
 
             assemblyGraphs = assemblyGraphsSelect
@@ -444,46 +457,49 @@ def main(argv):
 
     #import ipdb; ipdb.set_trace()
      
-    mainLogger.info("Perform NMF VB initialisation")
+    if True:
+        if args.initType == 'bnmf':
+            mainLogger.info("Perform NMF VB initialisation")
+            assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+        else:
+            assGraph.initFlowGraph(None, True)
+                
+        mainLogger.info("Run %d iter SVI", args.iters)
     
-    assGraph.initNMFVB(None, True, bScale = args.scale_nmf, bARD=args.ARD)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
 
-    mainLogger.info("Run %d iter SVI", args.iters)
-    
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
+        mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
 
-    mainLogger.info("Run %d iter SVI with relaxed path", args.iters)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
-
-    outDir = dir + "/" + stub + "_PreUFilter"
-    mainLogger.info("Write output prior uncertainty filter to %s", outDir)
-    try:
-        os.mkdir(outDir)
-    except FileExistsError:
-        mainLogger.warning('Directory %s not created', outDir)
+        outDir = dir + "/" + stub + "_PreUFilter"
+        mainLogger.info("Write output prior uncertainty filter to %s", outDir)
+        try:
+            os.mkdir(outDir)
+        except FileExistsError:
+            mainLogger.warning('Directory %s not created', outDir)
                 
 
-    assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
+        assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
     
-    mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
+        mainLogger.info("Run %d iter SVI with uncertainty filtering", args.iters)
     
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,uncertainFactor=args.uncertain_factor)
 
-    assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
   
-    outDir = dir + "/" + stub + "_PostUFilter"
-    mainLogger.info("Write output after uncertainty filter to %s", outDir)
-    try:
-        os.mkdir(outDir)
-    except FileExistsError:
-        mainLogger.warning('Directory %s not created', outDir)
+        outDir = dir + "/" + stub + "_PostUFilter"
+        mainLogger.info("Write output after uncertainty filter to %s", outDir)
+        try:
+            os.mkdir(outDir)
+        except FileExistsError:
+            mainLogger.warning('Directory %s not created', outDir)
   
   
-    assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
+        assGraph.writeOutput(outDir + '/' + stub, False, selectedSamples)
 
     Gopt = assGraph.G + 1
-
+    
     if (args.run_elbow and Gopt >= 5) and assGraph.S >=5:
         no_folds=int(args.nofolds)
         #no_folds2 = 2*no_folds
@@ -539,7 +555,53 @@ def main(argv):
         #import ipdb; ipdb.set_trace()
         
         mean_errs = {}
+        for h in sorted(statsH.keys()):
+            mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+            mean_errs[h] = mean_ll_maximal
         
+        
+        minG = max(mean_errs, key=mean_errs.get)
+        
+        while minG == Gopt and Gopt + 1 <= int(args.strain_number):
+            Gopt2 = Gopt + 1
+            
+            for g in range(Gopt + 1, Gopt2 + 1):
+                        
+                fold_p = ProcessingPool(processes=no_folds)
+            
+                results = []
+                pargs = []
+                for f in range(no_folds):
+                
+                    M_train = Ms_train[f]
+                    M_test = Ms_test[f]
+                
+                    prng_l = RandomState(args.random_seed + f) 
+                
+                    pargs.append([prng_l, assemblyGraphs, source_maps, sink_maps, g, f, args, selectedSamples, outDir, M_train, M_test])            
+
+                results = fold_p.amap(assGraphWorker,pargs)
+
+                resultsa = list(results.get())
+            
+                for f in range(no_folds):
+                    h = resultsa[f][5]
+                
+                    statsH[h].append((resultsa[f][0],resultsa[f][1],resultsa[f][2],resultsa[f][3],resultsa[f][4],resultsa[f][5]))
+                
+                    assErrors[h].append((g,f,resultsa[f][4])) 
+                
+                    assMapParams[g][f] = (resultsa[f][6], resultsa[f][7], resultsa[f][8], resultsa[f][9], resultsa[f][10], resultsa[f][11])
+        
+            mean_errs = {}
+            for h in sorted(statsH.keys()):
+                mean_ll_maximal = np.mean(np.asarray([x[3] for x in statsH[h]]))
+                mean_errs[h] = mean_ll_maximal
+            
+            minG = max(mean_errs, key=mean_errs.get)
+            Gopt = Gopt2
+         
+        mean_errs = {}
         with open(args.outFileStub + "_CV.csv",'w') as f:
             f.write("No_strains,mean_elbo,mean_err,mean_ll,mean_ll_max,mean_ll_total\n")
             
@@ -564,39 +626,41 @@ def main(argv):
         minG = max(mean_errs, key=mean_errs.get)
        
         mainLogger.info("Using " + str(minG) + " strains")
+        
+        if minG != assGraph.G:
  
-        assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
-                                        ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
-                                        tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov)
+            assGraph = AssemblyPathSVA(prng, mainLogger, assemblyGraphs, source_maps, sink_maps, G = minG, readLength=args.readLength,
+                                            ARD=args.ARD,BIAS=args.bias,  NOISE=args.NOISE, fgExePath=args.executable_path, nNmfIters=args.nmf_iters, bLoess = args.loess, bGam = args.usegam, 
+                                            tauType = args.tauType, biasType = args. biasType, fracCov = args.frac_cov, bARD2 = args.bARD2)
    
-        bestRun = max(assErrors[minG], key = lambda t: t[2])
+            bestRun = max(assErrors[minG], key = lambda t: t[2])
         
-        bestParams = assMapParams[bestRun[0]][bestRun[1]] 
+            bestParams = assMapParams[bestRun[0]][bestRun[1]] 
         
-        assert np.array_equal(assGraph.expGamma.shape, bestParams[0].shape)
-        assGraph.expGamma = np.copy(bestParams[0])
+            assert np.array_equal(assGraph.expGamma.shape, bestParams[0].shape)
+            assGraph.expGamma = np.copy(bestParams[0])
         
-        assert np.array_equal(assGraph.expGamma2.shape, bestParams[1].shape)
-        assGraph.expGamma2 = np.copy(bestParams[1])
+            assert np.array_equal(assGraph.expGamma2.shape, bestParams[1].shape)
+            assGraph.expGamma2 = np.copy(bestParams[1])
         
-        assert np.array_equal(assGraph.expPhi.shape, bestParams[2].shape)
-        assGraph.expPhi = np.copy(bestParams[2])
+            assert np.array_equal(assGraph.expPhi.shape, bestParams[2].shape)
+            assGraph.expPhi = np.copy(bestParams[2])
         
-        assert np.array_equal(assGraph.expPhi2.shape, bestParams[3].shape)
-        assGraph.expPhi2 = np.copy(bestParams[3])
+            assert np.array_equal(assGraph.expPhi2.shape, bestParams[3].shape)
+            assGraph.expPhi2 = np.copy(bestParams[3])
         
-        assert np.array_equal(assGraph.expTheta.shape, bestParams[4].shape)
-        assGraph.expTheta = np.copy(bestParams[4])
+            assert np.array_equal(assGraph.expTheta.shape, bestParams[4].shape)
+            assGraph.expTheta = np.copy(bestParams[4])
         
-        assert np.array_equal(assGraph.expTheta2.shape, bestParams[5].shape)
-        assGraph.expTheta2 = np.copy(bestParams[5])
+            assert np.array_equal(assGraph.expTheta2.shape, bestParams[5].shape)
+            assGraph.expTheta2 = np.copy(bestParams[5])
         
         
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)    
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)    
 
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=False,bMulti=True)        
 
-        assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
+            assGraph.update(args.iters, True, None, True, drop_strain=None,relax_path=args.relax_path)
 
     
     mainLogger.info("Write final output to %s ...", args.outFileStub)
