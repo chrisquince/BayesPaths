@@ -373,13 +373,23 @@ class ResidualBiGraph():
     def getRandomPath(self, prng):
     
         node = 'source+'
-        
+        nAttempts = 0
         path = []
-        while node != 'sink+':
+        while node != 'sink+' and nAttempts < 1000:
             succ = list(self.diGraph.successors(node))
             path.append(node)
-            node = prng.choice(succ)
+
+            if len(succ) == 0:
+                path = []
+                node = 'source+'
+                nAttempts += 1
+            else:
+                node = prng.choice(succ)
+        
         path.append(node)
+        
+        if nAttempts == 1000:
+            raise ValueError('Gene appears to have no path source to sink')
         return path
         
     def updatePhi(self, phi, mapIdx):
